@@ -1,0 +1,21 @@
+[package]
+name = "derry"
+version = "0.1.0"
+authors = ["Frenco <hey@frenco.dev>"]
+edition = "2021"
+
+[profile.release]
+strip = true      # Automatically strip symbols from the binary.
+opt-level = "z"   # Optimize for size.
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[lib]
+name = "derry"
+crate-type = ["cdylib"]
+
+[dependencies]
+ctrlc = "3.2.4"
+shared_child = "1.0.0"
+colored = "2.0.0"
