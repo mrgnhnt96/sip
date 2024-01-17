@@ -1,0 +1,3 @@
+dependency_overrides:
+    sip_script_runner:
+        path: ../script_runner
