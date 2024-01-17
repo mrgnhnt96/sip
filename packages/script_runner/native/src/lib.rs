@@ -1,9 +1,10 @@
-use std::process::{Command, exit};
+use colored::*;
+use shared_child::SharedChild;
 use std::ffi::CStr;
 use std::os::raw::c_char;
+use std::process::{Command, exit};
 use std::sync::{Arc, Mutex};
 use ctrlc;
-use colored::Colorize;
 
 #[cfg(target_os = "windows")]
 const SHELL: &str = "cmd";
@@ -19,49 +20,42 @@ const OPTION: &str = "-c";
 
 #[no_mangle]
 pub extern "C" fn run_script(ptr: *const c_char) -> i32 {
-    let c_str = unsafe {
-        assert!(!ptr.is_null());
-        CStr::from_ptr(ptr)
-    };
+    let script = unsafe { CStr::from_ptr(ptr).to_string_lossy() };
 
-    let script = c_str.to_string_lossy();
-
-    // Print the script dimmed
     println!("$ {}", script.dimmed());
     println!("");
 
-    let mut child = Command::new(SHELL);
-    child.arg(OPTION).arg(&*script);
+    let mut binding = Command::new(SHELL);
+    let mut child = binding.arg(OPTION).arg(script.as_ref());
 
-    let child_process = Arc::new(Mutex::new(Some(child.spawn().expect("Error spawning the script"))));
-    let child_process_clone = Arc::clone(&child_process);
+    let child_shared = match SharedChild::spawn(&mut child) {
+        Ok(child) => child,
+        Err(_) => {
+            eprintln!("Failed to spawn the child process");
+            exit(1);
+        }
+    };
 
-    // Set up Ctrl+C handler
+    let child_arc = Arc::new(Mutex::new(Some(child_shared)));
+    let child_arc_clone = Arc::clone(&child_arc);
+
     let _ = ctrlc::set_handler(move || {
-        let mut child_mutex = child_process_clone.lock().unwrap();
-        if let Some(mut child) = child_mutex.take() {
-            child.kill().expect("Error killing the process");
+        if let Some(child) = child_arc_clone.lock().unwrap().take() {
+            if let Err(_) = child.kill() {
+                eprintln!("Failed to kill the process");
+            }
             println!();
         }
         exit(69);
     });
 
-    let status = match child_process.lock().unwrap().as_mut().unwrap().try_wait() {
-        Ok(Some(status)) => status.code().unwrap_or(1),
-        Ok(None) => {
-            match child_process.lock().unwrap().as_mut().unwrap().wait() {
-                Ok(status) => status.code().unwrap_or(1),
-                Err(err) => {
-                    eprintln!("Error waiting for the script: {}", err);
-                    exit(1);
-                }
-            }
-        }
-        Err(err) => {
-            eprintln!("Error checking child process status: {}", err);
+    let status = match child_arc.lock().unwrap().as_mut().unwrap().wait() {
+        Ok(status) => status,
+        Err(_) => {
+            eprintln!("Failed to await the process");
             exit(1);
         }
     };
 
-    status
+    status.code().unwrap_or(1)
 }
