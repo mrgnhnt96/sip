@@ -3,7 +3,8 @@ use shared_child::SharedChild;
 use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::process::Command;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use std::thread;
 
 #[no_mangle]
 pub extern "C" fn run_script(ptr: *const c_char) -> i32 {
@@ -29,22 +30,39 @@ pub extern "C" fn run_script(ptr: *const c_char) -> i32 {
     child.arg(option).arg(script);
     let child_shared =
         SharedChild::spawn(&mut child).expect("Rust: Couldn't spawn the shared_child process!");
-    let child_arc = Arc::new(child_shared);
-    let child_arc_clone = child_arc.clone();
+    let child_arc = Arc::new(Mutex::new(Some(child_shared)));
+    let child_arc_clone = Arc::clone(&child_arc);
 
-    let status = ctrlc::set_handler(move || {
-        child_arc_clone
-            .kill()
-            .expect("Rust: Couldn't kill the process!");
-        println!();
-        std::process::exit(69);
+    let handle = thread::spawn(move || {
+        let _ = ctrlc::set_handler(move || {
+            let mut child_mutex = child_arc.lock().unwrap();
+            if let Some(child) = child_mutex.take() {
+                child
+                    .kill()
+                    .expect("Rust: Couldn't kill the process!");
+                println!();
+            }
+            std::process::exit(69); // Exit code for interrupt
+        });
+
+        let child_status = child_arc_clone.lock().unwrap().as_mut().unwrap().wait();
+        match child_status {
+            Ok(status) => {
+                status.code().unwrap_or(1)
+            }
+            Err(err) => {
+                let err_message = err.to_string();
+                if err_message.contains("No child processes") {
+                    // Child process has already terminated
+                    0
+                } else {
+                    // Other error, return 1
+                    1
+                }
+            }
+        }
     });
 
-    if let Err(err) = status {
-        eprintln!("Rust: Error setting interrupt handler: {}", err);
-        std::process::exit(1);
-    }
-
-    let status = child_arc.wait().expect("Rust: Process can't be awaited");
-    status.code().unwrap_or(1)
+    let result = handle.join().expect("Rust: Thread join failed");
+    result
 }
