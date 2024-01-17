@@ -20,8 +20,10 @@ extension _$ScriptAutoequal on Script {
 // **************************************************************************
 
 Script _$ScriptFromJson(Map json) => Script.defaults(
-      commands:
-          (_readCommand(json, 'commands'))?.map((e) => e).toList() ?? const [],
+      commands: (_readCommand(json, 'commands') as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
       aliases: (json['(aliases)'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toSet() ??
