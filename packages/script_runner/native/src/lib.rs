@@ -1,68 +1,67 @@
-use colored::*;
-use shared_child::SharedChild;
+use std::process::{Command, exit};
 use std::ffi::CStr;
 use std::os::raw::c_char;
-use std::process::Command;
 use std::sync::{Arc, Mutex};
-use std::thread;
+use ctrlc;
+use colored::Colorize;
+
+#[cfg(target_os = "windows")]
+const SHELL: &str = "cmd";
+
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+const SHELL: &str = "bash";
+
+#[cfg(target_os = "windows")]
+const OPTION: &str = "/C";
+
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+const OPTION: &str = "-c";
 
 #[no_mangle]
 pub extern "C" fn run_script(ptr: *const c_char) -> i32 {
-    let c_str = unsafe { CStr::from_ptr(ptr) };
-    let script: String = String::from(c_str.to_str().unwrap());
+    let c_str = unsafe {
+        assert!(!ptr.is_null());
+        CStr::from_ptr(ptr)
+    };
 
+    let script = c_str.to_string_lossy();
+
+    // Print the script dimmed
     println!("$ {}", script.dimmed());
     println!("");
 
-    #[cfg(target_os = "windows")]
-    let shell: &str = "cmd";
+    let mut child = Command::new(SHELL);
+    child.arg(OPTION).arg(&*script);
 
-    #[cfg(not(target_os = "windows"))]
-    let shell: &str = "bash";
+    let child_process = Arc::new(Mutex::new(Some(child.spawn().expect("Error spawning the script"))));
+    let child_process_clone = Arc::clone(&child_process);
 
-    let option: &str = match shell {
-        "cmd" => "/C",
-        "bash" => "-c",
-        _ => "",
-    };
+    // Set up Ctrl+C handler
+    let _ = ctrlc::set_handler(move || {
+        let mut child_mutex = child_process_clone.lock().unwrap();
+        if let Some(mut child) = child_mutex.take() {
+            child.kill().expect("Error killing the process");
+            println!();
+        }
+        exit(69);
+    });
 
-    let mut child = Command::new(shell);
-    child.arg(option).arg(script);
-    let child_shared =
-        SharedChild::spawn(&mut child).expect("Rust: Couldn't spawn the shared_child process!");
-    let child_arc = Arc::new(Mutex::new(Some(child_shared)));
-    let child_arc_clone = Arc::clone(&child_arc);
-
-    let handle = thread::spawn(move || {
-        let _ = ctrlc::set_handler(move || {
-            let mut child_mutex = child_arc.lock().unwrap();
-            if let Some(child) = child_mutex.take() {
-                child
-                    .kill()
-                    .expect("Rust: Couldn't kill the process!");
-                println!();
-            }
-            std::process::exit(69); // Exit code for interrupt
-        });
-
-        let child_status = child_arc_clone.lock().unwrap().as_mut().unwrap().wait();
-        match child_status {
-            Ok(status) => {
-                status.code().unwrap_or(1)
-            }
-            Err(err) => {
-                let err_message = err.to_string();
-                if err_message.contains("No child processes") {
-                    // Child process has already terminated
-                    0
-                } else {
-                    // Other error, return 1
-                    1
+    let status = match child_process.lock().unwrap().as_mut().unwrap().try_wait() {
+        Ok(Some(status)) => status.code().unwrap_or(1),
+        Ok(None) => {
+            match child_process.lock().unwrap().as_mut().unwrap().wait() {
+                Ok(status) => status.code().unwrap_or(1),
+                Err(err) => {
+                    eprintln!("Error waiting for the script: {}", err);
+                    exit(1);
                 }
             }
         }
-    });
+        Err(err) => {
+            eprintln!("Error checking child process status: {}", err);
+            exit(1);
+        }
+    };
 
-    let result = handle.join().expect("Rust: Thread join failed");
-    result
+    status
 }
