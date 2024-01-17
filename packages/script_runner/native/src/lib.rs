@@ -1,8 +1,7 @@
-use colored::*;
 use shared_child::SharedChild;
 use std::ffi::CStr;
-use std::os::raw::c_char;
-use std::process::{Command, exit};
+use std::os::raw::{c_char};
+use std::process::{Command, exit, Stdio};
 use std::sync::{Arc, Mutex};
 use ctrlc;
 
@@ -19,14 +18,15 @@ const OPTION: &str = "/C";
 const OPTION: &str = "-c";
 
 #[no_mangle]
-pub extern "C" fn run_script(ptr: *const c_char) -> i32 {
+pub extern "C" fn run_script(ptr: *const c_char, redirect_stdout: bool) -> i32 {
     let script = unsafe { CStr::from_ptr(ptr).to_string_lossy() };
-
-    println!("$ {}", script.dimmed());
-    println!("");
 
     let mut binding = Command::new(SHELL);
     let mut child = binding.arg(OPTION).arg(script.as_ref());
+
+    if redirect_stdout {
+        child.stdout(Stdio::null());
+    }
 
     let child_shared = match SharedChild::spawn(&mut child) {
         Ok(child) => child,

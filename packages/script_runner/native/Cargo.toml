@@ -18,4 +18,3 @@ crate-type = ["cdylib"]
 [dependencies]
 ctrlc = "3.2.4"
 shared_child = "1.0.0"
-colored = "2.0.0"
