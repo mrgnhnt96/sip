@@ -47,15 +47,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "derry"
-version = "0.1.0"
-dependencies = [
- "colored",
- "ctrlc",
- "shared_child",
-]
-
-[[package]]
 name = "hermit-abi"
 version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -96,6 +87,15 @@ checksum = "b0d94659ad3c2137fef23ae75b03d5241d633f8acded53d672decfa0e6e0caef"
 dependencies = [
  "libc",
  "winapi",
+]
+
+[[package]]
+name = "sip_script_runner"
+version = "0.1.0"
+dependencies = [
+ "colored",
+ "ctrlc",
+ "shared_child",
 ]
 
 [[package]]

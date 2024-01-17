@@ -28,17 +28,22 @@ pub extern "C" fn run_script(ptr: *const c_char) -> i32 {
     let mut child = Command::new(shell);
     child.arg(option).arg(script);
     let child_shared =
-        SharedChild::spawn(&mut child).expect("Rust: Coudln't spawn the shared_child process!");
+        SharedChild::spawn(&mut child).expect("Rust: Couldn't spawn the shared_child process!");
     let child_arc = Arc::new(child_shared);
     let child_arc_clone = child_arc.clone();
 
-    let _ = ctrlc::set_handler(move || {
+    let status = ctrlc::set_handler(move || {
         child_arc_clone
             .kill()
             .expect("Rust: Couldn't kill the process!");
         println!();
+        std::process::exit(69);
     });
-    // .expect("Rust: Error setting interrupt handler!");
+
+    if let Err(err) = status {
+        eprintln!("Rust: Error setting interrupt handler: {}", err);
+        std::process::exit(1);
+    }
 
     let status = child_arc.wait().expect("Rust: Process can't be awaited");
     status.code().unwrap_or(1)

@@ -1,7 +1,7 @@
 [package]
-name = "derry"
+name = "sip_script_runner"
 version = "0.1.0"
-authors = ["Frenco <hey@frenco.dev>"]
+authors = ["Morgan Hunt <mrgnhnt96@gmail.com>"]
 edition = "2021"
 
 [profile.release]
@@ -12,7 +12,7 @@ codegen-units = 1
 panic = "abort"
 
 [lib]
-name = "derry"
+name = "sip_script_runner"
 crate-type = ["cdylib"]
 
 [dependencies]
