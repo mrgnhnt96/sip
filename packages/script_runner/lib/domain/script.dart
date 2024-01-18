@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
-import 'package:sip_script_runner/config/scripts_config.dart';
+import 'package:sip_script_runner/domain/scripts_config.dart';
 import 'package:sip_script_runner/utils/constants.dart';
 
 part 'script.g.dart';

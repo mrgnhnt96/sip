@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:autoequal/autoequal.dart';
 // ignore_for_file: must_be_immutable
-import 'package:sip_script_runner/config/script.dart';
+import 'package:sip_script_runner/domain/script.dart';
 
 part 'scripts_config.g.dart';
 

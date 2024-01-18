@@ -1,5 +1,5 @@
-import 'package:sip_script_runner/config/script.dart';
-import 'package:sip_script_runner/config/scripts_config.dart';
+import 'package:sip_script_runner/domain/script.dart';
+import 'package:sip_script_runner/domain/scripts_config.dart';
 import 'package:sip_script_runner/utils/constants.dart';
 import 'package:test/test.dart';
 
