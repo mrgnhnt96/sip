@@ -5,9 +5,8 @@ import 'package:sip_console/domain/print/print_log.dart';
 import 'package:sip_console/domain/print/print_success.dart';
 import 'package:sip_console/domain/print/print_verbose.dart';
 import 'package:sip_console/domain/print/print_warn.dart';
+import 'package:sip_console/domain/progress/finisher.dart';
 import 'package:sip_console/domain/progress/progress.dart';
-
-typedef Finisher = void Function();
 
 class SipConsole {
   SipConsole({
@@ -17,12 +16,14 @@ class SipConsole {
     Print? verbose,
     Print? log,
     Print? debug,
+    Progress? progress,
   })  : _success = success ?? PrintSuccess(),
         _error = error ?? PrintError(),
         _warn = warn ?? PrintWarn(),
         _verbose = verbose ?? PrintVerbose(),
         _log = log ?? PrintLog(),
-        _debug = debug ?? PrintDebug();
+        _debug = debug ?? PrintDebug(),
+        _progress = progress ?? Progress();
 
   final Print _success;
   final Print _error;
@@ -30,9 +31,10 @@ class SipConsole {
   final Print _verbose;
   final Print _log;
   final Print _debug;
+  final Progress _progress;
 
-  Iterable<Finisher> progress(List<String> entries) {
-    return Progress(entries: entries).start();
+  Finishers progress(Iterable<String> entries) {
+    return _progress.start(entries);
   }
 
   /// Prints an error message.
