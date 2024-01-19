@@ -83,14 +83,14 @@ class ScriptRunManyCommand extends Command<ExitCode> {
     final results = await Future.wait(scriptsToRun);
 
     if (results.any((r) => r != ExitCode.success)) {
-      await finishers.failAll();
+      finishers.failAll();
 
       getIt<SipConsole>().e('One or more scripts failed');
 
       return ExitCode.ioError;
     }
 
-    await finishers.all();
+    finishers.all();
 
     return ExitCode.success;
   }
