@@ -1,30 +1,41 @@
+import 'package:sip_console/domain/progress/finisher.dart';
+import 'package:sip_console/domain/progress/frame.dart';
 import 'package:sip_console/utils/ansi.dart';
 
 class Line {
   Line({
     required this.key,
-    required String frame,
-    required this.doneFrame,
+    required Frame frames,
     required this.text,
-  })  : _frame = frame,
+  })  : _frames = frames,
         _stopwatch = Stopwatch() {
+    _liveFrame = _frames.progress.get(0);
+
     _stopwatch
       ..reset
       ..start();
   }
 
   final int key;
-  String _frame;
+  Frame _frames;
+
+  String _liveFrame = '';
+
   final String text;
-  final String doneFrame;
   bool _done = false;
-  bool isDone() => _done;
+  FinisherType? _finishedType;
   final Stopwatch _stopwatch;
 
-  void updateFrame(String frame) => _frame = frame;
+  bool isDone() => _done;
+  bool get wasSuccessful => _finishedType == FinisherType.success;
+  bool get wasCancelled => _finishedType == FinisherType.cancelled;
+  bool get wasFailure => _finishedType == FinisherType.failure;
 
-  void finish() {
+  void updateFrame(String frame) => _liveFrame = frame;
+
+  void finish(FinisherType type) {
     _done = true;
+    _finishedType = type;
     _stopwatch.stop();
   }
 
@@ -38,6 +49,22 @@ class Line {
     return '${darkGray.wrap('($formattedTime)')}';
   }
 
-  String get loading => '${lightGreen.wrap(_frame)} $text $_time';
-  String get done => '${lightGreen.wrap(doneFrame)} $text $_time';
+  String get success => '${lightGreen.wrap(_frames.success)} $text $_time';
+  String get loading => '${lightGreen.wrap(_liveFrame)} $text $_time';
+  String get failure => '${lightRed.wrap(_frames.failure)} $text $_time';
+  String get cancelled => '${lightYellow.wrap(_frames.cancelled)} $text $_time';
+
+  String get string {
+    if (isDone()) {
+      if (wasSuccessful) {
+        return success;
+      } else if (wasCancelled) {
+        return cancelled;
+      } else if (wasFailure) {
+        return failure;
+      }
+    }
+
+    return loading;
+  }
 }
