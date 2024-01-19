@@ -1,12 +1,17 @@
 import 'package:args/command_runner.dart';
-import 'package:mason_logger/mason_logger.dart';
+import 'package:sip/domain/pubspec_yaml.dart';
 import 'package:sip/domain/scripts_yaml.dart';
-import 'package:sip/setup/dependency_injection.dart';
+import 'package:sip/domain/variables.dart';
+import 'package:sip/utils/exit_code.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
 class ScriptRunCommand extends Command<ExitCode> {
   ScriptRunCommand({
     this.scriptsYaml = const ScriptsYaml(),
+    this.variables = const Variables(
+      pubspecYaml: const PubspecYaml(),
+      scriptsYaml: const ScriptsYaml(),
+    ),
     this.bindings = const BindingsImpl(),
   }) {
     argParser.addFlag(
@@ -24,6 +29,7 @@ class ScriptRunCommand extends Command<ExitCode> {
   }
 
   final ScriptsYaml scriptsYaml;
+  final Variables variables;
   final Bindings bindings;
 
   @override
@@ -33,18 +39,18 @@ class ScriptRunCommand extends Command<ExitCode> {
   String get name => 'run';
 
   @override
-  Future<ExitCode> run() async {
+  Future<ExitCode> run([List<String>? args]) async {
     final content = scriptsYaml.parse();
 
-    final keys = argResults?.rest;
+    final keys = args ?? argResults?.rest;
 
     if (keys == null || keys.isEmpty) {
-      getIt<Logger>().err('Need to run the list option first');
+      print('Need to run the list option first');
       return ExitCode.usage;
     }
 
     if (content == null) {
-      getIt<Logger>().err('No ${ScriptsYaml.fileName} file found');
+      print('No ${ScriptsYaml.fileName} file found');
       return ExitCode.osFile;
     }
 
@@ -53,13 +59,15 @@ class ScriptRunCommand extends Command<ExitCode> {
     final script = scriptConfig.find(keys);
 
     if (script == null) {
-      getIt<Logger>().err('No script found for ${keys.join(' ')}');
+      print('No script found for ${keys.join(' ')}');
       return ExitCode.ioError;
     }
 
     final failFast = argResults?.wasParsed('fail-fast') ?? false;
 
-    for (final command in script.commands) {
+    final resolvedCommands = variables.replace(script, scriptConfig);
+
+    for (final command in resolvedCommands) {
       final code = await bindings.runScript(command);
       print('finished with $code');
 

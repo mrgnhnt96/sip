@@ -1,22 +1,28 @@
 import 'dart:isolate';
 
 import 'package:args/command_runner.dart';
-import 'package:mason_logger/mason_logger.dart';
+import 'package:sip/domain/pubspec_yaml.dart';
 import 'package:sip/domain/scripts_yaml.dart';
-import 'package:sip/setup/dependency_injection.dart';
+import 'package:sip/domain/variables.dart';
+import 'package:sip/utils/exit_code.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
 class ScriptRunManyCommand extends Command<ExitCode> {
   ScriptRunManyCommand({
     this.scriptsYaml = const ScriptsYaml(),
+    this.variables = const Variables(
+      scriptsYaml: const ScriptsYaml(),
+      pubspecYaml: const PubspecYaml(),
+    ),
     this.bindings = const BindingsImpl(),
   });
 
   final ScriptsYaml scriptsYaml;
+  final Variables variables;
   final Bindings bindings;
 
   @override
-  String get description => 'Runs a script';
+  String get description => 'Runs many scripts concurrently';
 
   @override
   String get name => 'run-many';
@@ -28,12 +34,12 @@ class ScriptRunManyCommand extends Command<ExitCode> {
     final keys = argResults?.rest;
 
     if (keys == null || keys.isEmpty) {
-      getIt<Logger>().err('Need to run the list option first');
+      print('Need to run the list option first');
       return ExitCode.usage;
     }
 
     if (content == null) {
-      getIt<Logger>().err('No ${ScriptsYaml.fileName} file found');
+      print('No ${ScriptsYaml.fileName} file found');
       return ExitCode.osFile;
     }
 
@@ -42,13 +48,17 @@ class ScriptRunManyCommand extends Command<ExitCode> {
     final script = scriptConfig.find(keys);
 
     if (script == null) {
-      getIt<Logger>().err('No script found for ${keys.join(' ')}');
+      print('No script found for ${keys.join(' ')}');
       return ExitCode.ioError;
     }
 
     final scriptsToRun = <Future<int>>[];
 
-    for (final command in script.commands) {
+    final resolvedCommands = variables.replace(script, scriptConfig);
+
+    // lets try to change this to a stream controller instead of futures, this way we can
+    // run the scripts as they finish instead of waiting for all of them to finish
+    for (final command in resolvedCommands) {
       scriptsToRun.add(
         Isolate.run(() async {
           final result = await bindings.runScript(command, showOutput: false);
@@ -59,8 +69,6 @@ class ScriptRunManyCommand extends Command<ExitCode> {
         }),
       );
     }
-
-    await Future.delayed(const Duration(seconds: 1));
 
     final results = await Future.wait(scriptsToRun);
 
