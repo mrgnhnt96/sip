@@ -3,6 +3,7 @@ import 'package:json_annotation/json_annotation.dart';
 import 'package:autoequal/autoequal.dart';
 // ignore_for_file: must_be_immutable
 import 'package:sip_script_runner/domain/script.dart';
+import 'package:sip_script_runner/utils/constants.dart';
 
 part 'scripts_config.g.dart';
 
@@ -10,7 +11,18 @@ part 'scripts_config.g.dart';
 class ScriptsConfig extends Equatable {
   ScriptsConfig({
     required this.scripts,
-  });
+  })  : assert(
+          !scripts.containsKey(Keys.scripts),
+          'The key "${Keys.scripts}" cannot exist in the config',
+        ),
+        assert(
+          !scripts.containsKey(Keys.description),
+          'The key "${Keys.description}" cannot exist in the config',
+        ),
+        assert(
+          !scripts.containsKey(Keys.aliases),
+          'The key "${Keys.aliases}" cannot exist in the config',
+        );
 
   factory ScriptsConfig.fromJson(Map json) {
     final scripts = <String, Script>{};
