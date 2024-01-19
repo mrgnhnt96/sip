@@ -24,10 +24,10 @@ Script _$ScriptFromJson(Map json) => Script.defaults(
               ?.map((e) => e as String)
               .toList() ??
           const [],
-      aliases: (json['(aliases)'] as List<dynamic>?)
+      aliases: (_retrieveStrings(json, '(aliases)') as List<dynamic>?)
               ?.map((e) => e as String)
               .toSet() ??
-          {},
+          const {},
       scripts: _readScriptsConfig(json, 'scripts') == null
           ? null
           : ScriptsConfig.fromJson(_readScriptsConfig(json, 'scripts') as Map),

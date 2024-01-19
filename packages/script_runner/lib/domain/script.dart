@@ -22,7 +22,7 @@ class Script extends Equatable {
   });
 
   factory Script.fromJson(dynamic json) {
-    final possibleCommands = _tryReadCommand(json);
+    final possibleCommands = _tryReadListOrString(json);
 
     if (possibleCommands != null) {
       return Script.defaults(commands: possibleCommands);
@@ -35,8 +35,8 @@ class Script extends Equatable {
   final List<String> commands;
 
   @JsonKey(
-    defaultValue: {},
     name: Keys.aliases,
+    readValue: _retrieveStrings,
   )
   final Set<String> aliases;
   @JsonKey(name: Keys.description)
@@ -49,6 +49,16 @@ class Script extends Equatable {
 
   @override
   List<Object?> get props => _$props;
+}
+
+List? _retrieveStrings(Map json, String key) {
+  final data = json[key];
+
+  if (data == null) return null;
+
+  if (data is! List) return null;
+
+  return _tryReadListOrString(data);
 }
 
 Map? _readScriptsConfig(Map json, String key) {
@@ -71,26 +81,28 @@ Map? _readScriptsConfig(Map json, String key) {
 }
 
 List<String>? _readCommand(Map json, String key) {
-  final possibleCommands = _tryReadCommand(json[key]);
-
-  if (possibleCommands != null) {
-    return possibleCommands;
-  }
-
-  final possibleCommand = _tryReadCommand(json[Keys.scripts]);
-
-  if (possibleCommand != null) {
-    return possibleCommand;
-  }
-
-  return null;
+  return _tryReadListOrString(json[key]) ??
+      _tryReadListOrString(json[Keys.scripts]);
 }
 
-List<String>? _tryReadCommand(dynamic json) {
+List<String>? _tryReadListOrString(dynamic json) {
   if (json is String) {
-    return [json];
+    final trimmed = json.trim();
+    if (trimmed.isEmpty) return null;
+
+    return [trimmed];
   } else if (json is List) {
-    return json.cast<String>();
+    final list = <String>[];
+    for (final e in json) {
+      if (e is! String) continue;
+
+      final trimmed = e.trim();
+      if (trimmed.isEmpty) continue;
+
+      list.add(trimmed);
+    }
+
+    return list;
   }
 
   return null;
