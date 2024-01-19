@@ -1,9 +1,9 @@
 import 'package:sip/domain/find_yaml.dart';
 
-class ScriptsYaml extends FindYaml {
-  const ScriptsYaml();
+class PubspecYaml extends FindYaml {
+  const PubspecYaml();
 
-  static const String fileName = 'scripts.yaml';
+  static const String fileName = 'pubspec.yaml';
 
   @override
   Map<String, dynamic>? parse([String? _]) {
