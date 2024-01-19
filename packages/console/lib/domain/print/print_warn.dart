@@ -5,7 +5,7 @@ class PrintWarn extends Print {
   PrintWarn()
       : super(
           group: Group(
-            name: 'Warn',
+            tag: '⚠',
             color: lightYellow,
           ),
         );

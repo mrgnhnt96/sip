@@ -5,7 +5,7 @@ class PrintVerbose extends Print {
   PrintVerbose()
       : super(
           group: Group(
-            name: '[V]',
+            tag: '[V]',
             color: lightBlue,
           ),
         );

@@ -21,21 +21,22 @@ abstract class Print {
 
 class Group {
   const Group({
-    required this.name,
+    required this.tag,
     required this.color,
   });
-  const Group.name(String this.name) : color = null;
+  const Group.name(String this.tag) : color = null;
 
-  final String? name;
+  final String? tag;
   final AnsiCode? color;
 
   @override
   String toString() {
-    final group = '$name:';
+    final tag = this.tag;
+    if (tag == null) return '';
 
     final color = this.color;
-    if (color == null) return group;
+    if (color == null) return tag;
 
-    return color.wrap(group) ?? group;
+    return color.wrap(tag) ?? tag;
   }
 }

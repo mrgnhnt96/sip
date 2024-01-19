@@ -5,7 +5,7 @@ class PrintError extends Print {
   PrintError()
       : super(
           group: Group(
-            name: 'Error',
+            tag: '✖',
             color: lightRed,
           ),
         );

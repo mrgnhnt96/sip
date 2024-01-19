@@ -5,7 +5,7 @@ class PrintSuccess extends Print {
   PrintSuccess()
       : super(
             group: Group(
-          name: 'Success',
+          tag: '✔',
           color: lightGreen,
         ));
 }

@@ -5,7 +5,7 @@ class PrintDebug extends Print {
   PrintDebug()
       : super(
           group: Group(
-            name: '[D]',
+            tag: '[D]',
             color: lightCyan,
           ),
         );
