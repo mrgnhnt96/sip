@@ -1,4 +1,1 @@
-test:
-    - echo "hello world!"
-    - sleep 1
-    - echo "Done!"
+install: cd {projectRoot} && dart pub global activate -s path {projectRoot} --overwrite
