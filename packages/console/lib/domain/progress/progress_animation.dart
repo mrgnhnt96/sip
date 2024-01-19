@@ -1,11 +1,14 @@
 class ProgressAnimation {
   ProgressAnimation({
-    this.frames = _defaultFrames,
-    this.step = const Duration(milliseconds: 100),
-    this.done = '✓',
+    required this.frames,
+    this.stepDuration = const Duration(milliseconds: 100),
   }) : assert(frames.length > 0, 'frames must not be empty');
 
-  static const _defaultFrames = [
+  const ProgressAnimation.defaults()
+      : frames = defaultFrames,
+        stepDuration = const Duration(milliseconds: 100);
+
+  static const defaultFrames = [
     '⠋',
     '⠙',
     '⠹',
@@ -20,7 +23,10 @@ class ProgressAnimation {
 
   /// The list of animation frames.
   final List<String> frames;
-  final String done;
 
-  final Duration step;
+  final Duration stepDuration;
+
+  Future<void> step() => Future<void>.delayed(stepDuration);
+
+  String get(int index) => frames[index % frames.length];
 }

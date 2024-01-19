@@ -2,19 +2,18 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dart_console2/dart_console2.dart';
+import 'package:sip_console/domain/progress/finisher.dart';
+import 'package:sip_console/domain/progress/frame.dart';
 import 'package:sip_console/domain/progress/line.dart';
-import 'package:sip_console/domain/progress/progress_animation.dart';
 import 'package:sip_console/setup/setup.dart';
 import 'package:sip_console/utils/stream_group.dart';
 
 class Progress {
   Progress({
-    required this.entries,
-    ProgressAnimation? animation,
-  }) : animation = animation ?? ProgressAnimation();
+    this.frames = const Frame.defaults(),
+  });
 
-  final List<String> entries;
-  final ProgressAnimation animation;
+  final Frame frames;
 
   Stream<(int, String)> _stream(
     int key, {
@@ -27,18 +26,20 @@ class Progress {
       if (isDone()) {
         keepGoing = false;
       }
-      final frame = animation.frames[i++ % animation.frames.length];
+      final frame = frames.progress.get(i++);
       yield (key, frame);
-      await Future<void>.delayed(animation.step);
+      await frames.progress.step();
     }
+
+    return;
   }
 
-  Iterable<void Function()> start() {
+  Finishers start(Iterable<String> entries) {
+    final mapped = entries.toList().asMap();
     final loadingItems = mapped.entries.map((e) {
       return Line(
         key: e.key,
-        frame: animation.frames[0],
-        doneFrame: animation.done,
+        frames: frames,
         text: e.value,
       );
     }).toList();
@@ -50,16 +51,18 @@ class Progress {
       ),
     );
 
-    final finishers = loadingItems.map((e) => e.finish);
+    final finishers = Finishers(
+      loadingItems.map((e) {
+        return FinisherImpl(finish: e.finish);
+      }),
+    );
 
     final group = StreamGroup.merge(streams);
 
-    _print(group, loadingItems);
+    _print(group, loadingItems).ignore();
 
     return finishers;
   }
-
-  Map<int, String> get mapped => entries.asMap();
 
   Future<void> _print(
     Stream<(int, String)> group,
@@ -69,12 +72,15 @@ class Progress {
 
     console.hideCursor();
 
+    StreamSubscription? stdinListener;
+
     if (console.hasTerminal) {
       stdin
         ..echoMode = false
         ..lineMode = false;
 
-      stdin.listen((event) {
+      stdinListener = stdin.listen((event) {
+        print('event: $event');
         // check if ctrl+c
         const ctrlCCode = 3;
         if (event.first == ctrlCCode) {
@@ -91,14 +97,16 @@ class Progress {
     await for (final (emittedKey, frame) in group) {
       final buffer = StringBuffer();
 
+      if (loadingItems.values.every((e) => e.isDone())) {
+        console.cursorDown();
+        console.showCursor();
+        break;
+      }
+
       loadingItems[emittedKey]!.updateFrame(frame);
 
       for (final item in loadingItems.values) {
-        if (item.isDone()) {
-          buffer.writeln(item.done);
-        } else {
-          buffer.writeln(item.loading);
-        }
+        buffer.writeln(item.string);
 
         if (hasEmitted) {
           console.cursorUp();
@@ -110,5 +118,7 @@ class Progress {
 
       console.write(buffer.toString());
     }
+
+    stdinListener?.cancel();
   }
 }
