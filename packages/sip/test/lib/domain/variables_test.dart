@@ -1,11 +1,10 @@
 import 'package:file/file.dart';
 import 'package:path/path.dart' as path;
-import 'package:sip/domain/pubspec_yaml.dart';
-import 'package:sip/domain/scripts_yaml.dart';
-import 'package:sip/domain/variables.dart';
+import 'package:sip/domain/cwd_impl.dart';
+import 'package:sip/domain/pubspec_yaml_impl.dart';
+import 'package:sip/domain/scripts_yaml_impl.dart';
 import 'package:sip/setup/dependency_injection.dart';
-import 'package:sip_script_runner/domain/script.dart';
-import 'package:sip_script_runner/domain/scripts_config.dart';
+import 'package:sip_script_runner/sip_script_runner.dart';
 import 'package:test/test.dart';
 
 import '../../utils/setup_testing_dependency_injection.dart';
@@ -25,8 +24,9 @@ void main() {
       fs.file(ScriptsYaml.fileName).createSync(recursive: true);
 
       variables = Variables(
-        pubspecYaml: PubspecYaml(),
-        scriptsYaml: ScriptsYaml(),
+        pubspecYaml: PubspecYamlImpl(),
+        scriptsYaml: ScriptsYamlImpl(),
+        cwd: CWDImpl(),
       );
     }
 

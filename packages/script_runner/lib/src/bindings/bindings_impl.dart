@@ -4,7 +4,7 @@ import 'dart:isolate' show Isolate;
 
 import 'package:ffi/ffi.dart' show StringUtf8Pointer, Utf8, malloc;
 import 'package:path/path.dart' as path;
-import 'package:sip_script_runner/src/bindings/bindings.dart';
+import 'package:sip_script_runner/domain/bindings.dart';
 
 typedef RustRunScript = Int32 Function(Pointer<Utf8>, Int8);
 typedef DartRunScript = int Function(Pointer<Utf8>, int);

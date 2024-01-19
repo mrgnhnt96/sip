@@ -1,9 +1,4 @@
-import 'package:file/file.dart';
 import 'package:path/path.dart' as path;
-import 'package:sip/domain/pubspec_yaml.dart';
-import 'package:sip/domain/scripts_yaml.dart';
-import 'package:sip/setup/dependency_injection.dart';
-import 'package:sip_script_runner/domain/script.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 import 'package:sip_script_runner/utils/constants.dart';
 
@@ -11,10 +6,12 @@ class Variables {
   const Variables({
     required this.pubspecYaml,
     required this.scriptsYaml,
+    required this.cwd,
   });
 
   final PubspecYaml pubspecYaml;
   final ScriptsYaml scriptsYaml;
+  final CWD cwd;
 
   Map<String, String?> populate() {
     final variables = <String, String?>{};
@@ -27,7 +24,7 @@ class Variables {
     variables[Keys.scriptsRoot] =
         scriptsRoot == null ? null : path.dirname(scriptsRoot);
 
-    variables[Keys.cwd] = getIt<FileSystem>().currentDirectory.path;
+    variables[Keys.cwd] = cwd.path;
 
     return variables;
   }

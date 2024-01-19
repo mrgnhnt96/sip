@@ -1,3 +1,3 @@
-export 'domain/scripts_config.dart';
-export 'src/bindings/bindings.dart';
+export 'domain/domain.dart';
+export 'domain/bindings.dart';
 export 'src/bindings/bindings_impl.dart';

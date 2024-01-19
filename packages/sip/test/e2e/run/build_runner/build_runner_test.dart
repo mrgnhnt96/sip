@@ -3,8 +3,6 @@ import 'dart:io' as io;
 import 'package:file/file.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip/commands/script_run_command.dart';
-import 'package:sip/domain/pubspec_yaml.dart';
-import 'package:sip/domain/scripts_yaml.dart';
 import 'package:sip/setup/dependency_injection.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 import 'package:test/test.dart';

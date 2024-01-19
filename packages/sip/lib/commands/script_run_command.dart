@@ -1,16 +1,17 @@
 import 'package:args/command_runner.dart';
-import 'package:sip/domain/pubspec_yaml.dart';
-import 'package:sip/domain/scripts_yaml.dart';
-import 'package:sip/domain/variables.dart';
+import 'package:sip/domain/cwd_impl.dart';
+import 'package:sip/domain/pubspec_yaml_impl.dart';
+import 'package:sip/domain/scripts_yaml_impl.dart';
 import 'package:sip/utils/exit_code.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
 class ScriptRunCommand extends Command<ExitCode> {
   ScriptRunCommand({
-    this.scriptsYaml = const ScriptsYaml(),
+    this.scriptsYaml = const ScriptsYamlImpl(),
     this.variables = const Variables(
-      pubspecYaml: const PubspecYaml(),
-      scriptsYaml: const ScriptsYaml(),
+      pubspecYaml: const PubspecYamlImpl(),
+      scriptsYaml: const ScriptsYamlImpl(),
+      cwd: const CWDImpl(),
     ),
     this.bindings = const BindingsImpl(),
   }) {
@@ -28,7 +29,7 @@ class ScriptRunCommand extends Command<ExitCode> {
     );
   }
 
-  final ScriptsYaml scriptsYaml;
+  final ScriptsYamlImpl scriptsYaml;
   final Variables variables;
   final Bindings bindings;
 
@@ -70,11 +71,6 @@ class ScriptRunCommand extends Command<ExitCode> {
     for (final command in resolvedCommands) {
       final code = await bindings.runScript(command);
       print('finished with $code');
-
-      // ctrl + c
-      if (code == 69) {
-        // return ExitCode.software;
-      }
 
       if (code != 0 && failFast) {
         return ExitCode.software;

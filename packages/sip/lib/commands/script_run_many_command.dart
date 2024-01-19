@@ -1,18 +1,19 @@
 import 'dart:isolate';
 
 import 'package:args/command_runner.dart';
-import 'package:sip/domain/pubspec_yaml.dart';
-import 'package:sip/domain/scripts_yaml.dart';
-import 'package:sip/domain/variables.dart';
+import 'package:sip/domain/cwd_impl.dart';
+import 'package:sip/domain/pubspec_yaml_impl.dart';
+import 'package:sip/domain/scripts_yaml_impl.dart';
 import 'package:sip/utils/exit_code.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
 class ScriptRunManyCommand extends Command<ExitCode> {
   ScriptRunManyCommand({
-    this.scriptsYaml = const ScriptsYaml(),
+    this.scriptsYaml = const ScriptsYamlImpl(),
     this.variables = const Variables(
-      scriptsYaml: const ScriptsYaml(),
-      pubspecYaml: const PubspecYaml(),
+      scriptsYaml: const ScriptsYamlImpl(),
+      pubspecYaml: const PubspecYamlImpl(),
+      cwd: const CWDImpl(),
     ),
     this.bindings = const BindingsImpl(),
   });
