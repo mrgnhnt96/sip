@@ -10,7 +10,8 @@ dependencies:
   file: ^7.0.0
   get_it: ^7.6.6
   path: ^1.9.0
-  sip_script_runner:
+  sip_console: ">=0.0.1 <0.1.0"
+  sip_script_runner: ">=0.0.1 <0.1.0"
   yaml: ^3.1.2
 
 dev_dependencies:
