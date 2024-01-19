@@ -71,7 +71,7 @@ void main() {
           );
         });
 
-        test('can parse string and ignores other entries', () {
+        test('can parse string with other entries', () {
           final config = ScriptsConfig.fromJson({
             'test': {
               Keys.scripts: 'echo "test"',
@@ -85,7 +85,21 @@ void main() {
           expect(config.scripts.keys, ['test']);
 
           final first = config.scripts.values.first;
-          expect(first.commands, ['echo "test"']);
+          expect(
+            first,
+            Script.defaults(
+              aliases: {'test'},
+              description: 'this is a test',
+              commands: ['echo "test"'],
+              scripts: ScriptsConfig(
+                scripts: {
+                  'test2': const Script.defaults(
+                    commands: ['echo "test2"'],
+                  ),
+                },
+              ),
+            ),
+          );
         });
       });
 
@@ -160,7 +174,7 @@ void main() {
     });
   });
 
-  group('find script', () {
+  group('#find', () {
     test('can find script by name or alias', () {
       final commands = ['echo "banana"'];
       final config = ScriptsConfig(scripts: {
@@ -201,6 +215,28 @@ void main() {
       });
 
       final script = config.find(['bikini', 'bottom']);
+
+      expect(script, isNotNull);
+      expect(script!.commands, commands);
+    });
+
+    test('finds script when nested scripts exist', () {
+      const commands = ['echo "patrick"'];
+
+      final config = ScriptsConfig(scripts: {
+        'bikini': Script.defaults(
+          commands: commands,
+          scripts: ScriptsConfig(
+            scripts: {
+              'bottom': const Script.defaults(
+                commands: ['echo "bottom"'],
+              ),
+            },
+          ),
+        ),
+      });
+
+      final script = config.find(['bikini']);
 
       expect(script, isNotNull);
       expect(script!.commands, commands);
