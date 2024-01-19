@@ -34,7 +34,7 @@ class Progress {
     return;
   }
 
-  Finishers start(Iterable<String> entries) {
+  Finishers start(Iterable<String> entries, void Function() onFinish) {
     final mapped = entries.toList().asMap();
     final loadingItems = mapped.entries.map((e) {
       return Line(
@@ -59,7 +59,11 @@ class Progress {
 
     final group = StreamGroup.merge(streams);
 
-    _print(group, loadingItems).ignore();
+    _print(
+      group,
+      loadingItems,
+      onFinish,
+    ).ignore();
 
     return finishers;
   }
@@ -67,6 +71,7 @@ class Progress {
   Future<void> _print(
     Stream<(int, String)> group,
     List<Line> items,
+    void Function() onFinish,
   ) async {
     final console = getIt<Console>();
 
@@ -93,17 +98,8 @@ class Progress {
 
     final loadingItems = items.asMap().map((_, e) => MapEntry(e.key, e));
 
-    bool hasEmitted = false;
-    await for (final (emittedKey, frame) in group) {
+    void write(Map<int, Line> items, {bool hasEmitted = true}) {
       final buffer = StringBuffer();
-
-      if (loadingItems.values.every((e) => e.isDone())) {
-        console.cursorDown();
-        console.showCursor();
-        break;
-      }
-
-      loadingItems[emittedKey]!.updateFrame(frame);
 
       for (final item in loadingItems.values) {
         buffer.writeln(item.string);
@@ -114,11 +110,29 @@ class Progress {
         }
       }
 
-      hasEmitted = true;
-
       console.write(buffer.toString());
     }
 
+    write(loadingItems, hasEmitted: false);
+
+    await for (final (emittedKey, frame) in group) {
+      loadingItems[emittedKey]!.updateFrame(frame);
+
+      if (loadingItems.values.every((e) => e.isDone())) {
+        break;
+      }
+
+      write(loadingItems);
+    }
+
+    // write last time to solidify final state
+    await Future.sync(() => write(loadingItems));
+
+    console.cursorDown();
+    console.showCursor();
+
     stdinListener?.cancel();
+
+    onFinish();
   }
 }

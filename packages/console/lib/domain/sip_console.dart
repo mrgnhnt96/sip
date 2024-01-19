@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:sip_console/domain/print/print.dart';
 import 'package:sip_console/domain/print/print_debug.dart';
 import 'package:sip_console/domain/print/print_error.dart';
@@ -33,25 +35,54 @@ class SipConsole {
   final Print _debug;
   final Progress _progress;
 
+  Completer<void>? _completer;
+
   Finishers progress(Iterable<String> entries) {
-    return _progress.start(entries);
+    _completer = Completer<void>();
+    return _progress.start(entries, () {
+      _completer?.complete();
+    });
   }
 
   /// Prints an error message.
-  void e(String message) => _error.print(message);
+  void e(String message) async {
+    await _completer?.future;
+
+    _error.print(message);
+  }
 
   /// Prints a warning message.
-  void w(String message) => _warn.print(message);
+  void w(String message) async {
+    await _completer?.future;
+
+    _warn.print(message);
+  }
 
   /// Prints a verbose message.
-  void v(String message) => _verbose.print(message);
+  void v(String message) async {
+    await _completer?.future;
+
+    _verbose.print(message);
+  }
 
   /// Prints a log message.
-  void l(String message) => _log.print(message);
+  void l(String message) async {
+    await _completer?.future;
+
+    _log.print(message);
+  }
 
   /// Prints a success message.
-  void s(String message) => _success.print(message);
+  void s(String message) async {
+    await _completer?.future;
+
+    _success.print(message);
+  }
 
   /// Prints a debug message.
-  void d(String message) => _debug.print(message);
+  void d(String message) async {
+    await _completer?.future;
+
+    _debug.print(message);
+  }
 }

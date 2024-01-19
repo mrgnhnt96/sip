@@ -39,16 +39,16 @@ class Finishers {
 
   final Iterable<Finisher> finishers;
 
-  void all() {
-    finishers.forEach((e) => e());
+  Future<void> all() async {
+    await Future.microtask(() => finishers.forEach((e) => e()));
   }
 
-  void failAll() {
-    finishers.forEach((e) => e.fail());
+  Future<void> failAll() async {
+    await Future.microtask(() => finishers.forEach((e) => e.fail()));
   }
 
-  void cancelAll() {
-    finishers.forEach((e) => e.cancel());
+  Future<void> cancelAll() async {
+    await Future.microtask(() => finishers.forEach((e) => e.cancel()));
   }
 
   operator [](int index) => finishers.elementAt(index);
