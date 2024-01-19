@@ -2,8 +2,10 @@ import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:sip/commands/script_run_command.dart';
 import 'package:sip/commands/script_run_many_command.dart';
+import 'package:sip/setup/setup.dart';
 import 'package:sip/src/version.dart';
 import 'package:sip/utils/exit_code.dart';
+import 'package:sip_console/sip_console.dart';
 
 class SipRunner extends CommandRunner<ExitCode> {
   SipRunner()
@@ -30,7 +32,7 @@ class SipRunner extends CommandRunner<ExitCode> {
 
       return exitCode;
     } catch (error) {
-      print('$error');
+      getIt<SipConsole>().e('$error');
       return ExitCode.software;
     }
   }
@@ -38,7 +40,7 @@ class SipRunner extends CommandRunner<ExitCode> {
   @override
   Future<ExitCode> runCommand(ArgResults topLevelResults) async {
     if (topLevelResults.wasParsed('version')) {
-      print(packageVersion);
+      getIt<SipConsole>().l(packageVersion);
 
       return ExitCode.success;
     }

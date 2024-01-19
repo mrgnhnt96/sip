@@ -2,7 +2,9 @@ import 'package:args/command_runner.dart';
 import 'package:sip/domain/cwd_impl.dart';
 import 'package:sip/domain/pubspec_yaml_impl.dart';
 import 'package:sip/domain/scripts_yaml_impl.dart';
+import 'package:sip/setup/setup.dart';
 import 'package:sip/utils/exit_code.dart';
+import 'package:sip_console/sip_console.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
 class ScriptRunCommand extends Command<ExitCode> {
@@ -46,12 +48,13 @@ class ScriptRunCommand extends Command<ExitCode> {
     final keys = args ?? argResults?.rest;
 
     if (keys == null || keys.isEmpty) {
-      print('Need to run the list option first');
+      // TODO: print list of available scripts
+      getIt<SipConsole>().d('TODO: print list of available scripts');
       return ExitCode.usage;
     }
 
     if (content == null) {
-      print('No ${ScriptsYaml.fileName} file found');
+      getIt<SipConsole>().e('No ${ScriptsYaml.fileName} file found');
       return ExitCode.osFile;
     }
 
@@ -60,7 +63,7 @@ class ScriptRunCommand extends Command<ExitCode> {
     final script = scriptConfig.find(keys);
 
     if (script == null) {
-      print('No script found for ${keys.join(' ')}');
+      getIt<SipConsole>().e('No script found for ${keys.join(' ')}');
       return ExitCode.ioError;
     }
 
@@ -68,14 +71,20 @@ class ScriptRunCommand extends Command<ExitCode> {
 
     final resolvedCommands = variables.replace(script, scriptConfig);
 
+    // TODO: get name of script
+    getIt<SipConsole>().l('Running ${keys.join(', ')}');
+
     for (final command in resolvedCommands) {
       final code = await bindings.runScript(command);
-      print('finished with $code');
 
       if (code != 0 && failFast) {
+        getIt<SipConsole>().e('Script failed with exit code $code');
         return ExitCode.software;
       }
     }
+
+    // TODO: get name of script
+    getIt<SipConsole>().s('${keys.join(', ')}');
 
     return ExitCode.success;
   }
