@@ -3,7 +3,7 @@ import 'package:path/path.dart' as path;
 import 'package:sip/domain/cwd_impl.dart';
 import 'package:sip/domain/pubspec_yaml_impl.dart';
 import 'package:sip/domain/scripts_yaml_impl.dart';
-import 'package:sip/setup/dependency_injection.dart';
+import 'package:sip/setup/setup.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 import 'package:test/test.dart';
 

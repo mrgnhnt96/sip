@@ -1,5 +1,5 @@
 import 'package:file/file.dart';
-import 'package:sip/setup/dependency_injection.dart';
+import 'package:sip/setup/setup.dart';
 
 class FindFile {
   const FindFile();

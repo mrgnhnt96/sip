@@ -1,9 +1,9 @@
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
-import 'package:sip/setup/dependency_injection.dart';
+import 'package:sip/setup/setup.dart';
 
 void setupTestingDependencyInjection() {
-  setupDependencyInjection();
+  setup();
 
   getIt.registerLazySingleton<FileSystem>(() => MemoryFileSystem());
 }
