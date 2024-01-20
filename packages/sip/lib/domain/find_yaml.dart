@@ -5,7 +5,7 @@ abstract class FindYaml extends FindFile {
   const FindYaml();
 
   Map<String, dynamic>? parse(String fileName) {
-    final content = retrieveContent(fileName);
+    final content = retrieveNearestContent(fileName);
 
     if (content == null) {
       return null;
