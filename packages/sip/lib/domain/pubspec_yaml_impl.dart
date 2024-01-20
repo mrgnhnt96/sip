@@ -15,7 +15,19 @@ class PubspecYamlImpl extends FindYaml implements PubspecYaml {
   }
 
   @override
-  String? retrieveContent([String? _]) {
-    return super.retrieveContent(PubspecYaml.fileName);
+  String? retrieveNearestContent([String? _]) {
+    return super.retrieveNearestContent(PubspecYaml.fileName);
+  }
+
+  @override
+  String? retrieveContent([String? path]) {
+    return super.retrieveContent(path ?? PubspecYaml.fileName);
+  }
+
+  @override
+  Future<Iterable<String>> children(List<String> inPaths) async {
+    final children = await super.childrenOf(PubspecYaml.fileName, inPaths);
+
+    return children;
   }
 }

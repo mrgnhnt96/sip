@@ -15,7 +15,12 @@ class ScriptsYamlImpl extends FindYaml implements ScriptsYaml {
   }
 
   @override
-  String? retrieveContent([String? _]) {
-    return super.retrieveContent(ScriptsYaml.fileName);
+  String? retrieveNearestContent([String? _]) {
+    return super.retrieveNearestContent(ScriptsYaml.fileName);
+  }
+
+  @override
+  String? retrieveContent([String? path]) {
+    return super.retrieveContent(path ?? ScriptsYaml.fileName);
   }
 }
