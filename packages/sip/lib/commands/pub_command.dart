@@ -1,0 +1,15 @@
+import 'package:args/command_runner.dart';
+import 'package:sip/commands/pub_get_command.dart';
+import 'package:sip/utils/exit_code.dart';
+
+class PubCommand extends Command<ExitCode> {
+  PubCommand() {
+    addSubcommand(PubGetCommand());
+  }
+
+  @override
+  String get description => 'Modify dependencies in pubspec.yaml file.';
+
+  @override
+  String get name => 'pub';
+}
