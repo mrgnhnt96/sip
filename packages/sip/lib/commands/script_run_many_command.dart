@@ -1,8 +1,9 @@
-import 'dart:isolate';
-
 import 'package:args/command_runner.dart';
+import 'package:file/file.dart';
+import 'package:path/path.dart' as path;
 import 'package:sip/domain/cwd_impl.dart';
 import 'package:sip/domain/pubspec_yaml_impl.dart';
+import 'package:sip/domain/run_many.dart';
 import 'package:sip/domain/scripts_yaml_impl.dart';
 import 'package:sip/setup/setup.dart';
 import 'package:sip/utils/exit_code.dart';
@@ -56,42 +57,24 @@ class ScriptRunManyCommand extends Command<ExitCode> {
       return ExitCode.ioError;
     }
 
-    final scriptsToRun = <Future<int>>[];
-
     final resolvedCommands = variables.replace(script, scriptConfig);
 
-    final finishers =
-        getIt<SipConsole>().progress(resolvedCommands.map((e) => 'Running'));
+    final nearest = scriptsYaml.nearest();
+    final directory = nearest == null
+        ? getIt<FileSystem>().currentDirectory.path
+        : path.dirname(nearest);
 
-    // lets try to change this to a stream controller instead of futures, this way we can
-    // run the scripts as they finish instead of waiting for all of them to finish
-    for (var i = 0; i < resolvedCommands.length; i++) {
-      final finish = finishers[i];
-      final command = resolvedCommands[i];
+    final runMany = RunMany(
+      commands: resolvedCommands
+          .map((command) => CommandToRun(
+                command: command,
+                label: 'Running',
+                directory: directory,
+              ))
+          .toList(),
+      bindings: bindings,
+    );
 
-      scriptsToRun.add(
-        Isolate.run(() async {
-          final result = await bindings.runScript(command, showOutput: false);
-
-          finish();
-
-          return result;
-        }),
-      );
-    }
-
-    final results = await Future.wait(scriptsToRun);
-
-    if (results.any((r) => r != ExitCode.success)) {
-      finishers.failAll();
-
-      getIt<SipConsole>().e('One or more scripts failed');
-
-      return ExitCode.ioError;
-    }
-
-    finishers.all();
-
-    return ExitCode.success;
+    return runMany.run();
   }
 }
