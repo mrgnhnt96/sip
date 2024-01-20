@@ -8,6 +8,7 @@ import 'package:sip/domain/scripts_yaml_impl.dart';
 import 'package:sip/setup/setup.dart';
 import 'package:sip/utils/exit_code.dart';
 import 'package:sip_console/sip_console.dart';
+import 'package:sip_console/utils/ansi.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
 class ScriptRunManyCommand extends Command<ExitCode> {
@@ -68,7 +69,7 @@ class ScriptRunManyCommand extends Command<ExitCode> {
       commands: resolvedCommands
           .map((command) => CommandToRun(
                 command: command,
-                label: 'Running',
+                label: 'Running "${lightBlue.wrap(command)}"',
                 directory: directory,
               ))
           .toList(),

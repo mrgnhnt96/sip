@@ -1,3 +1,4 @@
+import 'package:dart_console2/dart_console2.dart';
 import 'package:sip_console/domain/print/print.dart';
 import 'package:sip_console/domain/print/print_debug.dart';
 import 'package:sip_console/domain/print/print_error.dart';
@@ -5,6 +6,7 @@ import 'package:sip_console/domain/print/print_log.dart';
 import 'package:sip_console/domain/print/print_success.dart';
 import 'package:sip_console/domain/print/print_verbose.dart';
 import 'package:sip_console/domain/print/print_warn.dart';
+import 'package:sip_console/setup/setup.dart';
 
 class SipConsole {
   SipConsole({
@@ -56,5 +58,11 @@ class SipConsole {
   /// Prints a debug message.
   void d(String message) async {
     _debug.print(message);
+  }
+
+  void emptyLine() async {
+    final console = getIt<Console>();
+
+    console.writeLine('');
   }
 }

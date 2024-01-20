@@ -5,6 +5,7 @@ import 'package:sip/domain/scripts_yaml_impl.dart';
 import 'package:sip/setup/setup.dart';
 import 'package:sip/utils/exit_code.dart';
 import 'package:sip_console/sip_console.dart';
+import 'package:sip_console/utils/ansi.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
 class ScriptRunCommand extends Command<ExitCode> {
@@ -71,20 +72,19 @@ class ScriptRunCommand extends Command<ExitCode> {
 
     final resolvedCommands = variables.replace(script, scriptConfig);
 
-    // TODO: get name of script
-    getIt<SipConsole>().l('Running ${keys.join(', ')}');
+    getIt<SipConsole>().emptyLine();
 
     for (final command in resolvedCommands) {
+      getIt<SipConsole>().l('${darkGray.wrap(command)}');
       final code = await bindings.runScript(command);
 
       if (code != 0 && failFast) {
         getIt<SipConsole>().e('Script failed with exit code $code');
         return ExitCode.software;
       }
-    }
 
-    // TODO: get name of script
-    getIt<SipConsole>().s('${keys.join(', ')}');
+      getIt<SipConsole>().emptyLine();
+    }
 
     return ExitCode.success;
   }
