@@ -3,5 +3,5 @@ abstract interface class PubspecYaml {
 
   String? nearest();
 
-  Future<Iterable<String>> children(List<String> inPaths);
+  Future<Iterable<String>> children();
 }

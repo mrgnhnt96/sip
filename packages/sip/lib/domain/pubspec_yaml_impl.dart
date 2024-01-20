@@ -25,8 +25,8 @@ class PubspecYamlImpl extends FindYaml implements PubspecYaml {
   }
 
   @override
-  Future<Iterable<String>> children(List<String> inPaths) async {
-    final children = await super.childrenOf(PubspecYaml.fileName, inPaths);
+  Future<Iterable<String>> children() async {
+    final children = await super.childrenOf(PubspecYaml.fileName);
 
     return children;
   }

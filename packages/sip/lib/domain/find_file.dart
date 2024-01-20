@@ -63,38 +63,21 @@ class FindFile {
   /// directory and traverses down
   Future<List<String>> childrenOf(
     String fileName,
-    List<String>? inPaths,
   ) async {
     final children = <String>[];
 
-    var directories = <Directory>[];
+    final directory = getIt<FileSystem>().currentDirectory;
 
-    if (inPaths != null && inPaths.isNotEmpty) {
-      for (final inPath in inPaths) {
-        final directory = getIt<FileSystem>().directory(inPath);
-        if (!directory.existsSync()) continue;
+    final entities = directory.list(
+      followLinks: false,
+      recursive: true,
+    );
 
-        directories.add(directory);
-      }
-    } else {
-      final directory = getIt<FileSystem>().currentDirectory;
-      directories = [directory];
-    }
+    await for (final entity in entities) {
+      if (entity is! File) continue;
+      if (entity.basename != fileName) continue;
 
-    final recursive = directories.length == 1;
-
-    for (final directory in directories) {
-      final entities = directory.list(
-        followLinks: false,
-        recursive: recursive,
-      );
-
-      await for (final entity in entities) {
-        if (entity is! File) continue;
-        if (entity.basename != fileName) continue;
-
-        children.add(entity.path);
-      }
+      children.add(entity.path);
     }
 
     return children;
