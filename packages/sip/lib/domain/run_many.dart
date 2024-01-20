@@ -10,19 +10,24 @@ class RunMany {
   const RunMany({
     required this.commands,
     this.bindings = const BindingsImpl(),
-    this.maxConcurrent = 10,
+    this.maxConcurrent,
   });
 
   final Bindings bindings;
   final List<CommandToRun> commands;
-  final int maxConcurrent;
+  final int? maxConcurrent;
 
   Future<ExitCode> run() async {
     final groups = <List<CommandToRun>>[];
 
-    while (commands.isNotEmpty) {
-      groups.add(commands.take(maxConcurrent).toList());
-      commands.removeRange(0, min(commands.length, maxConcurrent));
+    final maxConcurrent = this.maxConcurrent;
+    if (maxConcurrent != null) {
+      while (commands.isNotEmpty) {
+        groups.add(commands.take(maxConcurrent).toList());
+        commands.removeRange(0, min(commands.length, maxConcurrent));
+      }
+    } else {
+      groups.add(commands);
     }
 
     for (final group in groups) {
