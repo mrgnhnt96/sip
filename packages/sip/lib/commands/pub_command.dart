@@ -1,10 +1,12 @@
 import 'package:args/command_runner.dart';
 import 'package:sip/commands/pub_get_command.dart';
+import 'package:sip/commands/pub_upgrade_command.dart';
 import 'package:sip/utils/exit_code.dart';
 
 class PubCommand extends Command<ExitCode> {
   PubCommand() {
     addSubcommand(PubGetCommand());
+    addSubcommand(PubUpgradeCommand());
   }
 
   @override
