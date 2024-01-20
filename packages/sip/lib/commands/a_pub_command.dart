@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
 import 'package:path/path.dart' as path;
@@ -12,7 +14,7 @@ import 'package:sip_console/utils/ansi.dart';
 import 'package:sip_script_runner/domain/pubspec_lock.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
-class APubGetCommand extends Command<ExitCode> {
+abstract class APubGetCommand extends Command<ExitCode> {
   APubGetCommand({
     PubspecLock pubspecLock = const PubspecLockImpl(),
     PubspecYaml pubspecYaml = const PubspecYamlImpl(),
@@ -24,13 +26,9 @@ class APubGetCommand extends Command<ExitCode> {
       defaultsTo: false,
       help: 'Run command recursively in all subdirectories.',
     );
-
-    argParser.addMultiOption(
-      'in',
-      abbr: 'i',
-      help: 'Run command in the specified directories.',
-    );
   }
+
+  List<String> get pubFlags => [];
 
   final PubspecLock _pubspecLock;
   final PubspecYaml _pubspecYaml;
@@ -39,13 +37,10 @@ class APubGetCommand extends Command<ExitCode> {
   String get description => '$name dependencies for pubspec.yaml files';
 
   @override
-  String get name => 'get';
-
-  @override
   Future<ExitCode> run() async {
     final recursive = argResults!['recursive'] as bool;
 
-    final allPubspecs = [];
+    final allPubspecs = <String>{};
 
     final pubspecPath = _pubspecYaml.nearest();
     if (pubspecPath != null) {
@@ -53,9 +48,7 @@ class APubGetCommand extends Command<ExitCode> {
     }
 
     if (recursive) {
-      final inPaths = argResults!['in'] as List<String>;
-
-      final children = await _pubspecYaml.children(inPaths);
+      final children = await _pubspecYaml.children();
 
       allPubspecs.addAll(children);
     } else if (allPubspecs.isEmpty) {
@@ -69,19 +62,19 @@ class APubGetCommand extends Command<ExitCode> {
 
       final nestedLock = _pubspecLock.findIn(directory);
 
-      var command = 'dart pub $name';
+      var tool = 'dart';
 
       if (nestedLock != null) {
         final contents = FindFile().retrieveContent(nestedLock);
 
         if (contents != null && contents.contains(RegExp('flutter'))) {
-          command = 'flutter pub $name';
+          tool = 'flutter';
         }
       } else {
         final contents = FindFile().retrieveContent(pubspec);
 
         if (contents != null && contents.contains('flutter')) {
-          command = 'flutter pub $name';
+          tool = 'flutter';
         }
       }
 
@@ -90,12 +83,21 @@ class APubGetCommand extends Command<ExitCode> {
         from: getIt<FileSystem>().currentDirectory.path,
       );
 
+      final padding = max('flutter'.length, tool.length) - tool.length;
+      var toolString = '($tool)';
+      toolString = darkGray.wrap(toolString) ?? toolString;
+      toolString = toolString.padRight(padding + toolString.length);
+
+      var pathString = './$relativeDir';
+      pathString = lightYellow.wrap(pathString) ?? pathString;
+
+      final label = '$toolString $pathString';
+
       commands.add(
         CommandToRun(
-          command: command,
+          command: '$tool pub $name ${pubFlags.join(' ')}',
           directory: directory,
-          label:
-              'Running "${lightCyan.wrap(command)}" in ${lightYellow.wrap('./$relativeDir')}',
+          label: label,
         ),
       );
     }
@@ -103,6 +105,9 @@ class APubGetCommand extends Command<ExitCode> {
     final runMany = RunMany(
       commands: commands,
     );
+
+    getIt<SipConsole>()
+        .l('Running ${lightCyan.wrap('pub $name ${pubFlags.join(' ')}')}');
 
     return runMany.run();
   }
