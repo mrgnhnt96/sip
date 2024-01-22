@@ -1,6 +1,7 @@
 import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
 import 'package:path/path.dart' as path;
+import 'package:sip/domain/command_to_run.dart';
 import 'package:sip/domain/cwd_impl.dart';
 import 'package:sip/domain/pubspec_yaml_impl.dart';
 import 'package:sip/domain/run_many_scripts.dart';
@@ -70,7 +71,7 @@ class ScriptRunManyCommand extends Command<ExitCode> {
           .map((command) => CommandToRun(
                 command: command,
                 label: 'Running "${lightBlue.wrap(command)}"',
-                directory: directory,
+                workingDirectory: directory,
               ))
           .toList(),
       bindings: bindings,

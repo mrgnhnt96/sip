@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
 import 'package:path/path.dart' as path;
+import 'package:sip/domain/command_to_run.dart';
 import 'package:sip/domain/find_file.dart';
 import 'package:sip/domain/pubspec_lock_impl.dart';
 import 'package:sip/domain/pubspec_yaml_impl.dart';
@@ -18,8 +19,10 @@ abstract class APubGetCommand extends Command<ExitCode> {
   APubGetCommand({
     PubspecLock pubspecLock = const PubspecLockImpl(),
     PubspecYaml pubspecYaml = const PubspecYamlImpl(),
+    Bindings bindings = const BindingsImpl(),
   })  : _pubspecLock = pubspecLock,
-        _pubspecYaml = pubspecYaml {
+        _pubspecYaml = pubspecYaml,
+        _bindings = bindings {
     argParser.addFlag(
       'recursive',
       abbr: 'r',
@@ -32,6 +35,7 @@ abstract class APubGetCommand extends Command<ExitCode> {
 
   final PubspecLock _pubspecLock;
   final PubspecYaml _pubspecYaml;
+  final Bindings _bindings;
 
   @override
   String get description => '$name dependencies for pubspec.yaml files';
@@ -96,7 +100,7 @@ abstract class APubGetCommand extends Command<ExitCode> {
       commands.add(
         CommandToRun(
           command: '$tool pub $name ${pubFlags.join(' ')}',
-          directory: directory,
+          workingDirectory: directory,
           label: label,
         ),
       );
@@ -104,6 +108,7 @@ abstract class APubGetCommand extends Command<ExitCode> {
 
     final runMany = RunManyScripts(
       commands: commands,
+      bindings: _bindings,
     );
 
     getIt<SipConsole>()

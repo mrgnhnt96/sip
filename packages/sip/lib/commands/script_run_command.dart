@@ -1,5 +1,8 @@
 import 'package:args/command_runner.dart';
+import 'package:file/file.dart';
+import 'package:sip/domain/command_to_run.dart';
 import 'package:sip/domain/cwd_impl.dart';
+import 'package:sip/domain/run_one_script.dart';
 import 'package:sip_script_runner/domain/optional_flags.dart';
 import 'package:sip/domain/pubspec_yaml_impl.dart';
 import 'package:sip/domain/scripts_yaml_impl.dart';
@@ -8,6 +11,7 @@ import 'package:sip/utils/exit_code.dart';
 import 'package:sip_console/sip_console.dart';
 import 'package:sip_console/utils/ansi.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
+import 'package:path/path.dart' as path;
 
 class ScriptRunCommand extends Command<ExitCode> {
   ScriptRunCommand({
@@ -45,8 +49,6 @@ class ScriptRunCommand extends Command<ExitCode> {
 
   @override
   Future<ExitCode> run([List<String>? args]) async {
-    final content = scriptsYaml.parse();
-
     final restOfArgs = args ?? argResults?.rest;
 
     if (restOfArgs == null || restOfArgs.isEmpty) {
@@ -63,6 +65,7 @@ class ScriptRunCommand extends Command<ExitCode> {
 
     final optionalFlags = OptionalFlags(flagArgs);
 
+    final content = scriptsYaml.parse();
     if (content == null) {
       getIt<SipConsole>().e('No ${ScriptsYaml.fileName} file found');
       return ExitCode.osFile;
@@ -87,12 +90,23 @@ class ScriptRunCommand extends Command<ExitCode> {
 
     getIt<SipConsole>().emptyLine();
 
-    for (final command in resolvedCommands) {
-      getIt<SipConsole>().l('${darkGray.wrap(command)}');
-      final code = await bindings.runScript(command);
+    final nearest = scriptsYaml.nearest();
+    final directory = nearest == null
+        ? getIt<FileSystem>().currentDirectory.path
+        : path.dirname(nearest);
 
-      if (code != 0 && failFast) {
-        getIt<SipConsole>().e('Script failed with exit code $code');
+    for (final command in resolvedCommands) {
+      final result = await RunOneScript(
+        command: CommandToRun(
+          command: command,
+          label: '${darkGray.wrap(command)}',
+          workingDirectory: directory,
+        ),
+        bindings: bindings,
+      ).run();
+
+      if (result != ExitCode.success && failFast) {
+        getIt<SipConsole>().e('Script failed with exit code ${result.code}');
         return ExitCode.software;
       }
 
