@@ -1,0 +1,5 @@
+install:
+  (command): cd packages/sip && sip run install
+  (description): Install `sip` globally
+  (aliases):
+    - i
