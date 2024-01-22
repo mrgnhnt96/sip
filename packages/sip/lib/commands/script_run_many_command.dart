@@ -1,6 +1,7 @@
 import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
 import 'package:path/path.dart' as path;
+import 'package:sip/commands/list_command.dart';
 import 'package:sip/domain/command_to_run.dart';
 import 'package:sip/domain/cwd_impl.dart';
 import 'package:sip/domain/pubspec_yaml_impl.dart';
@@ -10,6 +11,7 @@ import 'package:sip/setup/setup.dart';
 import 'package:sip/utils/exit_code.dart';
 import 'package:sip/utils/exit_code_extensions.dart';
 import 'package:sip_console/sip_console.dart';
+import 'package:sip_console/utils/ansi.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
 class ScriptRunManyCommand extends Command<ExitCode> {
@@ -40,9 +42,14 @@ class ScriptRunManyCommand extends Command<ExitCode> {
     final keys = argResults?.rest;
 
     if (keys == null || keys.isEmpty) {
-      // TODO: print list of available scripts
-      getIt<SipConsole>().d('TODO: print list of available scripts');
-      return ExitCode.usage;
+      const warning = 'No script specified, choose from:';
+      getIt<SipConsole>()
+        ..w(lightYellow.wrap(warning) ?? warning)
+        ..emptyLine();
+
+      return ListCommand(
+        scriptsYaml: scriptsYaml,
+      ).run();
     }
 
     if (content == null) {
