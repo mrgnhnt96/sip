@@ -1,5 +1,6 @@
 import 'package:args/command_runner.dart';
 import 'package:sip/domain/cwd_impl.dart';
+import 'package:sip_script_runner/domain/optional_flags.dart';
 import 'package:sip/domain/pubspec_yaml_impl.dart';
 import 'package:sip/domain/scripts_yaml_impl.dart';
 import 'package:sip/setup/setup.dart';
@@ -46,13 +47,21 @@ class ScriptRunCommand extends Command<ExitCode> {
   Future<ExitCode> run([List<String>? args]) async {
     final content = scriptsYaml.parse();
 
-    final keys = args ?? argResults?.rest;
+    final restOfArgs = args ?? argResults?.rest;
 
-    if (keys == null || keys.isEmpty) {
+    if (restOfArgs == null || restOfArgs.isEmpty) {
       // TODO: print list of available scripts
       getIt<SipConsole>().d('TODO: print list of available scripts');
       return ExitCode.usage;
     }
+
+    final flagStartAt = restOfArgs.indexWhere((e) => e.startsWith('-'));
+    final scriptKeys =
+        restOfArgs.sublist(0, flagStartAt == -1 ? null : flagStartAt);
+    final flagArgs =
+        flagStartAt == -1 ? <String>[] : restOfArgs.sublist(flagStartAt);
+
+    final optionalFlags = OptionalFlags(flagArgs);
 
     if (content == null) {
       getIt<SipConsole>().e('No ${ScriptsYaml.fileName} file found');
@@ -61,16 +70,20 @@ class ScriptRunCommand extends Command<ExitCode> {
 
     final scriptConfig = ScriptsConfig.fromJson(content);
 
-    final script = scriptConfig.find(keys);
+    final script = scriptConfig.find(scriptKeys);
 
     if (script == null) {
-      getIt<SipConsole>().e('No script found for ${keys.join(' ')}');
+      getIt<SipConsole>().e('No script found for ${scriptKeys.join(' ')}');
       return ExitCode.ioError;
     }
 
     final failFast = argResults?.wasParsed('fail-fast') ?? false;
 
-    final resolvedCommands = variables.replace(script, scriptConfig);
+    final resolvedCommands = variables.replace(
+      script,
+      scriptConfig,
+      flags: optionalFlags,
+    );
 
     getIt<SipConsole>().emptyLine();
 
