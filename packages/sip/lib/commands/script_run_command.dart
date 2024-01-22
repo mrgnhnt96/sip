@@ -1,17 +1,17 @@
 import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
+import 'package:path/path.dart' as path;
 import 'package:sip/domain/command_to_run.dart';
 import 'package:sip/domain/cwd_impl.dart';
-import 'package:sip/domain/run_one_script.dart';
-import 'package:sip_script_runner/domain/optional_flags.dart';
 import 'package:sip/domain/pubspec_yaml_impl.dart';
+import 'package:sip/domain/run_one_script.dart';
 import 'package:sip/domain/scripts_yaml_impl.dart';
 import 'package:sip/setup/setup.dart';
 import 'package:sip/utils/exit_code.dart';
+import 'package:sip/utils/exit_code_extensions.dart';
 import 'package:sip_console/sip_console.dart';
-import 'package:sip_console/utils/ansi.dart';
+import 'package:sip_script_runner/domain/optional_flags.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
-import 'package:path/path.dart' as path;
 
 class ScriptRunCommand extends Command<ExitCode> {
   ScriptRunCommand({
@@ -96,21 +96,21 @@ class ScriptRunCommand extends Command<ExitCode> {
         : path.dirname(nearest);
 
     for (final command in resolvedCommands) {
+      final commandToRun = CommandToRun(
+        command: command,
+        label: command,
+        workingDirectory: directory,
+      );
+
       final result = await RunOneScript(
-        command: CommandToRun(
-          command: command,
-          label: command,
-          workingDirectory: directory,
-        ),
+        command: commandToRun,
         bindings: bindings,
       ).run();
 
       getIt<SipConsole>().emptyLine();
 
       if (result != ExitCode.success && failFast) {
-        getIt<SipConsole>().e(
-          'Script failed with exit code ${lightRed.wrap(result.toString())}',
-        );
+        result.printError(commandToRun);
 
         return result;
       }

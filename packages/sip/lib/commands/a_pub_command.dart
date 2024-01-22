@@ -10,6 +10,7 @@ import 'package:sip/domain/pubspec_yaml_impl.dart';
 import 'package:sip/domain/run_many_scripts.dart';
 import 'package:sip/setup/setup.dart';
 import 'package:sip/utils/exit_code.dart';
+import 'package:sip/utils/exit_code_extensions.dart';
 import 'package:sip_console/sip_console.dart';
 import 'package:sip_console/utils/ansi.dart';
 import 'package:sip_script_runner/domain/pubspec_lock.dart';
@@ -116,18 +117,8 @@ abstract class APubGetCommand extends Command<ExitCode> {
 
     final exitCodes = await runMany.run();
 
-    bool failed = false;
-    for (var i = 0; i < exitCodes.length; i++) {
-      final exitCode = exitCodes[i];
+    exitCodes.printErrors(commands);
 
-      if (exitCode != ExitCode.success) {
-        failed = true;
-        getIt<SipConsole>().e(
-          'Script ${lightCyan.wrap('${commands[i].label}')} failed with exit code $exitCode',
-        );
-      }
-    }
-
-    return failed ? ExitCode.software : ExitCode.success;
+    return exitCodes.exitCode;
   }
 }
