@@ -6,7 +6,7 @@ import 'package:path/path.dart' as path;
 import 'package:sip/domain/find_file.dart';
 import 'package:sip/domain/pubspec_lock_impl.dart';
 import 'package:sip/domain/pubspec_yaml_impl.dart';
-import 'package:sip/domain/run_many.dart';
+import 'package:sip/domain/run_many_scripts.dart';
 import 'package:sip/setup/setup.dart';
 import 'package:sip/utils/exit_code.dart';
 import 'package:sip_console/sip_console.dart';
@@ -102,7 +102,7 @@ abstract class APubGetCommand extends Command<ExitCode> {
       );
     }
 
-    final runMany = RunMany(
+    final runMany = RunManyScripts(
       commands: commands,
     );
 

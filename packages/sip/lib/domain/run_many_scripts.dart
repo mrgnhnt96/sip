@@ -6,8 +6,8 @@ import 'package:sip/utils/exit_code.dart';
 import 'package:sip_console/sip_console.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
-class RunMany {
-  const RunMany({
+class RunManyScripts {
+  const RunManyScripts({
     required this.commands,
     this.bindings = const BindingsImpl(),
     this.maxConcurrent,

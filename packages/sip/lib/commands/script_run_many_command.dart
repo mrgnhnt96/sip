@@ -3,7 +3,7 @@ import 'package:file/file.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip/domain/cwd_impl.dart';
 import 'package:sip/domain/pubspec_yaml_impl.dart';
-import 'package:sip/domain/run_many.dart';
+import 'package:sip/domain/run_many_scripts.dart';
 import 'package:sip/domain/scripts_yaml_impl.dart';
 import 'package:sip/setup/setup.dart';
 import 'package:sip/utils/exit_code.dart';
@@ -65,7 +65,7 @@ class ScriptRunManyCommand extends Command<ExitCode> {
         ? getIt<FileSystem>().currentDirectory.path
         : path.dirname(nearest);
 
-    final runMany = RunMany(
+    final runMany = RunManyScripts(
       commands: resolvedCommands
           .map((command) => CommandToRun(
                 command: command,
