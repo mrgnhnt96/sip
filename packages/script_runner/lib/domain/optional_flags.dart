@@ -20,6 +20,13 @@ class OptionalFlags {
         }
 
         consecutive.clear();
+
+        if (flag.contains('=')) {
+          final split = flag.split('=');
+
+          parsed[split.first] = flag;
+          continue;
+        }
       }
 
       consecutive.add(flag);

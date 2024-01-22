@@ -28,5 +28,17 @@ void main() {
       expect(flags['-f'], '-f one');
       expect(flags['-v'], '-v two');
     });
+
+    test('flag when value is provided immediately', () {
+      final flags = OptionalFlags(['--coverage=coverage']);
+
+      expect(flags['--coverage'], '--coverage=coverage');
+    });
+
+    test('ignores = in other flags', () {
+      final flags = OptionalFlags(['--coverage', 'coverage=coverage']);
+
+      expect(flags['--coverage'], '--coverage coverage=coverage');
+    });
   });
 }
