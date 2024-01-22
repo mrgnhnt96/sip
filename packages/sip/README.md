@@ -5,7 +5,7 @@ A command-line tool to handle mono-repos in dart/flutter
 ## Installation
 
 ```bash
-pub global activate sip
+dart pub global activate sip
 ```
 
 ## Usage
