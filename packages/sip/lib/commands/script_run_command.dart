@@ -37,7 +37,7 @@ class ScriptRunCommand extends Command<ExitCode> {
     );
   }
 
-  final ScriptsYamlImpl scriptsYaml;
+  final ScriptsYaml scriptsYaml;
   final Variables variables;
   final Bindings bindings;
 
@@ -68,7 +68,7 @@ class ScriptRunCommand extends Command<ExitCode> {
     final content = scriptsYaml.parse();
     if (content == null) {
       getIt<SipConsole>().e('No ${ScriptsYaml.fileName} file found');
-      return ExitCode.osFile;
+      return ExitCode.noInput;
     }
 
     final scriptConfig = ScriptsConfig.fromJson(content);
@@ -77,7 +77,7 @@ class ScriptRunCommand extends Command<ExitCode> {
 
     if (script == null) {
       getIt<SipConsole>().e('No script found for ${scriptKeys.join(' ')}');
-      return ExitCode.ioError;
+      return ExitCode.config;
     }
 
     final failFast = argResults?.wasParsed('fail-fast') ?? false;

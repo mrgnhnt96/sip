@@ -112,6 +112,39 @@ class ScriptsConfig extends Equatable {
 
   Map<String, dynamic> toJson() => _$ScriptsConfigToJson(this);
 
+  String listOut({
+    StringBuffer? buffer,
+    String? prefix,
+    String Function(String)? wrapKey,
+    String Function(String)? wrapMeta,
+  }) {
+    buffer ??= StringBuffer();
+    wrapKey ??= (key) => key;
+    wrapMeta ??= (meta) => meta;
+    if (prefix == null) {
+      buffer.writeln('scripts.yaml:');
+    }
+
+    prefix ??= '   ';
+
+    final keys = scripts.keys.toList();
+    bool isLast(String key) => keys.last == key;
+
+    for (final MapEntry(:key, value: script) in scripts.entries) {
+      final entry = isLast(key) ? '└──' : '├──';
+      buffer.writeln('$prefix$entry${wrapKey(key)}');
+      final sub = isLast(key) ? '   ' : '│  ';
+      script.listOut(
+        buffer: buffer,
+        prefix: prefix + sub,
+        wrapKey: wrapKey,
+        wrapMeta: wrapMeta,
+      );
+    }
+
+    return buffer.toString();
+  }
+
   @override
   List<Object?> get props => _$props;
 }

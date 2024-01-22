@@ -47,7 +47,7 @@ class ScriptRunManyCommand extends Command<ExitCode> {
 
     if (content == null) {
       getIt<SipConsole>().e('No script found for ${keys.join(' ')}');
-      return ExitCode.osFile;
+      return ExitCode.noInput;
     }
 
     final scriptConfig = ScriptsConfig.fromJson(content);
@@ -56,7 +56,7 @@ class ScriptRunManyCommand extends Command<ExitCode> {
 
     if (script == null) {
       getIt<SipConsole>().e('No script found for ${keys.join(' ')}');
-      return ExitCode.ioError;
+      return ExitCode.config;
     }
 
     final resolvedCommands = variables.replace(script, scriptConfig);

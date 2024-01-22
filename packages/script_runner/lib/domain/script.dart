@@ -47,6 +47,36 @@ class Script extends Equatable {
 
   Map<String, dynamic> toJson() => _$ScriptToJson(this);
 
+  String listOut({
+    StringBuffer? buffer,
+    String? prefix,
+    String Function(String)? wrapKey,
+    String Function(String)? wrapMeta,
+  }) {
+    buffer ??= StringBuffer();
+    wrapKey ??= (key) => key;
+    wrapMeta ??= (meta) => meta;
+    prefix ??= '';
+
+    if (description != null) {
+      buffer.writeln('${prefix}${wrapMeta(Keys.description)}: $description');
+    }
+
+    if (aliases.isNotEmpty) {
+      buffer
+          .writeln('${prefix}${wrapMeta(Keys.aliases)}: ${aliases.join(', ')}');
+    }
+
+    scripts?.listOut(
+      buffer: buffer,
+      prefix: '$prefix  ',
+      wrapKey: wrapKey,
+      wrapMeta: wrapMeta,
+    );
+
+    return buffer.toString();
+  }
+
   @override
   List<Object?> get props => _$props;
 }

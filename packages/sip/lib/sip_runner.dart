@@ -1,5 +1,6 @@
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
+import 'package:sip/commands/list_command.dart';
 import 'package:sip/commands/pub_command.dart';
 import 'package:sip/commands/script_run_command.dart';
 import 'package:sip/commands/script_run_many_command.dart';
@@ -23,6 +24,7 @@ class SipRunner extends CommandRunner<ExitCode> {
     addCommand(ScriptRunCommand());
     addCommand(ScriptRunManyCommand());
     addCommand(PubCommand());
+    addCommand(ListCommand());
   }
 
   @override
