@@ -28,19 +28,6 @@ class RunManyScripts {
       (e) => RunOneScript(command: e, bindings: bindings).run(),
     ));
 
-    for (var i = 0; i < exitCodes.length; i++) {
-      final exitCode = exitCodes[i];
-
-      if (exitCode != ExitCode.success) {
-        getIt<SipConsole>().e(
-          'Script (${i + 1}) ${lightCyan.wrap('${commands[i].label}')} failed '
-          'with exit code ${lightRed.wrap(exitCode.toString())}',
-        );
-      }
-    }
-
-    getIt<SipConsole>().emptyLine();
-
     return exitCodes;
   }
 }
