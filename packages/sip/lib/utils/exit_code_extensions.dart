@@ -41,7 +41,7 @@ extension ExitCodeX on ExitCode {
     final indexString = index == null ? '' : '(${index + 1}) ';
     getIt<SipConsole>().e(
       'Script $indexString${lightCyan.wrap(label)} '
-      'failed with exit code $this',
+      'failed with exit code ${lightRed.wrap(this.toString())}',
     );
   }
 
