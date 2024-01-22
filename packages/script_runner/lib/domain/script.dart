@@ -97,7 +97,7 @@ Map? _readScriptsConfig(Map json, String key) {
   // remove all other keys
   mutableMap.removeWhere(
     (key, _) => {
-      Keys.scripts,
+      Keys.command,
       Keys.aliases,
       Keys.description,
     }.contains(key),
@@ -112,7 +112,7 @@ Map? _readScriptsConfig(Map json, String key) {
 
 List<String>? _readCommand(Map json, String key) {
   return _tryReadListOrString(json[key]) ??
-      _tryReadListOrString(json[Keys.scripts]);
+      _tryReadListOrString(json[Keys.command]);
 }
 
 List<String>? _tryReadListOrString(dynamic json) {

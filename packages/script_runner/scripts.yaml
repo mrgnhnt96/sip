@@ -1,23 +1,23 @@
 build_runner:
-  (scripts): cd {projectRoot} && dart run build_runner
+  (command): cd {projectRoot} && dart run build_runner
   (aliases):
     - b
     - br
   clean:
-    (scripts): "{$build_runner} clean"
+    (command): "{$build_runner} clean"
     (aliases):
       - c
       - cl
 
   build:
-    (scripts): |
+    (command): |
       {$build_runner:clean};
       {$build_runner} build --delete-conflicting-outputs
     (aliases):
       - b
       -
   watch:
-    (scripts): |
+    (command): |
       {$build_runner:clean}
       {$build_runner} watch --delete-conflicting-outputs
     (aliases):

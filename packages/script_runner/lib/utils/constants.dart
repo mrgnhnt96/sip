@@ -7,7 +7,7 @@ class Keys {
 
   static const String aliases = '(aliases)';
   static const String description = '(description)';
-  static const String scripts = '(scripts)';
+  static const String command = '(command)';
 
   static const String projectRoot = 'projectRoot';
   static const String scriptsRoot = 'scriptsRoot';

@@ -74,7 +74,7 @@ void main() {
         test('can parse string with other entries', () {
           final config = ScriptsConfig.fromJson({
             'test': {
-              Keys.scripts: 'echo "test"',
+              Keys.command: 'echo "test"',
               Keys.description: 'this is a test',
               Keys.aliases: ['test'],
               'test2': 'echo "test2"',
@@ -107,7 +107,7 @@ void main() {
         test('can parse empty script', () {
           final config = ScriptsConfig.fromJson({
             'test': {
-              Keys.scripts: null,
+              Keys.command: null,
             },
           });
 
@@ -124,7 +124,7 @@ void main() {
         test('can parse string script', () {
           final config = ScriptsConfig.fromJson({
             'test': {
-              Keys.scripts: 'echo "test"',
+              Keys.command: 'echo "test"',
             },
           });
 
@@ -141,7 +141,7 @@ void main() {
         test('can parse list string script', () {
           final config = ScriptsConfig.fromJson({
             'test': {
-              Keys.scripts: [
+              Keys.command: [
                 'echo "test"',
                 'echo "test2"',
               ],

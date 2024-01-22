@@ -12,8 +12,8 @@ class ScriptsConfig extends Equatable {
   ScriptsConfig({
     required this.scripts,
   })  : assert(
-          !scripts.containsKey(Keys.scripts),
-          'The key "${Keys.scripts}" cannot exist in the config',
+          !scripts.containsKey(Keys.command),
+          'The key "${Keys.command}" cannot exist in the config',
         ),
         assert(
           !scripts.containsKey(Keys.description),

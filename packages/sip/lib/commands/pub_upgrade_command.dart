@@ -51,4 +51,7 @@ class PubUpgradeCommand extends APubGetCommand {
         if (argResults!['tighten'] as bool) '--tighten',
         if (argResults!['major-versions'] as bool) '--major-versions',
       ];
+
+  @override
+  List<String> get aliases => ['up', 'update'];
 }
