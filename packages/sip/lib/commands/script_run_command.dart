@@ -99,18 +99,21 @@ class ScriptRunCommand extends Command<ExitCode> {
       final result = await RunOneScript(
         command: CommandToRun(
           command: command,
-          label: '${darkGray.wrap(command)}',
+          label: command,
           workingDirectory: directory,
         ),
         bindings: bindings,
       ).run();
 
-      if (result != ExitCode.success && failFast) {
-        getIt<SipConsole>().e('Script failed with exit code ${result.code}');
-        return ExitCode.software;
-      }
-
       getIt<SipConsole>().emptyLine();
+
+      if (result != ExitCode.success && failFast) {
+        getIt<SipConsole>().e(
+          'Script failed with exit code ${lightRed.wrap(result.toString())}',
+        );
+
+        return result;
+      }
     }
 
     return ExitCode.success;

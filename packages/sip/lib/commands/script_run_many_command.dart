@@ -66,17 +66,37 @@ class ScriptRunManyCommand extends Command<ExitCode> {
         ? getIt<FileSystem>().currentDirectory.path
         : path.dirname(nearest);
 
+    getIt<SipConsole>()
+        .w('Running ${resolvedCommands.length} scripts concurrently');
+
+    final commands = resolvedCommands
+        .map((command) => CommandToRun(
+              command: command,
+              label: command,
+              workingDirectory: directory,
+            ))
+        .toList();
+
     final runMany = RunManyScripts(
-      commands: resolvedCommands
-          .map((command) => CommandToRun(
-                command: command,
-                label: 'Running "${lightBlue.wrap(command)}"',
-                workingDirectory: directory,
-              ))
-          .toList(),
+      commands: commands,
       bindings: bindings,
     );
 
-    return runMany.run();
+    final exitCodes = await runMany.run();
+
+    bool failed = false;
+    for (var i = 0; i < exitCodes.length; i++) {
+      final exitCode = exitCodes[i];
+
+      if (exitCode != ExitCode.success) {
+        failed = true;
+        getIt<SipConsole>().e(
+          'Script (${i + 1}) ${lightCyan.wrap('${commands[i].label}')} failed '
+          'with exit code ${lightRed.wrap(exitCode.toString())}',
+        );
+      }
+    }
+
+    return failed ? ExitCode.software : ExitCode.success;
   }
 }

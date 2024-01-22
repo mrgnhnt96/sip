@@ -114,6 +114,20 @@ abstract class APubGetCommand extends Command<ExitCode> {
     getIt<SipConsole>()
         .l('Running ${lightCyan.wrap('pub $name ${pubFlags.join(' ')}')}');
 
-    return runMany.run();
+    final exitCodes = await runMany.run();
+
+    bool failed = false;
+    for (var i = 0; i < exitCodes.length; i++) {
+      final exitCode = exitCodes[i];
+
+      if (exitCode != ExitCode.success) {
+        failed = true;
+        getIt<SipConsole>().e(
+          'Script ${lightCyan.wrap('${commands[i].label}')} failed with exit code $exitCode',
+        );
+      }
+    }
+
+    return failed ? ExitCode.software : ExitCode.success;
   }
 }
