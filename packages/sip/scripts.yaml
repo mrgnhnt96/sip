@@ -1,1 +1,1 @@
-install: cd {projectRoot} && dart pub global activate -s path {projectRoot} --overwrite
+install: dart pub global activate -s path . --overwrite
