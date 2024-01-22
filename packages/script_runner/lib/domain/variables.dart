@@ -1,4 +1,5 @@
 import 'package:path/path.dart' as path;
+import 'package:sip_script_runner/domain/optional_flags.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 import 'package:sip_script_runner/utils/constants.dart';
 
@@ -29,12 +30,16 @@ class Variables {
     return variables;
   }
 
-  List<String> replace(Script script, ScriptsConfig config) {
+  List<String> replace(
+    Script script,
+    ScriptsConfig config, {
+    OptionalFlags? flags,
+  }) {
     final commands = <String>[];
 
-    final variablePattern = RegExp(r'(?:{)(\$?\w+(?::\w+)*)(?:})');
+    final variablePattern = RegExp(r'(?:{)(\$?-{0,2}\w+(?::\w+)*)(?:})');
 
-    late final Map<String, String?> variables = populate();
+    late final Map<String, String?> sipVariables = populate();
 
     for (final command in script.commands) {
       final matches = variablePattern.allMatches(command);
@@ -80,19 +85,29 @@ class Variables {
           continue;
         }
 
-        final value = variables[variable];
+        if (variable.startsWith('-')) {
+          // flags are optional, so if not found, replace with empty string
+          final flag = flags?[variable] ?? '';
 
-        if (value == null) {
+          resolvedCommands =
+              resolvedCommands.map((e) => e.replaceAll(match.group(0)!, flag));
+
+          continue;
+        }
+
+        final sipValue = sipVariables[variable];
+
+        if (sipValue == null) {
           throw Exception('Variable $variable is not defined');
         }
 
-        resolvedCommands =
-            resolvedCommands.map((e) => e.replaceAll(match.group(0)!, value));
+        resolvedCommands = resolvedCommands
+            .map((e) => e.replaceAll(match.group(0)!, sipValue));
       }
 
       commands.addAll(resolvedCommands);
     }
 
-    return commands;
+    return commands.map((e) => e.trim()).toList();
   }
 }
