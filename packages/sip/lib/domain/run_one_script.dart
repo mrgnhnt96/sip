@@ -11,10 +11,12 @@ class RunOneScript {
   const RunOneScript({
     required this.command,
     required this.bindings,
+    this.showOutput = true,
   });
 
   final CommandToRun command;
   final Bindings bindings;
+  final bool showOutput;
 
   Future<ExitCode> run() async {
     getIt<SipConsole>().l(darkGray.wrap(command.label) ?? command.label);
@@ -22,7 +24,7 @@ class RunOneScript {
     final result = await Isolate.run(() async {
       final cmd = 'cd ${command.workingDirectory} && ${command.command}';
 
-      final result = await bindings.runScript(cmd, showOutput: false);
+      final result = await bindings.runScript(cmd, showOutput: showOutput);
 
       return result;
     });
