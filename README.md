@@ -82,7 +82,7 @@ $ sip pub get
 
 #### Recursively
 
-`sip pub get --recursive` runs `pub get` in all children directories containing a `pubspec.yaml` file, _recursively_.
+`sip pub get --recursive` runs `pub get` in all children directories containing a `pubspec.yaml` file, **_concurrently_**.
 
 **_Note:_** A pubspec.yaml file does not need to be present in the current working directory.
 
