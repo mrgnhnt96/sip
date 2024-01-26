@@ -1,4 +1,5 @@
 import 'package:sip_script_runner/sip_script_runner.dart';
+import 'package:sip_script_runner/utils/constants.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -45,6 +46,43 @@ void main() {
           script.listOut(),
           startsWith('  + script1'),
         );
+      });
+    });
+
+    group('serialization', () {
+      group('aliases', () {
+        test('can parse string', () {
+          final script = Script.fromJson(
+            'script',
+            {
+              Keys.aliases: 'alias1',
+            },
+          );
+
+          expect(script.aliases, equals({'alias1'}));
+        });
+
+        test('can parse list', () {
+          final script = Script.fromJson(
+            'script',
+            {
+              Keys.aliases: ['alias1', 'alias2'],
+            },
+          );
+
+          expect(script.aliases, equals({'alias1', 'alias2'}));
+        });
+
+        test('can parse null', () {
+          final script = Script.fromJson(
+            'script',
+            {
+              Keys.aliases: null,
+            },
+          );
+
+          expect(script.aliases, equals([]));
+        });
       });
     });
   });

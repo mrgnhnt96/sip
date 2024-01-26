@@ -91,13 +91,7 @@ class Script extends Equatable {
 }
 
 List? _retrieveStrings(Map json, String key) {
-  final data = json[key];
-
-  if (data == null) return null;
-
-  if (data is! List) return null;
-
-  return _tryReadListOrString(data);
+  return _tryReadListOrString(json[key]);
 }
 
 Map? _readScriptsConfig(Map json, String key) {
