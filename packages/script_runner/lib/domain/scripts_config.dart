@@ -46,7 +46,10 @@ class ScriptsConfig extends Equatable {
         continue;
       }
 
-      scripts[key] = Script.fromJson(entry.value);
+      scripts[key] = Script.fromJson(
+        key,
+        entry.value,
+      );
     }
 
     return ScriptsConfig(scripts: scripts);

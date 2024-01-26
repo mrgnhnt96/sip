@@ -65,4 +65,10 @@ class SipConsole {
 
     console.writeLine('');
   }
+
+  void print(String message) async {
+    final console = getIt<Console>();
+
+    console.writeLine(message);
+  }
 }

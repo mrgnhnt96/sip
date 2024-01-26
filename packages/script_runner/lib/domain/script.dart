@@ -8,6 +8,7 @@ part 'script.g.dart';
 @JsonSerializable(constructor: 'defaults')
 class Script extends Equatable {
   const Script({
+    required this.name,
     required this.commands,
     required this.aliases,
     required this.description,
@@ -15,21 +16,29 @@ class Script extends Equatable {
   });
 
   const Script.defaults({
+    this.name = '',
     this.commands = const [],
     this.aliases = const {},
     this.scripts,
     this.description,
   });
 
-  factory Script.fromJson(dynamic json) {
+  factory Script.fromJson(String name, dynamic json) {
     final possibleCommands = _tryReadListOrString(json);
 
     if (possibleCommands != null) {
-      return Script.defaults(commands: possibleCommands);
+      return Script.defaults(name: name, commands: possibleCommands);
     }
 
-    return _$ScriptFromJson(json);
+    return _$ScriptFromJson(
+      {
+        ...json,
+        'name': name,
+      },
+    );
   }
+
+  final String name;
 
   @JsonKey(readValue: _readCommand)
   final List<String> commands;

@@ -8,6 +8,7 @@ part of 'script.dart';
 
 extension _$ScriptAutoequal on Script {
   List<Object?> get _$props => [
+        name,
         commands,
         aliases,
         description,
@@ -20,6 +21,7 @@ extension _$ScriptAutoequal on Script {
 // **************************************************************************
 
 Script _$ScriptFromJson(Map json) => Script.defaults(
+      name: json['name'] as String? ?? '',
       commands: (_readCommand(json, 'commands') as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
@@ -35,6 +37,7 @@ Script _$ScriptFromJson(Map json) => Script.defaults(
     );
 
 Map<String, dynamic> _$ScriptToJson(Script instance) => <String, dynamic>{
+      'name': instance.name,
       'commands': instance.commands,
       '(aliases)': instance.aliases.toList(),
       '(description)': instance.description,
