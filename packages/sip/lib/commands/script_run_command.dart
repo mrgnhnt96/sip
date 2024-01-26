@@ -51,6 +51,9 @@ class ScriptRunCommand extends Command<ExitCode> {
   String get name => 'run';
 
   @override
+  List<String> get aliases => ['r'];
+
+  @override
   Future<ExitCode> run([List<String>? args]) async {
     final restOfArgs = args ?? argResults?.rest;
 
