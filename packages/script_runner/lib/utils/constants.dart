@@ -8,6 +8,8 @@ class Keys {
   static const String aliases = '(aliases)';
   static const String description = '(description)';
   static const String command = '(command)';
+
+  static const List<String> values = [aliases, description, command];
 }
 
 class Vars {

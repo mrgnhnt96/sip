@@ -26,16 +26,27 @@ class ScriptsConfig extends Equatable {
 
   factory ScriptsConfig.fromJson(Map json) {
     final scripts = <String, Script>{};
+
+    final allowedKeys = RegExp(r'^[a-z0-9_.\-]+$');
+
     for (final entry in json.entries) {
-      if (entry.key.contains(' ')) {
+      final key = entry.key.trim();
+      if (key.contains(' ')) {
         print(
-          'The script name "${entry.key}" contains spaces, '
+          'The script name "${key}" contains spaces, '
           'which is not allowed.',
         );
         continue;
       }
 
-      scripts[entry.key] = Script.fromJson(entry.value);
+      if (!allowedKeys.hasMatch(key) && !Keys.values.contains(key)) {
+        print(
+          'The script name "${key}" uses forbidden characters, allowed: ${allowedKeys.pattern}',
+        );
+        continue;
+      }
+
+      scripts[key] = Script.fromJson(entry.value);
     }
 
     return ScriptsConfig(scripts: scripts);
