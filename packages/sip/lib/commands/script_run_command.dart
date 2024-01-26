@@ -29,6 +29,7 @@ class ScriptRunCommand extends Command<ExitCode> {
       'list',
       abbr: 'l',
       negatable: false,
+      aliases: ['ls', 'h'],
       help: 'List all available scripts',
     );
 
@@ -85,6 +86,15 @@ class ScriptRunCommand extends Command<ExitCode> {
     if (script == null) {
       getIt<SipConsole>().e('No script found for ${scriptKeys.join(' ')}');
       return ExitCode.config;
+    }
+
+    if (argResults?.wasParsed('list') ?? false) {
+      getIt<SipConsole>()
+        ..emptyLine()
+        ..l(script.listOut())
+        ..emptyLine();
+
+      return ExitCode.success;
     }
 
     final bail = argResults?.wasParsed('bail') ?? false;
