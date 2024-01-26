@@ -33,7 +33,7 @@ class ScriptRunCommand extends Command<ExitCode> {
     );
 
     argParser.addFlag(
-      'fail-fast',
+      'bail',
       negatable: false,
       help: 'Stop on first error',
     );
@@ -87,7 +87,7 @@ class ScriptRunCommand extends Command<ExitCode> {
       return ExitCode.config;
     }
 
-    final failFast = argResults?.wasParsed('fail-fast') ?? false;
+    final bail = argResults?.wasParsed('bail') ?? false;
 
     final resolvedCommands = variables.replace(
       script,
@@ -116,7 +116,7 @@ class ScriptRunCommand extends Command<ExitCode> {
 
       getIt<SipConsole>().emptyLine();
 
-      if (result != ExitCode.success && failFast) {
+      if (result != ExitCode.success && bail) {
         result.printError(commandToRun);
 
         return result;
