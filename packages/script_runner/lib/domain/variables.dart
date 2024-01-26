@@ -18,14 +18,14 @@ class Variables {
     final variables = <String, String?>{};
 
     final projectRoot = pubspecYaml.nearest();
-    variables[Keys.projectRoot] =
+    variables[Vars.projectRoot] =
         projectRoot == null ? null : path.dirname(projectRoot);
 
     final scriptsRoot = scriptsYaml.nearest();
-    variables[Keys.scriptsRoot] =
+    variables[Vars.scriptsRoot] =
         scriptsRoot == null ? null : path.dirname(scriptsRoot);
 
-    variables[Keys.cwd] = cwd.path;
+    variables[Vars.cwd] = cwd.path;
 
     return variables;
   }
