@@ -94,7 +94,10 @@ class ScriptRunCommand extends Command<ExitCode> {
     if (argResults?.wasParsed('list') ?? false) {
       getIt<SipConsole>()
         ..emptyLine()
-        ..l(script.listOut())
+        ..l(script.listOut(
+          wrapKey: (s) => lightGreen.wrap(s) ?? s,
+          wrapMeta: (s) => lightBlue.wrap(s) ?? s,
+        ))
         ..emptyLine();
 
       return ExitCode.success;
