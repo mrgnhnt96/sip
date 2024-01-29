@@ -39,8 +39,22 @@ echo "PLATFORM: $PLATFORM"
 echo "ARCH: $ARCH"
 echo "EXT: $EXT"
 
+get_absolute_path() {
+    local path="$1"
+    echo "$(cd "$(dirname "$path")" && pwd)/$(basename "$path")"
+}
+
 join() {
     local result=""
+    # check if --not-realpath is set
+    if [ "$1" == "--not-realpath" ]; then
+        shift
+        result="$1"
+        shift
+    else
+        result=$(get_absolute_path "$1")
+        shift
+    fi
 
     # Determine path separator based on PLATFORM
     case "$PLATFORM" in
@@ -60,18 +74,18 @@ join() {
     echo "$result"
 }
 
-SCRIPTS_DIR=$(join "$(dirname "$0")" "..")
-NATIVE_DIR=$(join "$SCRIPTS_DIR" "native")
+SCRIPTS_RUNNER_DIR=$(join "$(dirname "$0")" "..")
+NATIVE_DIR=$(join "$SCRIPTS_RUNNER_DIR" "native")
 cd "$NATIVE_DIR" || exit 1
 
 # build the native library
 cargo build --release
 RELEASE=$(join "$NATIVE_DIR" "target" "release" "libsip_script_runner.$EXT")
 
-cd "$SCRIPTS_DIR" || exit 1
-BLOBS_DIR=$(join "$SCRIPTS_DIR" "lib" "src" "blobs")
+cd "$SCRIPTS_RUNNER_DIR" || exit 1
+BLOBS_DIR=$(join "$SCRIPTS_RUNNER_DIR" "lib" "src" "blobs")
 BLOB_FILE="""$PLATFORM""_""$ARCH"".$EXT"
-BLOB_PATH=$(join "$BLOBS_DIR" "$BLOB_FILE")
+BLOB_PATH=$(join --not-realpath "$BLOBS_DIR" "$BLOB_FILE")
 
 # copy the native library to the correct location
 case "$PLATFORM" in
