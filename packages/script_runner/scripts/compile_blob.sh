@@ -90,18 +90,30 @@ RELEASE=$(join "$NATIVE_DIR" "target" "release" "libsip_script_runner.$EXT")
 
 cd "$SCRIPTS_DIR" || exit 1
 BLOBS_DIR=$(join "$SCRIPTS_DIR" "lib" "src" "blobs")
-BLOB_FILE=$(join --not-realpath "$BLOBS_DIR" """$PLATFORM""_""$ARCH"".$EXT")
+BLOB_FILE="""$PLATFORM""_""$ARCH"".$EXT"
+BLOB_PATH=$(join --not-realpath "$BLOBS_DIR" "$BLOB_FILE")
 
 # copy the native library to the correct location
 case "$PLATFORM" in
 "linux" | "macos")
-    cp "$RELEASE" "$BLOB_FILE" || exit 1
+    cp "$RELEASE" "$BLOB_PATH" || exit 1
     ;;
 "windows")
-    copy "$RELEASE" "$BLOB_FILE" || exit 1
+    copy "$RELEASE" "$BLOB_PATH" || exit 1
     ;;
 *)
     echo "Unsupported PLATFORM $PLATFORM"
     exit 1
     ;;
 esac
+
+
+# check for GITHUB_OUTPUT
+if [ -z "$GITHUB_OUTPUT" ]; then
+    exit 0
+fi
+
+echo "Exporting outputs to GITHUB_OUTPUT..."
+
+echo "BLOB_PATH=$BLOB_PATH" >>"$GITHUB_OUTPUT"
+echo "BLOB_FILE=$BLOB_FILE" >>"$GITHUB_OUTPUT"
