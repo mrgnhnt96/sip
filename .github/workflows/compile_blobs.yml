@@ -56,7 +56,7 @@ jobs:
               BLOB=$(echo "$BLOB" | tr '/' '\\')
           fi
 
-          dart pub global run sip run compile-blob --platform "$OS" --arch x64
+          dart pub global run sip run compile-blob -- --platform "$OS" --arch x64
 
           # add the BLOB path to the output
           echo "BLOB=$BLOB" >>"$GITHUB_OUTPUT"
