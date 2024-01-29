@@ -53,16 +53,6 @@ get_absolute_path() {
     local path="$1"
     path="$(cd "$(dirname "$path")" && pwd)/$(basename "$path")"
 
-    # Normalize path based on platform
-    case "$PLATFORM" in
-    "linux" | "macos")
-        path=$(realpath "$path")
-        ;;
-    "windows")
-        path=$(cygpath -w -a "$path")
-        ;;
-    esac
-
     echo "$path"
 }
 
