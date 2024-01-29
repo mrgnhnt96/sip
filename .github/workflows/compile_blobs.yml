@@ -22,11 +22,7 @@ jobs:
         uses: dart-lang/setup-dart@v1
 
       - name: Install rust stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Compile Blob
         shell: bash
