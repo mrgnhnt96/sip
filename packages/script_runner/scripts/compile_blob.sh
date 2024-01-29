@@ -108,7 +108,7 @@ case "$PLATFORM" in
     cp "$RELEASE" "$BLOB_PATH" || exit 1
     ;;
 "windows")
-    copy "$RELEASE" "$BLOB_PATH" || exit 1
+    COPY "$RELEASE" "$BLOB_PATH" || exit 1
     ;;
 *)
     echo "Unsupported PLATFORM $PLATFORM"
