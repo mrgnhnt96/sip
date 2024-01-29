@@ -1,0 +1,85 @@
+on: workflow_dispatch
+
+name: Compile blobs
+
+env:
+  BLOBS_DIR: lib/src/blobs
+
+jobs:
+  compile_blobs:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Setup dart environment
+        uses: dart-lang/setup-dart@v1
+
+      - name: Install derry
+        run: dart pub global activate derry
+
+      - name: Install rust stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Create Blob
+        shell: bash
+        id: blob
+        run: |
+          # Save directory to output
+          echo "BLOBS=$BLOB" >>"$GITHUB_OUTPUT"
+
+          if [[ ${{ matrix.os }} == 'ubuntu-latest' ]]; then
+              SYSTEM="linux-x64"
+              FILE="linux_x64.so"
+          elif [[ ${{ matrix.os }} == 'macos-latest' ]]; then
+              SYSTEM="macos-x64"
+              FILE="macos_x64.dylib"
+          elif [[ ${{ matrix.os }} == 'windows-latest' ]]; then
+              SYSTEM="windows-x64"
+              FILE="windows_x64.dll"
+          fi
+
+          BLOB=${{ env.BLOBS_DIR }}/$FILE
+
+          dart pub global run derry build "$SYSTEM"
+
+          # add the BLOB path to the output
+          echo "BLOB=$BLOB" >>"$GITHUB_OUTPUT"
+
+          # Add the filename of the BLOB to the output
+          echo "FILE=$FILE" >>"$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ steps.blob.outputs.FILENAME }}
+          path: ${{ steps.blob.outputs.BLOB }}
+
+  create_pull_request:
+    name: Create Pull Request
+    runs-on: ubuntu-latest
+    needs:
+      - compile_blobs
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: artifact
+          path: ${{ env.BLOBS_DIR }}
+
+      - run: git status
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v3
+        with:
+          branch: blobs
+          title: Blobs
+          commit-message: "[CI] feat(BLOBS): create blobs for all platforms"
