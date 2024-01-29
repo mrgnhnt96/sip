@@ -16,19 +16,29 @@ fi
 EXT="dylib"
 # Determine the platform
 case "$(uname -s)" in
-    Linux*) PLATFORM="linux";;
-    Darwin*) PLATFORM="macos";;
-    CYGWIN*|MINGW*|MSYS*) PLATFORM="windows";;
-    *)
-        echo "Unsupported platform"
-        exit 1
-        ;;
+Linux*)
+    PLATFORM="linux"
+    ;;
+Darwin*)
+    PLATFORM="macos"
+    ;;
+CYGWIN* | MINGW* | MSYS*) PLATFORM="windows" ;;
+*)
+    echo "Unsupported platform"
+    exit 1
+    ;;
 esac
 
 case "$PLATFORM" in
-"linux") EXT="so" ;;
-"macos") EXT="dylib" ;;
-"windows") EXT="dll" ;;
+"linux")
+    EXT="so"
+    ;;
+"macos")
+    EXT="dylib"
+    ;;
+"windows")
+    EXT="dll"
+    ;;
 *)
     echo "Unsupported PLATFORM $PLATFORM"
     exit 1
@@ -41,25 +51,38 @@ echo "EXT: $EXT"
 
 get_absolute_path() {
     local path="$1"
-    echo "$(cd "$(dirname "$path")" && pwd)/$(basename "$path")"
+    path="$(cd "$(dirname "$path")" && pwd)/$(basename "$path")"
+
+    # Normalize path based on platform
+    case "$PLATFORM" in
+    "linux" | "macos")
+        path=$(realpath "$path")
+        ;;
+    "windows")
+        path=$(cygpath -w -a "$path")
+        ;;
+    esac
+
+    echo "$path"
 }
 
 join() {
-    local result=""
+    local result="$1"
+    shift
     # check if --not-realpath is set
-    if [ "$1" = "--not-realpath" ]; then
-        shift
+    if [ "$result" = "--not-realpath" ]; then
         result="$1"
-        shift
-    else
-        result=$(get_absolute_path "$1")
         shift
     fi
 
     # Determine path separator based on PLATFORM
     case "$PLATFORM" in
-    "linux" | "macos") separator="/" ;;
-    "windows") separator="\\" ;;
+    "linux" | "macos")
+        separator="/"
+        ;;
+    "windows")
+        separator="\\"
+        ;;
     *)
         echo "Unsupported PLATFORM $PLATFORM"
         exit 1
@@ -70,6 +93,8 @@ join() {
     for segment in "$@"; do
         result="${result%/}${separator}${segment#*"$separator"}"
     done
+
+    result=$(get_absolute_path "$result")
 
     echo "$result"
 }
@@ -100,7 +125,6 @@ case "$PLATFORM" in
     exit 1
     ;;
 esac
-
 
 # check for GITHUB_OUTPUT
 if [ -z "$GITHUB_OUTPUT" ]; then
