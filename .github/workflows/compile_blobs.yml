@@ -21,19 +21,6 @@ jobs:
       - name: Setup dart environment
         uses: dart-lang/setup-dart@v1
 
-      - name: Install Dependencies
-        run: cd packages/sip && dart pub get
-
-      - name: Install sip
-        run: cd packages/sip && dart pub global activate -s path . --overwrite
-
-      - name: Add .pub_cache bin to path
-        shell: bash
-        run: echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
-
-      - name: Run sip version
-        run: sip --version
-
       - name: Install rust stable toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -45,15 +32,18 @@ jobs:
         shell: bash
         id: blob
         run: |
+          SCRIPT_PATH="packages/script_runner/scripts/compile_blob.sh"
+
           if [[ ${{ matrix.os }} == 'ubuntu-latest' ]]; then
               OS="linux"
           elif [[ ${{ matrix.os }} == 'macos-latest' ]]; then
               OS="macos"
           elif [[ ${{ matrix.os }} == 'windows-latest' ]]; then
               OS="windows"
+              SCRIPT_PATH=$(echo "$SCRIPT_PATH" | tr '/' '\\')
           fi
 
-          sip run compile-blob -- --platform "$OS" --arch x64
+          sh $SCRIPT_PATH --platform "$OS" --arch x64
 
       - uses: actions/upload-artifact@v2
         with:
