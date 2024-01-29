@@ -7,25 +7,23 @@ set -e
 # --arch <arch> (arm64, x64)
 
 PLATFORM="macos"
-ARCH="arm64"
+ARCH=$1
+
+if [ -z "$ARCH" ]; then
+    ARCH="arm64"
+fi
+
 EXT="dylib"
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-    --platform)
-        PLATFORM="$2"
-        shift
-        ;;
-    --arch)
-        ARCH="$2"
-        shift
-        ;;
+# Determine the platform
+case "$(uname -s)" in
+    Linux*) PLATFORM="linux";;
+    Darwin*) PLATFORM="macos";;
+    CYGWIN*|MINGW*|MSYS*) PLATFORM="windows";;
     *)
-        echo "Unknown argument $1"
+        echo "Unsupported platform"
         exit 1
         ;;
-    esac
-    shift
-done
+esac
 
 case "$PLATFORM" in
 "linux") EXT="so" ;;
@@ -43,15 +41,6 @@ echo "EXT: $EXT"
 
 join() {
     local result=""
-    # check if --not-realpath is set
-    if [[ "$1" == "--not-realpath" ]]; then
-        shift
-        result="$1"
-        shift
-    else
-        result=$(realpath "$1")
-        shift
-    fi
 
     # Determine path separator based on PLATFORM
     case "$PLATFORM" in
@@ -91,7 +80,7 @@ RELEASE=$(join "$NATIVE_DIR" "target" "release" "libsip_script_runner.$EXT")
 cd "$SCRIPTS_DIR" || exit 1
 BLOBS_DIR=$(join "$SCRIPTS_DIR" "lib" "src" "blobs")
 BLOB_FILE="""$PLATFORM""_""$ARCH"".$EXT"
-BLOB_PATH=$(join --not-realpath "$BLOBS_DIR" "$BLOB_FILE")
+BLOB_PATH=$(join "$BLOBS_DIR" "$BLOB_FILE")
 
 # copy the native library to the correct location
 case "$PLATFORM" in
