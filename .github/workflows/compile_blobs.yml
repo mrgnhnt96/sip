@@ -21,7 +21,7 @@ jobs:
       - name: Setup dart environment
         uses: dart-lang/setup-dart@v1
 
-      - name: Install rust stable toolchain
+      - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cargo Version

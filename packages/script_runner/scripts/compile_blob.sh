@@ -61,15 +61,6 @@ join() {
 }
 
 SCRIPTS_DIR=$(join "$(dirname "$0")" "..")
-
-# make sure cargo is installed
-if ! command -v cargo &>/dev/null; then
-    echo "cargo is not installed"
-    echo "Please install rustup and cargo"
-    echo "https://doc.rust-lang.org/cargo/getting-started/installation.html"
-    exit 1
-fi
-
 NATIVE_DIR=$(join "$SCRIPTS_DIR" "native")
 cd "$NATIVE_DIR" || exit 1
 
