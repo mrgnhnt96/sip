@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # arguments:
 # --platform <platform> (linux, macos, windows)
 # --arch <arch> (arm64, x64)
