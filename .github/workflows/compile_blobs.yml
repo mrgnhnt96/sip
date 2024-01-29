@@ -56,7 +56,9 @@ jobs:
               BLOB=$(echo "$BLOB" | tr '/' '\\')
           fi
 
-          dart pub global run sip run compile-blob -- --platform "$OS" --arch x64
+          echo "CWD: $(pwd)"
+
+          sip run compile-blob -- --platform "$OS" --arch x64
 
           # add the BLOB path to the output
           echo "BLOB=$BLOB" >>"$GITHUB_OUTPUT"
@@ -74,6 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - compile_blobs
+    if: ${{ needs.compile_blobs.result == 'success' }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
