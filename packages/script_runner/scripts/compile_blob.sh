@@ -47,7 +47,7 @@ get_absolute_path() {
 join() {
     local result=""
     # check if --not-realpath is set
-    if [ "$1" == "--not-realpath" ]; then
+    if [ "$1" = "--not-realpath" ]; then
         shift
         result="$1"
         shift
