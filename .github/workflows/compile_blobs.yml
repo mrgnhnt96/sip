@@ -24,6 +24,9 @@ jobs:
       - name: Install rust stable toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Cargo Version
+        run: cargo --version
+
       - name: Compile Blob
         shell: bash
         id: blob
