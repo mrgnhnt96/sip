@@ -9,6 +9,8 @@ jobs:
   compile_blobs:
     strategy:
       matrix:
+        # satifies linux (x64), macos (x64) and windows (x64)
+        # to compile macos (arm64), use local machine
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
@@ -18,8 +20,18 @@ jobs:
       - name: Setup dart environment
         uses: dart-lang/setup-dart@v1
 
-      - name: Install derry
-        run: dart pub global activate derry
+      - name: Install Dependencies
+        run: cd packages/sip && dart pub get
+
+      - name: Install sip
+        run: cd packages/sip && dart pub global activate -s path . --overwrite
+
+      - name: Add .pub_cache bin to path
+        shell: bash
+        run: echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
+
+      - name: Run sip version
+        run: sip --version
 
       - name: Install rust stable toolchain
         uses: actions-rs/toolchain@v1
@@ -28,27 +40,23 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Create Blob
+      - name: Compile Blob
         shell: bash
         id: blob
         run: |
-          # Save directory to output
-          echo "BLOBS=$BLOB" >>"$GITHUB_OUTPUT"
-
-          if [[ ${{ matrix.os }} == 'ubuntu-latest' ]]; then
-              SYSTEM="linux-x64"
-              FILE="linux_x64.so"
-          elif [[ ${{ matrix.os }} == 'macos-latest' ]]; then
-              SYSTEM="macos-x64"
-              FILE="macos_x64.dylib"
-          elif [[ ${{ matrix.os }} == 'windows-latest' ]]; then
-              SYSTEM="windows-x64"
-              FILE="windows_x64.dll"
-          fi
-
           BLOB=${{ env.BLOBS_DIR }}/$FILE
 
-          dart pub global run derry build "$SYSTEM"
+          if [[ ${{ matrix.os }} == 'ubuntu-latest' ]]; then
+              OS="linux"
+          elif [[ ${{ matrix.os }} == 'macos-latest' ]]; then
+              OS="macos"
+          elif [[ ${{ matrix.os }} == 'windows-latest' ]]; then
+              OS="windows"
+              # UPDATE PATH TO USE PROPER PATH SEPARATOR
+              BLOB=$(echo "$BLOB" | tr '/' '\\')
+          fi
+
+          dart pub global run sip run compile-blob --platform "$OS" --arch x64
 
           # add the BLOB path to the output
           echo "BLOB=$BLOB" >>"$GITHUB_OUTPUT"
@@ -82,4 +90,4 @@ jobs:
         with:
           branch: blobs
           title: Blobs
-          commit-message: "[CI] feat(BLOBS): create blobs for all platforms"
+          commit-message: "[CI] feat(BLOBS): compile blobs for all platforms"

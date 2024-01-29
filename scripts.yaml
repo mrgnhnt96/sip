@@ -3,3 +3,5 @@ install:
   (description): Install `sip` globally
   (aliases):
     - i
+
+compile-blob: sh packages/script_runner/scripts/compile_blob.sh {--platform} {--arch}
