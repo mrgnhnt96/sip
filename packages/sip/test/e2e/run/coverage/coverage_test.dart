@@ -51,9 +51,11 @@ void main() {
 
       await command.run(['test']);
 
+      await Future.delayed(const Duration(milliseconds: 100));
+
       expect(
         mockBindings.scripts,
-        ['dart test'],
+        ['cd /packages/sip && dart test'],
       );
 
       mockBindings.scripts.clear();
@@ -62,7 +64,7 @@ void main() {
 
       expect(
         mockBindings.scripts,
-        ['dart test --coverage'],
+        ['cd /packages/sip && dart test --coverage'],
       );
 
       mockBindings.scripts.clear();
@@ -71,7 +73,7 @@ void main() {
 
       expect(
         mockBindings.scripts,
-        ['dart test --coverage=banana'],
+        ['cd /packages/sip && dart test --coverage=banana'],
       );
 
       mockBindings.scripts.clear();
@@ -80,7 +82,7 @@ void main() {
 
       expect(
         mockBindings.scripts,
-        ['dart test --coverage monkey'],
+        ['cd /packages/sip && dart test --coverage monkey'],
       );
     });
   });
@@ -90,8 +92,9 @@ class MockBindings implements Bindings {
   final List<String> scripts = [];
 
   @override
-  Future<int> runScript(String script, {bool showOutput = false}) {
+  Future<int> runScript(String script, {bool showOutput = false}) async {
     scripts.add(script);
-    return Future.value(0);
+
+    return 0;
   }
 }

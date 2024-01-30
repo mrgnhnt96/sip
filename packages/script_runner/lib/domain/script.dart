@@ -16,7 +16,7 @@ class Script extends Equatable {
   });
 
   const Script.defaults({
-    this.name = '',
+    required this.name,
     this.commands = const [],
     this.aliases = const {},
     this.scripts,
@@ -103,6 +103,7 @@ Map? _readScriptsConfig(Map json, String key) {
       Keys.command,
       Keys.aliases,
       Keys.description,
+      'name',
     }.contains(key),
   );
 

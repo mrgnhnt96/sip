@@ -7,6 +7,7 @@ void main() {
     group('#listOut', () {
       test('should list out the description', () {
         final script = Script.defaults(
+          name: 'script',
           description: 'This is a description',
         );
 
@@ -21,6 +22,7 @@ void main() {
 
       test('should list out the aliases', () {
         final script = Script.defaults(
+          name: 'script',
           aliases: {'alias1', 'alias2'},
         );
 
@@ -35,16 +37,19 @@ void main() {
 
       test('should list out the scripts', () {
         final script = Script.defaults(
+          name: 'script',
           scripts: ScriptsConfig(
             scripts: {
-              'script1': Script.defaults(),
+              'script1': Script.defaults(
+                name: 'script1',
+              ),
             },
           ),
         );
 
         expect(
           script.listOut(),
-          startsWith('  + script1'),
+          startsWith('  └──script1'),
         );
       });
     });

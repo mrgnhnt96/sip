@@ -66,10 +66,14 @@ class BindingsImpl implements Bindings {
 
     final scriptPointer = script.toNativeUtf8();
 
-    final exitCode = runScript(scriptPointer, showOutput ? 0 : 1);
+    final result = await Isolate.run(() async {
+      final exitCode = runScript(scriptPointer, showOutput ? 0 : 1);
+
+      return exitCode;
+    });
 
     malloc.free(scriptPointer);
 
-    return exitCode;
+    return result;
   }
 }

@@ -1,5 +1,3 @@
-import 'dart:isolate';
-
 import 'package:sip/domain/command_to_run.dart';
 import 'package:sip/setup/setup.dart';
 import 'package:sip/utils/exit_code.dart';
@@ -21,13 +19,9 @@ class RunOneScript {
   Future<ExitCode> run() async {
     getIt<SipConsole>().l(darkGray.wrap(command.label) ?? command.label);
 
-    final result = await Isolate.run(() async {
-      final cmd = 'cd ${command.workingDirectory} && ${command.command}';
+    final cmd = 'cd ${command.workingDirectory} && ${command.command}';
 
-      final result = await bindings.runScript(cmd, showOutput: showOutput);
-
-      return result;
-    });
+    final result = await bindings.runScript(cmd, showOutput: showOutput);
 
     final codes = {
       ExitCode.success.code: ExitCode.success,

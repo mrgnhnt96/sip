@@ -9,17 +9,20 @@ void main() {
         final scriptsConfig = ScriptsConfig(
           scripts: {
             'legend-of-zelda': Script.defaults(
+              name: 'legend-of-zelda',
               aliases: {'loz', 'legend', 'zelda'},
               description: 'The Legend of Zelda Games',
               commands: ['echo "Pick a game..."'],
               scripts: ScriptsConfig(
                 scripts: {
                   'ocarina-of-time': Script.defaults(
+                    name: 'ocarina-of-time',
                     description: 'Ocarina of Time',
                     aliases: {'oot'},
                     commands: ['echo "Now loading Ocarina of Time..."'],
                   ),
                   'majoras-mask': Script.defaults(
+                    name: 'majoras-mask',
                     aliases: {'mm'},
                     description: "Majora's Mask",
                     commands: ['echo "Now loading Majora\'s Mask..."'],
@@ -28,17 +31,20 @@ void main() {
               ),
             ),
             'mario': Script.defaults(
+              name: 'mario',
               aliases: {'super-mario', 'super-mario-bros'},
               description: 'The Super Mario Bros Games',
               commands: ['echo "Pick a game..."'],
               scripts: ScriptsConfig(
                 scripts: {
                   'super-mario-bros': Script.defaults(
+                    name: 'super-mario-bros',
                     description: 'Super Mario Bros',
                     aliases: {'smb'},
                     commands: ['echo "Now loading Super Mario Bros..."'],
                   ),
                   'super-mario-world': Script.defaults(
+                    name: 'super-mario-world',
                     description: 'Super Mario World',
                     aliases: {'smw'},
                     commands: ['echo "Now loading Super Mario World..."'],
@@ -95,6 +101,7 @@ scripts.yaml:
             {
               'test': const Script.defaults(
                 commands: ['echo "test"'],
+                name: 'test',
               ),
             },
           );
@@ -116,6 +123,7 @@ scripts.yaml:
                   'echo "test"',
                   'echo "test2"',
                 ],
+                name: 'test',
               ),
             },
           );
@@ -133,10 +141,12 @@ scripts.yaml:
               config.scripts,
               {
                 'test': Script.defaults(
+                  name: 'test',
                   scripts: ScriptsConfig(
                     scripts: {
                       'nested': const Script.defaults(
                         commands: ['echo "test"'],
+                        name: 'nested',
                       ),
                     },
                   ),
@@ -162,12 +172,14 @@ scripts.yaml:
             expect(
               first,
               Script.defaults(
+                name: 'test',
                 aliases: {'test'},
                 description: 'this is a test',
                 commands: ['echo "test"'],
                 scripts: ScriptsConfig(
                   scripts: {
                     'test2': const Script.defaults(
+                      name: 'test2',
                       commands: ['echo "test2"'],
                     ),
                   },
@@ -189,6 +201,7 @@ scripts.yaml:
               config.scripts,
               {
                 'test': const Script.defaults(
+                  name: 'test',
                   commands: [],
                 ),
               },
@@ -207,6 +220,7 @@ scripts.yaml:
               {
                 'test': const Script.defaults(
                   commands: ['echo "test"'],
+                  name: 'test',
                 ),
               },
             );
@@ -226,6 +240,7 @@ scripts.yaml:
               config.scripts,
               {
                 'test': const Script.defaults(
+                  name: 'test',
                   commands: [
                     'echo "test"',
                     'echo "test2"',
@@ -281,6 +296,7 @@ scripts.yaml:
         final config = ScriptsConfig(scripts: {
           'banana': Script.defaults(
             aliases: {'b', 'ban'},
+            name: 'banana',
             commands: commands,
           ),
         });
@@ -305,9 +321,11 @@ scripts.yaml:
         const commands = ['echo "patrick"'];
         final config = ScriptsConfig(scripts: {
           'bikini': Script.defaults(
+            name: 'bikini',
             scripts: ScriptsConfig(
               scripts: {
                 'bottom': const Script.defaults(
+                  name: 'bottom',
                   commands: commands,
                 ),
               },
@@ -326,10 +344,12 @@ scripts.yaml:
 
         final config = ScriptsConfig(scripts: {
           'bikini': Script.defaults(
+            name: 'bikini',
             commands: commands,
             scripts: ScriptsConfig(
               scripts: {
                 'bottom': const Script.defaults(
+                  name: 'bottom',
                   commands: ['echo "bottom"'],
                 ),
               },
