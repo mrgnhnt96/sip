@@ -113,7 +113,7 @@ BLOB_PATH=$(join --not-realpath "$BLOBS_DIR" "$BLOB_FILE")
 cp "$RELEASE" "$BLOB_PATH" || exit 1
 
 # list out files found in blobs directory
-ls -l "$BLOBS_DIR"
+ls -l1 "$BLOBS_DIR"
 
 # check for GITHUB_OUTPUT
 if [ -z "$GITHUB_OUTPUT" ]; then
