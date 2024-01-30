@@ -35,7 +35,8 @@ jobs:
         run: |
           echo "Blob path (before update): ${{ steps.blob.outputs.BLOB_PATH }}"
 
-          UPDATED_PATH=$(echo "${{ steps.blob.outputs.BLOB_PATH }}" | tr '/' '\\')
+          UPDATED_PATH="$(${{ steps.blob.outputs.BLOB_PATH }} -replace '/', '\')"
+
           echo "BLOB_PATH=$UPDATED_PATH" >>$GITHUB_OUTPUT
 
           echo "Blob path (updated): $UPDATED_PATH"
