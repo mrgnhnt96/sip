@@ -35,3 +35,14 @@ prep:
     echo "Copying README.md to packages/sip & example"
     cp README.md packages/sip/README.md
     cp README.md packages/sip/example/README.md
+
+publish:
+  (command):
+    - "{$test}"
+    - "{$prep}"
+    - "{$publish:sip}"
+    - "{$publish:script_runner}"
+    - "{$publish:console}"
+  sip: cd packages/sip && dart pub publish
+  script_runner: cd packages/script_runner && dart pub publish
+  console: cd packages/console && dart pub publish
