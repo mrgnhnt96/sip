@@ -6,6 +6,10 @@ repository: https://github.com/mrgnhnt96/sip
 issue_tracker: https://github.com/mrgnhnt96/sip/issues
 documentation: https://github.com/mrgnhnt96/sip/tree/master/packages/sip#readme
 topics: [cli, executable, sip]
+platforms:
+  linux:
+  macos:
+  windows:
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
