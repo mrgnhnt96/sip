@@ -40,6 +40,14 @@ jobs:
           bash $SCRIPT_PATH x64
 
       - uses: actions/upload-artifact@v2
+        if: ${{ matrix.os == 'windows-latest' }}
+        with:
+          name: ${{ steps.blob.outputs.BLOB_FILE }}
+          path: $(echo "${{ steps.blob.outputs.BLOB_PATH }}" | tr '/' '\\')
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v2
+        if: ${{ matrix.os != 'windows-latest' }}
         with:
           name: ${{ steps.blob.outputs.BLOB_FILE }}
           path: ${{ steps.blob.outputs.BLOB_PATH }}
