@@ -33,9 +33,13 @@ jobs:
         id: set_windows_path
         if: matrix.os == 'windows-latest'
         run: |
-          # use GITHUB_OUTPUT
+          echo "Blob path (before update): ${{ steps.blob.outputs.BLOB_PATH }}"
+
           UPDATED_PATH=$(echo ${{ steps.blob.outputs.BLOB_PATH }} | sed 's/\//\\/g')
           echo "BLOB_PATH=$UPDATED_PATH" >>$GITHUB_OUTPUT
+
+          echo "Blob path (updated): $UPDATED_PATH"
+          echo "Blob path (outputs): ${{ steps.blob.outputs.BLOB_PATH }}"
 
       - uses: actions/upload-artifact@v2
         with:
