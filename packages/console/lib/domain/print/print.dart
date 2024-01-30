@@ -2,6 +2,7 @@ import 'package:dart_console2/dart_console2.dart';
 import 'package:sip_console/setup/setup.dart';
 import 'package:sip_console/utils/ansi.dart';
 
+/// The class responsible for printing messages to the console
 abstract class Print {
   const Print({
     required Group this.group,

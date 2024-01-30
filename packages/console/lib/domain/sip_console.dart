@@ -8,6 +8,7 @@ import 'package:sip_console/domain/print/print_verbose.dart';
 import 'package:sip_console/domain/print/print_warn.dart';
 import 'package:sip_console/setup/setup.dart';
 
+/// A console that prints messages to the terminal
 class SipConsole {
   SipConsole({
     Print? success,

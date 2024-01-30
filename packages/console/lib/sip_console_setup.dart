@@ -1,1 +1,1 @@
-export 'setup/setup.dart';
+export 'setup/setup.dart' hide getIt;
