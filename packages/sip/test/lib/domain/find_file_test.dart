@@ -1,6 +1,6 @@
 import 'package:file/file.dart';
-import 'package:sip/domain/find_file.dart';
-import 'package:sip/setup/setup.dart';
+import 'package:sip_cli/domain/find_file.dart';
+import 'package:sip_cli/setup/setup.dart';
 import 'package:test/test.dart';
 import 'package:path/path.dart' as path;
 

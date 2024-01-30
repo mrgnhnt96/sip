@@ -1,6 +1,6 @@
-import 'package:sip/commands/a_pub_command.dart';
-import 'package:sip/domain/pubspec_lock_impl.dart';
-import 'package:sip/domain/pubspec_yaml_impl.dart';
+import 'package:sip_cli/commands/a_pub_command.dart';
+import 'package:sip_cli/domain/pubspec_lock_impl.dart';
+import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
 
 /// The `pub upgrade` command.
 class PubUpgradeCommand extends APubCommand {

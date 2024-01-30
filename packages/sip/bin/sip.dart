@@ -1,7 +1,7 @@
 import 'package:file/file.dart';
 import 'package:file/local.dart';
-import 'package:sip/setup/setup.dart';
-import 'package:sip/sip_runner.dart';
+import 'package:sip_cli/setup/setup.dart';
+import 'package:sip_cli/sip_runner.dart';
 
 void main(List<String> args) {
   setup();

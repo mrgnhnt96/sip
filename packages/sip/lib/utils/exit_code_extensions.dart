@@ -1,6 +1,6 @@
-import 'package:sip/domain/command_to_run.dart';
-import 'package:sip/setup/setup.dart';
-import 'package:sip/utils/exit_code.dart';
+import 'package:sip_cli/domain/command_to_run.dart';
+import 'package:sip_cli/setup/setup.dart';
+import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_console/domain/sip_console.dart';
 import 'package:sip_console/utils/ansi.dart';
 

@@ -1,4 +1,4 @@
-import 'package:sip/domain/find_yaml.dart';
+import 'package:sip_cli/domain/find_yaml.dart';
 import 'package:sip_script_runner/domain/domain.dart';
 
 class PubspecYamlImpl extends FindYaml implements PubspecYaml {
