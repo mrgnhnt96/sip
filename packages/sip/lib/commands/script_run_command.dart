@@ -15,6 +15,7 @@ import 'package:sip_console/utils/ansi.dart';
 import 'package:sip_script_runner/domain/optional_flags.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
+/// The command to run a script
 class ScriptRunCommand extends Command<ExitCode> {
   ScriptRunCommand({
     this.scriptsYaml = const ScriptsYamlImpl(),

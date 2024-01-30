@@ -14,6 +14,7 @@ import 'package:sip_console/sip_console.dart';
 import 'package:sip_console/utils/ansi.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
+/// The command to run many scripts concurrently
 class ScriptRunManyCommand extends Command<ExitCode> {
   ScriptRunManyCommand({
     this.scriptsYaml = const ScriptsYamlImpl(),

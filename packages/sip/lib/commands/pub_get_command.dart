@@ -2,6 +2,7 @@ import 'package:sip/commands/a_pub_command.dart';
 import 'package:sip/domain/pubspec_lock_impl.dart';
 import 'package:sip/domain/pubspec_yaml_impl.dart';
 
+/// The `pub get` command.
 class PubGetCommand extends APubGetCommand {
   PubGetCommand({
     super.pubspecLock = const PubspecLockImpl(),

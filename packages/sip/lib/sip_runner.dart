@@ -9,6 +9,7 @@ import 'package:sip/src/version.dart';
 import 'package:sip/utils/exit_code.dart';
 import 'package:sip_console/sip_console.dart';
 
+/// The command runner for the sip command line application
 class SipRunner extends CommandRunner<ExitCode> {
   SipRunner()
       : super(
