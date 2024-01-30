@@ -16,8 +16,9 @@ import 'package:sip_console/utils/ansi.dart';
 import 'package:sip_script_runner/domain/pubspec_lock.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
-abstract class APubGetCommand extends Command<ExitCode> {
-  APubGetCommand({
+/// A command that runs `pub *`.
+abstract class APubCommand extends Command<ExitCode> {
+  APubCommand({
     PubspecLock pubspecLock = const PubspecLockImpl(),
     PubspecYaml pubspecYaml = const PubspecYamlImpl(),
     Bindings bindings = const BindingsImpl(),
