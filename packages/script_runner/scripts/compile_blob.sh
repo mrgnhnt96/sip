@@ -95,10 +95,14 @@ cd "$NATIVE_DIR" || exit 1
 
 # build the native library
 cargo build --release
-RELEASE=$(join "$NATIVE_DIR" "target" "release" "libsip_script_runner.$EXT")
+EXECUTABLE="libsip_script_runner.$EXT"
 
-# list out files found int the release directory
-ls -l "$(join "$NATIVE_DIR", "target", "release")"
+# check if the platform is windows
+if [ "$PLATFORM" = "windows" ]; then
+    EXECUTABLE="sip_script_runner.$EXT"
+fi
+
+RELEASE=$(join "$NATIVE_DIR" "target" "release" "$EXECUTABLE")
 
 cd "$SCRIPTS_RUNNER_DIR" || exit 1
 BLOBS_DIR=$(join "$SCRIPTS_RUNNER_DIR" "lib" "src" "blobs")
