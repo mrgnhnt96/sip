@@ -43,7 +43,7 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         with:
           name: ${{ steps.blob.outputs.BLOB_FILE }}
-          path: $(echo "${{ steps.blob.outputs.BLOB_PATH }}" | tr '/' '\\')
+          path: packages\script_runnner\lib\src\blobs\windoes_x64.dll
           if-no-files-found: error
 
       - uses: actions/upload-artifact@v2

@@ -112,6 +112,8 @@ BLOB_PATH=$(join --not-realpath "$BLOBS_DIR" "$BLOB_FILE")
 # copy the native library to the correct location
 cp "$RELEASE" "$BLOB_PATH" || exit 1
 
+echo "Compile binary: $BLOB_PATH"
+
 # list out files found in blobs directory
 ls -l1 "$BLOBS_DIR"
 
