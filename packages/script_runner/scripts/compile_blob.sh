@@ -49,23 +49,9 @@ echo "PLATFORM: $PLATFORM"
 echo "ARCH: $ARCH"
 echo "EXT: $EXT"
 
-# Determine path SEPARATOR based on PLATFORM
-case "$PLATFORM" in
-"linux" | "macos")
-    SEPARATOR="/"
-    ;;
-"windows")
-    SEPARATOR="\\"
-    ;;
-*)
-    echo "Unsupported PLATFORM $PLATFORM"
-    exit 1
-    ;;
-esac
-
 get_absolute_path() {
     local path="$1"
-    path="$(cd "$(dirname "$path")" && pwd)$SEPARATOR$(basename "$path")"
+    path="$(cd "$(dirname "$path")" && pwd)/$(basename "$path")"
 
     echo "$path"
 }
@@ -79,9 +65,8 @@ join() {
         shift
     fi
 
-    # Join path segments using the determined SEPARATOR
     for segment in "$@"; do
-        result="${result%/}${SEPARATOR}${segment#*"$SEPARATOR"}"
+        result="${result%/}/${segment#*"/"}"
     done
 
     result=$(get_absolute_path "$result")
