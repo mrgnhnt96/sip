@@ -20,9 +20,9 @@ class ScriptRunCommand extends Command<ExitCode> {
   ScriptRunCommand({
     this.scriptsYaml = const ScriptsYamlImpl(),
     this.variables = const Variables(
-      pubspecYaml: const PubspecYamlImpl(),
-      scriptsYaml: const ScriptsYamlImpl(),
-      cwd: const CWDImpl(),
+      pubspecYaml: PubspecYamlImpl(),
+      scriptsYaml: ScriptsYamlImpl(),
+      cwd: CWDImpl(),
     ),
     this.bindings = const BindingsImpl(),
   }) {

@@ -19,9 +19,9 @@ class ScriptRunManyCommand extends Command<ExitCode> {
   ScriptRunManyCommand({
     this.scriptsYaml = const ScriptsYamlImpl(),
     this.variables = const Variables(
-      scriptsYaml: const ScriptsYamlImpl(),
-      pubspecYaml: const PubspecYamlImpl(),
-      cwd: const CWDImpl(),
+      scriptsYaml: ScriptsYamlImpl(),
+      pubspecYaml: PubspecYamlImpl(),
+      cwd: CWDImpl(),
     ),
     this.bindings = const BindingsImpl(),
   });
