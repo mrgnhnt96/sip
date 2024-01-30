@@ -20,6 +20,7 @@ dependencies:
   ffi: ^2.1.0
   json_annotation: ^4.8.1
   mocktail: ^1.0.3
+  path: ^1.9.0
   yaml: ^3.1.2
 
 dev_dependencies:
