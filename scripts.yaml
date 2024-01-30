@@ -14,3 +14,23 @@ test:
   sip: cd packages/sip && sip run test
   script_runner: cd packages/script_runner && sip run test
   console: cd packages/console && sip run test
+
+
+prep:
+  (command):
+    - "{$prep:changelog}"
+    - "{$prep:license}"
+    - "{$prep:readme}"
+  changelog: |
+    echo "Copying CHANGELOG.md to all packages"
+    for dir in $(ls -d packages/*); do
+      cp CHANGELOG.md $dir/CHANGELOG.md
+    done
+  license: |
+    echo "Copying LICENSE to all packages"
+    for dir in $(ls -d packages/*); do
+      cp LICENSE $dir/LICENSE
+    done
+  readme: |
+    echo "Copying README.md to packages/sip"
+    cp README.md packages/sip/README.md
