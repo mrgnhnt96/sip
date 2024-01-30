@@ -37,7 +37,7 @@ jobs:
               SCRIPT_PATH=$(echo "$SCRIPT_PATH" | tr '/' '\\')
           fi
 
-          sh $SCRIPT_PATH x64
+          bash $SCRIPT_PATH x64
 
       - uses: actions/upload-artifact@v2
         with:
