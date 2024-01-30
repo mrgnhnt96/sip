@@ -29,20 +29,18 @@ jobs:
         id: blob
         run: bash packages/script_runner/scripts/compile_blob.sh x64
 
-      - name: Set Windows Path
-        id: set_windows_path
-        if: matrix.os == 'windows-latest'
-        shell: bash
-        run: |
-          echo "Blob path (before update): ${{ steps.blob.outputs.BLOB_PATH }}"
 
-          UPDATED_PATH=$(echo "${{ steps.blob.outputs.BLOB_PATH }}" | tr '/' '\\')
-          echo "BLOB_PATH=$UPDATED_PATH" >>$GITHUB_OUTPUT
+      - name: Upload Artifact (Windows)
+        uses: actions/upload-artifact@v2
+        if: ${{ matrix.os == 'windows-latest' }}
+        with:
+          name: ${{ steps.blob.outputs.BLOB_FILE }}
+          path: D:\a\sip\sip\packages\script_runner\lib\src\blobs\${{ steps.blob.outputs.BLOB_FILE }}
+          if-no-files-found: error
 
-          echo "Blob path (updated): $UPDATED_PATH"
-          echo "Blob path (outputs): ${{ steps.blob.outputs.BLOB_PATH }}"
-
-      - uses: actions/upload-artifact@v2
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        if: ${{ matrix.os != 'windows-latest' }}
         with:
           name: ${{ steps.blob.outputs.BLOB_FILE }}
           path: ${{ steps.blob.outputs.BLOB_PATH }}
