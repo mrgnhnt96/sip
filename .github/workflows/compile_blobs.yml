@@ -3,7 +3,7 @@ on: workflow_dispatch
 name: Compile blobs
 
 env:
-  BLOBS_DIR: lib/src/blobs
+  BLOBS_DIR: packages/lib/src/blobs
 
 jobs:
   compile_blobs:
@@ -29,7 +29,6 @@ jobs:
         id: blob
         run: bash packages/script_runner/scripts/compile_blob.sh x64
 
-
       - name: Upload Artifact (Windows)
         uses: actions/upload-artifact@v2
         if: ${{ matrix.os == 'windows-latest' }}
@@ -45,27 +44,3 @@ jobs:
           name: ${{ steps.blob.outputs.BLOB_FILE }}
           path: ${{ steps.blob.outputs.BLOB_PATH }}
           if-no-files-found: error
-
-  create_pull_request:
-    name: Create Pull Request
-    runs-on: ubuntu-latest
-    needs:
-      - compile_blobs
-    if: ${{ needs.compile_blobs.result == 'success' }}
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-
-      - uses: actions/download-artifact@v2
-        with:
-          name: artifact
-          path: ${{ env.BLOBS_DIR }}
-
-      - run: git status
-
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v3
-        with:
-          branch: blobs
-          title: Blobs
-          commit-message: "[CI] feat(BLOBS): compile blobs for all platforms"
