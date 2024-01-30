@@ -8,6 +8,7 @@ import 'package:sip_console/domain/progress/line.dart';
 import 'package:sip_console/setup/setup.dart';
 import 'package:sip_console/utils/stream_group.dart';
 
+/// A progress animation.
 class Progress {
   Progress({
     this.frames = const Frame.defaults(),

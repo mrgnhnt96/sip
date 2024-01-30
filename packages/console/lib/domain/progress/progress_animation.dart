@@ -1,3 +1,4 @@
+/// A progress animation.
 class ProgressAnimation {
   ProgressAnimation({
     required this.frames,

@@ -2,6 +2,7 @@ import 'package:sip_console/domain/progress/finisher.dart';
 import 'package:sip_console/domain/progress/frame.dart';
 import 'package:sip_console/utils/ansi.dart';
 
+/// A line is a single line of progress that can be updated and finished.
 class Line {
   Line({
     required this.key,

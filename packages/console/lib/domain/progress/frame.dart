@@ -1,5 +1,6 @@
 import 'package:sip_console/domain/progress/progress_animation.dart';
 
+/// A frame is a single character that represents the state of a task.
 class Frame {
   Frame({
     required this.success,
