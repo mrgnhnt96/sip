@@ -1,7 +1,4 @@
-class Constants {
-  const Constants._();
-}
-
+/// The keys that are used in the scripts.yaml file
 class Keys {
   const Keys._();
 
@@ -12,6 +9,7 @@ class Keys {
   static const List<String> values = [aliases, description, command];
 }
 
+/// The variables that can be used in the scripts
 class Vars {
   static const String projectRoot = 'projectRoot';
   static const String scriptsRoot = 'scriptsRoot';

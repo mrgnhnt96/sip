@@ -1,3 +1,6 @@
+/// A class to parse optional flags from a list of strings.
+///
+/// e.g. `['-f', 'file.txt', '--verbose', 'true']` would be parsed to `{'-f': '-f file.txt', '--verbose': '--verbose true'}`
 class OptionalFlags {
   OptionalFlags(this._flags);
 

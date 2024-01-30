@@ -5,6 +5,7 @@ import 'package:sip_script_runner/utils/constants.dart';
 
 part 'script.g.dart';
 
+/// Parses an entry from the `scripts.yaml` file
 @JsonSerializable(constructor: 'defaults')
 class Script extends Equatable {
   const Script({

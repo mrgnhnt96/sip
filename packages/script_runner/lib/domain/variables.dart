@@ -3,6 +3,7 @@ import 'package:sip_script_runner/domain/optional_flags.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 import 'package:sip_script_runner/utils/constants.dart';
 
+/// The variables that can be used in the scripts
 class Variables {
   const Variables({
     required this.pubspecYaml,

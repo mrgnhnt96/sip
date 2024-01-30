@@ -7,6 +7,9 @@ import 'package:sip_script_runner/utils/constants.dart';
 
 part 'scripts_config.g.dart';
 
+/// The `scripts.yaml` file.
+///
+/// Also nested scripts.
 @JsonSerializable(createFactory: false)
 class ScriptsConfig extends Equatable {
   ScriptsConfig({
