@@ -59,20 +59,20 @@ class BindingsImpl implements Bindings {
 
   @override
   Future<int> runScript(String script, {bool showOutput = true}) async {
-    final lib = await dylib();
-
-    final runScript =
-        lib.lookupFunction<RustRunScript, DartRunScript>('run_script');
-
-    final scriptPointer = script.toNativeUtf8();
-
     final result = await Isolate.run(() async {
+      final lib = await dylib();
+
+      final runScript =
+          lib.lookupFunction<RustRunScript, DartRunScript>('run_script');
+
+      final scriptPointer = script.toNativeUtf8();
+
       final exitCode = runScript(scriptPointer, showOutput ? 0 : 1);
+
+      malloc.free(scriptPointer);
 
       return exitCode;
     });
-
-    malloc.free(scriptPointer);
 
     return result;
   }
