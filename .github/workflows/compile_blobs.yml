@@ -32,11 +32,11 @@ jobs:
       - name: Set Windows Path
         id: set_windows_path
         if: matrix.os == 'windows-latest'
+        shell: bash
         run: |
           echo "Blob path (before update): ${{ steps.blob.outputs.BLOB_PATH }}"
 
-          UPDATED_PATH="$(${{ steps.blob.outputs.BLOB_PATH }} -replace '/', '\')"
-
+          UPDATED_PATH=$(echo "${{ steps.blob.outputs.BLOB_PATH }}" | tr '/' '\\')
           echo "BLOB_PATH=$UPDATED_PATH" >>$GITHUB_OUTPUT
 
           echo "Blob path (updated): $UPDATED_PATH"
