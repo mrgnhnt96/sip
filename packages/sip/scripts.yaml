@@ -3,3 +3,5 @@ install:
   (description): Install `sip` globally
   (aliases):
     - i
+
+test: dart run test

@@ -23,3 +23,5 @@ build_runner:
     (aliases):
       - w
       - wa
+
+test: dart run test
