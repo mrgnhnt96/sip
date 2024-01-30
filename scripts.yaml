@@ -32,5 +32,6 @@ prep:
       cp LICENSE $dir/LICENSE
     done
   readme: |
-    echo "Copying README.md to packages/sip"
+    echo "Copying README.md to packages/sip & example"
     cp README.md packages/sip/README.md
+    cp README.md packages/sip/example/README.md
