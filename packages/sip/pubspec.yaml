@@ -1,6 +1,6 @@
 name: sip
-version: 0.0.1
-description: A command-line tool to manage Dart mono-repos.
+version: 0.0.2
+description: Manage mono-repos with `sip`, run scripts and get dependencies concurrently.
 homepage: https://github.com/mrgnhnt96/sip
 repository: https://github.com/mrgnhnt96/sip/tree/main/packages/sip
 issue_tracker: https://github.com/mrgnhnt96/sip/issues
