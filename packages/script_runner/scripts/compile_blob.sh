@@ -96,10 +96,23 @@ BLOB_PATH=$(join --not-realpath "$BLOBS_DIR" "$BLOB_FILE")
 
 ls -l1 "$(join "$NATIVE_DIR" "target" "release")"
 
+# make sure that release exists
+if [ ! -f "$RELEASE" ]; then
+    echo "Release not found: $RELEASE"
+    exit 1
+fi
+
+echo "Release: $(get_absolute_path "$RELEASE")"
+
 # copy the native library to the correct location
 cp "$RELEASE" "$BLOB_PATH" || exit 1
 
-echo "Compile binary: $BLOB_PATH"
+if [ ! -f "$BLOB_PATH" ]; then
+    echo "Blob not found: $BLOB_PATH"
+    exit 1
+fi
+
+echo "Compile binary: $(get_absolute_path "$BLOB_PATH")"
 
 # list out files found in blobs directory
 ls -l1 "$BLOBS_DIR"
