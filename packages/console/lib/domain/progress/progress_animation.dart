@@ -2,7 +2,7 @@ class ProgressAnimation {
   ProgressAnimation({
     required this.frames,
     this.stepDuration = const Duration(milliseconds: 100),
-  }) : assert(frames.length > 0, 'frames must not be empty');
+  }) : assert(frames.isNotEmpty, 'frames must not be empty');
 
   const ProgressAnimation.defaults()
       : frames = defaultFrames,
