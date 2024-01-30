@@ -43,6 +43,7 @@ jobs:
         with:
           name: ${{ steps.blob.outputs.BLOB_FILE }}
           path: ${{ steps.blob.outputs.BLOB_PATH }}
+          if-no-files-found: error
 
   create_pull_request:
     name: Create Pull Request
