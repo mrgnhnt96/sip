@@ -2,7 +2,7 @@ name: sip_console
 version: 0.0.1
 description: A logger tool to interact with the console, used by the SIP CLI (package:sip).
 homepage: https://github.com/mrgnhnt96/sip
-repository: https://github.com/mrgnhnt96/sip
+repository: https://github.com/mrgnhnt96/sip/tree/main/packages/console
 issue_tracker: https://github.com/mrgnhnt96/sip/issues
 documentation: https://github.com/mrgnhnt96/sip/tree/master/packages/sip#readme
 topics: [cli, logger, sip]
