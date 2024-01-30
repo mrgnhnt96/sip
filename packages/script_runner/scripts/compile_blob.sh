@@ -49,9 +49,23 @@ echo "PLATFORM: $PLATFORM"
 echo "ARCH: $ARCH"
 echo "EXT: $EXT"
 
+# Determine path SEPARATOR based on PLATFORM
+case "$PLATFORM" in
+"linux" | "macos")
+    SEPARATOR="/"
+    ;;
+"windows")
+    SEPARATOR="\\"
+    ;;
+*)
+    echo "Unsupported PLATFORM $PLATFORM"
+    exit 1
+    ;;
+esac
+
 get_absolute_path() {
     local path="$1"
-    path="$(cd "$(dirname "$path")" && pwd)/$(basename "$path")"
+    path="$(cd "$(dirname "$path")" && pwd)$SEPARATOR$(basename "$path")"
 
     echo "$path"
 }
@@ -65,23 +79,9 @@ join() {
         shift
     fi
 
-    # Determine path separator based on PLATFORM
-    case "$PLATFORM" in
-    "linux" | "macos")
-        separator="/"
-        ;;
-    "windows")
-        separator="\\"
-        ;;
-    *)
-        echo "Unsupported PLATFORM $PLATFORM"
-        exit 1
-        ;;
-    esac
-
-    # Join path segments using the determined separator
+    # Join path segments using the determined SEPARATOR
     for segment in "$@"; do
-        result="${result%/}${separator}${segment#*"$separator"}"
+        result="${result%/}${SEPARATOR}${segment#*"$SEPARATOR"}"
     done
 
     result=$(get_absolute_path "$result")
@@ -108,6 +108,8 @@ cd "$SCRIPTS_RUNNER_DIR" || exit 1
 BLOBS_DIR=$(join "$SCRIPTS_RUNNER_DIR" "lib" "src" "blobs")
 BLOB_FILE="""$PLATFORM""_""$ARCH"".$EXT"
 BLOB_PATH=$(join --not-realpath "$BLOBS_DIR" "$BLOB_FILE")
+
+ls -l1 "$(join "$NATIVE_DIR" "target" "release")"
 
 # copy the native library to the correct location
 cp "$RELEASE" "$BLOB_PATH" || exit 1
