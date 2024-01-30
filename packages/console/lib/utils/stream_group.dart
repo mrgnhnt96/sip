@@ -14,18 +14,20 @@ class StreamGroup<T> {
     final subscriptions = <StreamSubscription<T>>[];
 
     for (final stream in streams) {
-      subscriptions.add(
-        stream.listen(
-          controller.add,
-          onError: controller.addError,
-          onDone: () {
-            subscriptions.remove(stream);
-            if (subscriptions.isEmpty) {
-              controller.close();
-            }
-          },
-        ),
+      late StreamSubscription<T> subscription;
+
+      subscription = stream.listen(
+        controller.add,
+        onError: controller.addError,
+        onDone: () {
+          subscriptions.remove(subscription);
+          if (subscriptions.isEmpty) {
+            controller.close();
+          }
+        },
       );
+
+      subscriptions.add(subscription);
     }
 
     return controller.stream;
