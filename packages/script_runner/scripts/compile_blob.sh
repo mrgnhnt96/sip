@@ -103,18 +103,7 @@ BLOB_FILE="""$PLATFORM""_""$ARCH"".$EXT"
 BLOB_PATH=$(join --not-realpath "$BLOBS_DIR" "$BLOB_FILE")
 
 # copy the native library to the correct location
-case "$PLATFORM" in
-"linux" | "macos")
-    cp "$RELEASE" "$BLOB_PATH" || exit 1
-    ;;
-"windows")
-    copy "$RELEASE" "$BLOB_PATH" || exit 1
-    ;;
-*)
-    echo "Unsupported PLATFORM $PLATFORM"
-    exit 1
-    ;;
-esac
+cp "$RELEASE" "$BLOB_PATH" || exit 1
 
 # check for GITHUB_OUTPUT
 if [ -z "$GITHUB_OUTPUT" ]; then
