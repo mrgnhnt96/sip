@@ -150,19 +150,19 @@ Private keys cannot be invoked from the command line, but can be used as referen
 # scripts.yaml
 
 format:
-    _: dart format
+    _command: dart format
     (command):
         - '{$format:ui}'
         - '{$format:core}'
-    ui: cd packages/ui && {$format:_}
-    core: cd packages/core && {$format:_}
+    ui: cd packages/ui && {$format:_command}
+    core: cd packages/core && {$format:_command}
 ```
 
-### Always run concurrent commands
+### Always run commands concurrently
 
-Some times you may want to run a command concurrently, regardless of whether `run` or `run-many` is used. You can use the concurrent key `(+)` to achieve this.
+Sometimes you may want to run a command concurrently, regardless of whether `run` or `run-many` is used. You can use the concurrent key `(+)` to achieve this.
 
-The commands will be grouped together and run concurrently. Meaning that if you have concurrent and non-concurrent commands mixed together. The commands will always run in the order they are defined.
+The commands will be grouped together and run concurrently. Meaning that you can have concurrent and non-concurrent commands mixed together. The commands will always run in the order they are defined.
 
 **Note:**
 
@@ -170,14 +170,14 @@ The commands will be grouped together and run concurrently. Meaning that if you 
 - The concurrent key _must_ always be the first character in the command string.
 
 ```yaml
+# scripts.yaml
 
 format:
-    _: dart format
     (command):
-        - echo "Running format" # Not concurrent
-        - (+) {$format:ui}
-        - (+) {$format:core}
-        - echo "Finished running format" # Not concurrent
-    ui: cd packages/ui && {$format:_}
-    core: cd packages/core && {$format:_}
+        - echo "Running format"
+        # ---- start concurrent commands
+        - (+) cd packages/ui && dart format .
+        - (+) cd packages/core && dart format .
+        # ---- end concurrent commands
+        - echo "Finished running format"
 ```
