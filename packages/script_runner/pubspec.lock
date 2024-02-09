@@ -330,7 +330,7 @@ packages:
     source: hosted
     version: "1.0.4"
   mocktail:
-    dependency: "direct main"
+    dependency: "direct dev"
     description:
       name: mocktail
       sha256: c4b5007d91ca4f67256e720cb1b6d704e79a510183a12fa551021f652577dce6
