@@ -224,6 +224,22 @@ scripts.yaml:
           });
         });
 
+        test('private scripts', () {
+          final config = ScriptsConfig.fromJson({
+            '_private': 'echo "hi"',
+          });
+
+          expect(
+            config.scripts,
+            {
+              '_private': const Script.defaults(
+                commands: ['echo "hi"'],
+                name: '_private',
+              ),
+            },
+          );
+        });
+
         group('using alternate key', () {
           test('can parse empty script', () {
             final config = ScriptsConfig.fromJson({
@@ -329,6 +345,19 @@ scripts.yaml:
     });
 
     group('#find', () {
+      test('can find private script', () {
+        final config = ScriptsConfig(scripts: {
+          '_private': Script.defaults(
+            name: '_private',
+            commands: ['echo "private"'],
+          ),
+        });
+
+        final script = config.find(['_private']);
+        expect(script, isNotNull);
+        expect(script!.commands, ['echo "private"']);
+      });
+
       test('can find script by name or alias', () {
         final commands = ['echo "banana"'];
         final config = ScriptsConfig(scripts: {

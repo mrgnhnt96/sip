@@ -31,7 +31,7 @@ class ScriptsConfig extends Equatable {
     final scripts = <String, Script>{};
 
     final allowedKeys = RegExp(
-      r'^[a-z][a-z0-9_.\-]*(?<=[a-z0-9])$',
+      r'^_?([a-z][a-z0-9_.\-]*)?(?<=[a-z0-9_])$',
       caseSensitive: false,
     );
 
