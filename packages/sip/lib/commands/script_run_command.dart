@@ -1,6 +1,8 @@
 import 'package:args/command_runner.dart';
+import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/domain/cwd_impl.dart';
 import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
+import 'package:sip_cli/domain/run_many_scripts.dart';
 import 'package:sip_cli/domain/run_one_script.dart';
 import 'package:sip_cli/domain/scripts_yaml_impl.dart';
 import 'package:sip_cli/setup/setup.dart';
@@ -65,23 +67,65 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     final bail = argResults?.wasParsed('bail') ?? false;
 
     getIt<SipConsole>().emptyLine();
+
+    ExitCode? _bail(List<ExitCode> exitCodes, List<CommandToRun> commands) {
+      if (!bail) return null;
+
+      if (exitCodes.exitCode == ExitCode.success) return null;
+
+      getIt<SipConsole>().e('Bailing...');
+      getIt<SipConsole>().emptyLine();
+
+      exitCodes.printErrors(commands);
+
+      return exitCodes.exitCode;
+    }
+
+    var concurrentRuns = <CommandToRun>[];
+    Future<ExitCode?> _runMany() async {
+      if (concurrentRuns.isEmpty) return null;
+
+      getIt<SipConsole>()
+          .w('Running ${concurrentRuns.length} scripts concurrently');
+
+      final exitCodes = await RunManyScripts(
+        commands: commands,
+        bindings: bindings,
+      ).run();
+
+      final bailExitCode = _bail(exitCodes, concurrentRuns);
+      concurrentRuns.clear();
+
+      getIt<SipConsole>().emptyLine();
+
+      return bailExitCode;
+    }
+
     for (final command in commands) {
-      final result = await RunOneScript(
+      if (command.runConcurrently) {
+        concurrentRuns.add(command);
+        continue;
+      } else if (concurrentRuns.isNotEmpty) {
+        final bailExitCode = await _runMany();
+
+        if (bailExitCode != null) return bailExitCode;
+      }
+
+      final exitCode = await RunOneScript(
         command: command,
         bindings: bindings,
       ).run();
 
+      getIt<SipConsole>().v('Exit code: $exitCode');
+
+      final bailExitCode = _bail([exitCode], [command]);
+      if (bailExitCode != null) return bailExitCode;
+
       getIt<SipConsole>().emptyLine();
-
-      if (result != ExitCode.success && bail) {
-        getIt<SipConsole>().e('Bailing...');
-        getIt<SipConsole>().emptyLine();
-
-        result.printError(command);
-
-        return result;
-      }
     }
+
+    final bailExitCode = await _runMany();
+    if (bailExitCode != null) return bailExitCode;
 
     return ExitCode.success;
   }

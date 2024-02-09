@@ -11,7 +11,15 @@ class Keys {
 
 /// The variables that can be used in the scripts
 class Vars {
+  const Vars._();
+
   static const String projectRoot = 'projectRoot';
   static const String scriptsRoot = 'scriptsRoot';
   static const String cwd = 'cwd';
+}
+
+class Identifiers {
+  const Identifiers._();
+
+  static const String concurrent = '(+) ';
 }

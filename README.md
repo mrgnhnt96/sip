@@ -141,3 +141,43 @@ echo:
         - echo "{cwd}" # The current directory that you are in
 
 ```
+
+### Private keys
+
+Private keys cannot be invoked from the command line, but can be used as references in the `scripts.yaml` file.
+
+```yaml
+# scripts.yaml
+
+format:
+    _: dart format
+    (command):
+        - '{$format:ui}'
+        - '{$format:core}'
+    ui: cd packages/ui && {$format:_}
+    core: cd packages/core && {$format:_}
+```
+
+### Always run concurrent commands
+
+Some times you may want to run a command concurrently, regardless of whether `run` or `run-many` is used. You can use the concurrent key `(+)` to achieve this.
+
+The commands will be grouped together and run concurrently. Meaning that if you have concurrent and non-concurrent commands mixed together. The commands will always run in the order they are defined.
+
+**Note:**
+
+- The concurrent key _must_ be followed by a whitespace.
+- The concurrent key _must_ always be the first character in the command string.
+
+```yaml
+
+format:
+    _: dart format
+    (command):
+        - echo "Running format" # Not concurrent
+        - (+) {$format:ui}
+        - (+) {$format:core}
+        - echo "Finished running format" # Not concurrent
+    ui: cd packages/ui && {$format:_}
+    core: cd packages/core && {$format:_}
+```

@@ -19,6 +19,8 @@ class RunOneScript {
   Future<ExitCode> run() async {
     getIt<SipConsole>().l(darkGray.wrap(command.label) ?? command.label);
 
+    getIt<SipConsole>().v('Setting directory to ${command.workingDirectory}');
+
     final cmd = 'cd ${command.workingDirectory} && ${command.command}';
 
     final result = await bindings.runScript(cmd, showOutput: showOutput);

@@ -11,6 +11,7 @@ import 'package:sip_console/sip_console.dart';
 import 'package:sip_console/utils/ansi.dart';
 import 'package:sip_script_runner/domain/optional_flags.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
+import 'package:sip_script_runner/utils/constants.dart';
 
 mixin RunScriptHelper on Command<ExitCode> {
   ScriptsYaml get scriptsYaml;
@@ -132,10 +133,18 @@ $ sip format ui
   }
 
   Iterable<CommandToRun> _commandsToRun(List<String> commands) sync* {
-    for (final command in commands) {
+    for (var command in commands) {
+      var runConcurrently = false;
+
+      if (command.startsWith(Identifiers.concurrent)) {
+        runConcurrently = true;
+        command = command.substring(Identifiers.concurrent.length);
+      }
+
       yield CommandToRun(
         command: command,
         label: command,
+        runConcurrently: runConcurrently,
         workingDirectory: directory,
       );
     }
