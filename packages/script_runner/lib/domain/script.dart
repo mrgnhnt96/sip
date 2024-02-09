@@ -33,7 +33,7 @@ class Script extends Equatable {
 
     return _$ScriptFromJson(
       {
-        ...json,
+        ...?json,
         'name': name,
       },
     );

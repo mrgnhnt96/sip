@@ -113,6 +113,19 @@ scripts.yaml:
           expect(config.scripts, isEmpty);
         });
 
+        test('can parse null config', () {
+          final config = ScriptsConfig.fromJson({
+            'pub': null,
+          });
+
+          expect(config.scripts, {
+            'pub': const Script.defaults(
+              commands: [],
+              name: 'pub',
+            ),
+          });
+        });
+
         test('can parse string command', () {
           final config = ScriptsConfig.fromJson({
             'test': 'echo "test"',
