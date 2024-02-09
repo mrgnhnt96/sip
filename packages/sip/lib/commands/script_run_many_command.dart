@@ -1,8 +1,4 @@
 import 'package:args/command_runner.dart';
-import 'package:file/file.dart';
-import 'package:path/path.dart' as path;
-import 'package:sip_cli/commands/list_command.dart';
-import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/domain/cwd_impl.dart';
 import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
 import 'package:sip_cli/domain/run_many_scripts.dart';
@@ -10,12 +6,12 @@ import 'package:sip_cli/domain/scripts_yaml_impl.dart';
 import 'package:sip_cli/setup/setup.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/exit_code_extensions.dart';
+import 'package:sip_cli/utils/run_script_helper.dart';
 import 'package:sip_console/sip_console.dart';
-import 'package:sip_console/utils/ansi.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
 /// The command to run many scripts concurrently
-class ScriptRunManyCommand extends Command<ExitCode> {
+class ScriptRunManyCommand extends Command<ExitCode> with RunScriptHelper {
   ScriptRunManyCommand({
     this.scriptsYaml = const ScriptsYamlImpl(),
     this.variables = const Variables(
@@ -24,7 +20,9 @@ class ScriptRunManyCommand extends Command<ExitCode> {
       cwd: CWDImpl(),
     ),
     this.bindings = const BindingsImpl(),
-  });
+  }) {
+    addFlags();
+  }
 
   final ScriptsYaml scriptsYaml;
   final Variables variables;
@@ -37,60 +35,33 @@ class ScriptRunManyCommand extends Command<ExitCode> {
   String get name => 'run-many';
 
   @override
-  Future<ExitCode> run() async {
-    final content = scriptsYaml.parse();
+  List<String> get aliases => ['r-m'];
 
-    final keys = argResults?.rest;
+  @override
+  Future<ExitCode> run([List<String>? args]) async {
+    final keys = args ?? argResults?.rest;
 
-    if (keys == null || keys.isEmpty) {
-      const warning = 'No script specified, choose from:';
-      getIt<SipConsole>()
-        ..w(lightYellow.wrap(warning) ?? warning)
-        ..emptyLine();
-
-      return ListCommand(
-        scriptsYaml: scriptsYaml,
-      ).run();
+    final validateResult = await validate(keys);
+    if (validateResult != null) {
+      return validateResult;
     }
+    assert(keys != null, 'keys should not be null');
+    keys!;
 
-    if (content == null) {
-      getIt<SipConsole>().e('No script found for ${keys.join(' ')}');
-      return ExitCode.noInput;
+    final (exitCode, commands) = commandsToRun(keys);
+
+    if (exitCode != null) {
+      return exitCode;
     }
+    assert(commands != null, 'commands should not be null');
+    commands!;
 
-    final scriptConfig = ScriptsConfig.fromJson(content);
+    getIt<SipConsole>().w('Running ${commands.length} scripts concurrently');
 
-    final script = scriptConfig.find(keys);
-
-    if (script == null) {
-      getIt<SipConsole>().e('No script found for ${keys.join(' ')}');
-      return ExitCode.config;
-    }
-
-    final resolvedCommands = variables.replace(script, scriptConfig);
-
-    final nearest = scriptsYaml.nearest();
-    final directory = nearest == null
-        ? getIt<FileSystem>().currentDirectory.path
-        : path.dirname(nearest);
-
-    getIt<SipConsole>()
-        .w('Running ${resolvedCommands.length} scripts concurrently');
-
-    final commands = resolvedCommands
-        .map((command) => CommandToRun(
-              command: command,
-              label: command,
-              workingDirectory: directory,
-            ))
-        .toList();
-
-    final runMany = RunManyScripts(
+    final exitCodes = await RunManyScripts(
       commands: commands,
       bindings: bindings,
-    );
-
-    final exitCodes = await runMany.run();
+    ).run();
 
     exitCodes.printErrors(commands);
 

@@ -1,8 +1,4 @@
 import 'package:args/command_runner.dart';
-import 'package:file/file.dart';
-import 'package:path/path.dart' as path;
-import 'package:sip_cli/commands/list_command.dart';
-import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/domain/cwd_impl.dart';
 import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
 import 'package:sip_cli/domain/run_one_script.dart';
@@ -10,13 +6,12 @@ import 'package:sip_cli/domain/scripts_yaml_impl.dart';
 import 'package:sip_cli/setup/setup.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/exit_code_extensions.dart';
+import 'package:sip_cli/utils/run_script_helper.dart';
 import 'package:sip_console/sip_console.dart';
-import 'package:sip_console/utils/ansi.dart';
-import 'package:sip_script_runner/domain/optional_flags.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
 /// The command to run a script
-class ScriptRunCommand extends Command<ExitCode> {
+class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
   ScriptRunCommand({
     this.scriptsYaml = const ScriptsYamlImpl(),
     this.variables = const Variables(
@@ -26,13 +21,7 @@ class ScriptRunCommand extends Command<ExitCode> {
     ),
     this.bindings = const BindingsImpl(),
   }) {
-    argParser.addFlag(
-      'list',
-      abbr: 'l',
-      negatable: false,
-      aliases: ['ls', 'h'],
-      help: 'List all available scripts',
-    );
+    addFlags();
 
     argParser.addFlag(
       'bail',
@@ -56,86 +45,39 @@ class ScriptRunCommand extends Command<ExitCode> {
 
   @override
   Future<ExitCode> run([List<String>? args]) async {
-    final restOfArgs = args ?? argResults?.rest;
+    final keys = args ?? argResults?.rest;
 
-    if (restOfArgs == null || restOfArgs.isEmpty) {
-      const warning = 'No script specified, choose from:';
-      getIt<SipConsole>()
-        ..w(lightYellow.wrap(warning) ?? warning)
-        ..emptyLine();
-
-      return ListCommand(
-        scriptsYaml: scriptsYaml,
-      ).run();
+    final validateResult = await validate(keys);
+    if (validateResult != null) {
+      return validateResult;
     }
+    assert(keys != null, 'keys should not be null');
+    keys!;
 
-    final flagStartAt = restOfArgs.indexWhere((e) => e.startsWith('-'));
-    final scriptKeys =
-        restOfArgs.sublist(0, flagStartAt == -1 ? null : flagStartAt);
-    final flagArgs =
-        flagStartAt == -1 ? <String>[] : restOfArgs.sublist(flagStartAt);
+    final (exitCode, commands) = commandsToRun(keys);
 
-    final optionalFlags = OptionalFlags(flagArgs);
-
-    final content = scriptsYaml.parse();
-    if (content == null) {
-      getIt<SipConsole>().e('No ${ScriptsYaml.fileName} file found');
-      return ExitCode.noInput;
+    if (exitCode != null) {
+      return exitCode;
     }
-
-    final scriptConfig = ScriptsConfig.fromJson(content);
-
-    final script = scriptConfig.find(scriptKeys);
-
-    if (script == null) {
-      getIt<SipConsole>().e('No script found for ${scriptKeys.join(' ')}');
-      return ExitCode.config;
-    }
-
-    if (argResults?.wasParsed('list') ?? false) {
-      getIt<SipConsole>()
-        ..emptyLine()
-        ..l(script.name)
-        ..print(script.listOut(
-          wrapKey: (s) => lightGreen.wrap(s) ?? s,
-          wrapMeta: (s) => lightBlue.wrap(s) ?? s,
-        ))
-        ..emptyLine();
-
-      return ExitCode.success;
-    }
+    assert(commands != null, 'commands should not be null');
+    commands!;
 
     final bail = argResults?.wasParsed('bail') ?? false;
 
-    final resolvedCommands = variables.replace(
-      script,
-      scriptConfig,
-      flags: optionalFlags,
-    );
-
     getIt<SipConsole>().emptyLine();
-
-    final nearest = scriptsYaml.nearest();
-    final directory = nearest == null
-        ? getIt<FileSystem>().currentDirectory.path
-        : path.dirname(nearest);
-
-    for (final command in resolvedCommands) {
-      final commandToRun = CommandToRun(
-        command: command,
-        label: command,
-        workingDirectory: directory,
-      );
-
+    for (final command in commands) {
       final result = await RunOneScript(
-        command: commandToRun,
+        command: command,
         bindings: bindings,
       ).run();
 
       getIt<SipConsole>().emptyLine();
 
       if (result != ExitCode.success && bail) {
-        result.printError(commandToRun);
+        getIt<SipConsole>().e('Bailing...');
+        getIt<SipConsole>().emptyLine();
+
+        result.printError(command);
 
         return result;
       }
