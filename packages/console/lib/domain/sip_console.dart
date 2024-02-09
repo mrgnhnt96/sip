@@ -1,4 +1,5 @@
 import 'package:dart_console2/dart_console2.dart';
+import 'package:sip_console/domain/level.dart';
 import 'package:sip_console/domain/print/print.dart';
 import 'package:sip_console/domain/print/print_debug.dart';
 import 'package:sip_console/domain/print/print_error.dart';
@@ -17,12 +18,14 @@ class SipConsole {
     Print? verbose,
     Print? log,
     Print? debug,
+    Level level = Level.normal,
   })  : _success = success ?? PrintSuccess(),
         _error = error ?? PrintError(),
         _warn = warn ?? PrintWarn(),
         _verbose = verbose ?? PrintVerbose(),
         _log = log ?? PrintLog(),
-        _debug = debug ?? PrintDebug();
+        _debug = debug ?? PrintDebug(),
+        _level = level;
 
   final Print _success;
   final Print _error;
@@ -30,6 +33,8 @@ class SipConsole {
   final Print _verbose;
   final Print _log;
   final Print _debug;
+
+  final Level _level;
 
   /// Prints an error message.
   void e(String message) async {
@@ -43,6 +48,8 @@ class SipConsole {
 
   /// Prints a verbose message.
   void v(String message) async {
+    if (!_level.isVerbose && !_level.isDebug) return;
+
     _verbose.print(message);
   }
 
@@ -58,6 +65,8 @@ class SipConsole {
 
   /// Prints a debug message.
   void d(String message) async {
+    if (!_level.isDebug) return;
+
     _debug.print(message);
   }
 
