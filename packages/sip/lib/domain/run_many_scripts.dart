@@ -12,7 +12,7 @@ class RunManyScripts {
   });
 
   final Bindings bindings;
-  final List<CommandToRun> commands;
+  final Iterable<CommandToRun> commands;
 
   Future<List<ExitCode>> run() async {
     final result = await _run(commands);
@@ -20,7 +20,7 @@ class RunManyScripts {
     return result;
   }
 
-  Future<List<ExitCode>> _run(List<CommandToRun> commands) async {
+  Future<List<ExitCode>> _run(Iterable<CommandToRun> commands) async {
     getIt<SipConsole>().emptyLine();
 
     final exitCodes = await Future.wait(commands.map(

@@ -5,7 +5,9 @@ import 'package:sip_console/domain/sip_console.dart';
 import 'package:sip_console/utils/ansi.dart';
 
 extension ListExitCodeX on List<ExitCode> {
-  void printErrors(List<CommandToRun> commands) {
+  void printErrors(Iterable<CommandToRun> _commands) {
+    final commands = _commands.toList();
+
     for (var i = 0; i < length; i++) {
       this[i]._printError(
         index: i,
