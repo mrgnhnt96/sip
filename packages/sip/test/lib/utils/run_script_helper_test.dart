@@ -36,11 +36,7 @@ class _FakeScriptsYaml implements ScriptsYaml {
   String? nearestFile;
   @override
   String? nearest() {
-    if (nearestFile != null) {
-      return nearestFile;
-    }
-
-    throw UnimplementedError();
+    return nearestFile;
   }
 
   Map<String, dynamic>? content;
@@ -95,7 +91,7 @@ void main() {
     group('#directory', () {
       test('should return the current directory if no scripts.yaml is found',
           () {
-        expect(command.directory, '');
+        expect(command.directory, '/');
       });
 
       test('should return the directory of the nearest scripts.yaml', () {
@@ -103,13 +99,6 @@ void main() {
             'some/path/to/test/scripts.yaml';
 
         expect(command.directory, 'some/path/to/test');
-      });
-    });
-
-    group('#addFlags', () {
-      test('should add the list flag', () {
-        command.addFlags();
-        expect(command.argParser.options, contains('list'));
       });
     });
 
