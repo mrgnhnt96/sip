@@ -92,7 +92,7 @@ $ sip format ui
     final flagStartAt = keys.indexWhere((e) => e.startsWith('-'));
     final scriptKeys = keys.sublist(0, flagStartAt == -1 ? null : flagStartAt);
 
-    final content = scriptsYaml.parse();
+    final content = scriptsYaml.scripts();
     if (content == null) {
       getIt<SipConsole>().e('No ${ScriptsYaml.fileName} file found');
       return (ExitCode.noInput, null);

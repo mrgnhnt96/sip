@@ -18,11 +18,18 @@ class _FakePubspecYaml extends Fake implements PubspecYaml {
 }
 
 class _FakeScriptsYaml extends Fake implements ScriptsYaml {
-  _FakeScriptsYaml(this._path);
+  _FakeScriptsYaml(
+    this._path, {
+    Map<String, dynamic>? variables,
+  }) : _variables = variables;
   final String _path;
+  final Map<String, dynamic>? _variables;
 
   @override
   String? nearest() => _path;
+
+  @override
+  Map<String, dynamic>? variables() => _variables;
 }
 
 class _FakeCWD extends Fake implements CWD {
@@ -86,6 +93,35 @@ void main() {
 
         expect(populated['projectRoot'], '/');
         expect(populated['scriptsRoot'], '/');
+        expect(populated['cwd'], '/');
+      });
+
+      test('should get defined variables', () {
+        final variables = Variables(
+          pubspecYaml: _FakePubspecYaml('/pubspec.yaml'),
+          scriptsYaml: _FakeScriptsYaml('/scripts.yaml', variables: {
+            'foo': 'bar',
+          }),
+          cwd: _FakeCWD('/'),
+        );
+
+        final populated = variables.populate();
+
+        expect(populated['foo'], isNotNull);
+        expect(populated['foo'], 'bar');
+      });
+
+      test('should not allow sip variables', () {
+        final variables = Variables(
+          pubspecYaml: _FakePubspecYaml('/pubspec.yaml'),
+          scriptsYaml: _FakeScriptsYaml('/scripts.yaml', variables: {
+            'cwd': 'bar',
+          }),
+          cwd: _FakeCWD('/'),
+        );
+
+        final populated = variables.populate();
+
         expect(populated['cwd'], '/');
       });
     });

@@ -4,6 +4,10 @@ abstract interface class ScriptsYaml {
 
   Map<String, dynamic>? parse();
 
+  Map<String, dynamic>? variables();
+
+  Map<String, dynamic>? scripts();
+
   String? nearest();
 
   String? retrieveContent();

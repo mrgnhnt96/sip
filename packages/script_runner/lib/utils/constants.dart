@@ -5,6 +5,7 @@ class Keys {
   static const String aliases = '(aliases)';
   static const String description = '(description)';
   static const String command = '(command)';
+  static const String variables = '(variables)';
 
   static const List<String> values = [aliases, description, command];
 }
@@ -16,6 +17,8 @@ class Vars {
   static const String projectRoot = 'projectRoot';
   static const String scriptsRoot = 'scriptsRoot';
   static const String cwd = 'cwd';
+
+  static const Set<String> values = {projectRoot, scriptsRoot, cwd};
 }
 
 class Identifiers {

@@ -24,7 +24,7 @@ class ListCommand extends Command<ExitCode> {
   List<String> get aliases => ['ls'];
 
   Future<ExitCode> run() async {
-    final content = scriptsYaml.parse();
+    final content = scriptsYaml.scripts();
     if (content == null) {
       getIt<SipConsole>().e('No ${ScriptsYaml.fileName} file found');
       return ExitCode.noInput;

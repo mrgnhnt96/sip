@@ -42,12 +42,18 @@ class _FakeScriptsYaml implements ScriptsYaml {
   Map<String, dynamic>? content;
 
   @override
-  Map<String, dynamic>? parse() => content ?? {};
+  Map<String, dynamic>? scripts() => content ?? {};
 
   @override
   String? retrieveContent() {
     throw UnimplementedError();
   }
+
+  @override
+  Map<String, dynamic>? parse() => {};
+
+  @override
+  Map<String, dynamic>? variables() => {};
 }
 
 class _FakeVariables implements Variables {
