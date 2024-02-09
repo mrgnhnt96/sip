@@ -89,7 +89,7 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
           .w('Running ${concurrentRuns.length} scripts concurrently');
 
       final exitCodes = await RunManyScripts(
-        commands: commands,
+        commands: concurrentRuns,
         bindings: bindings,
       ).run();
 
