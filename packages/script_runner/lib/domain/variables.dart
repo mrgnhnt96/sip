@@ -28,6 +28,21 @@ class Variables {
 
     variables[Vars.cwd] = cwd.path;
 
+    final definedVariables = scriptsYaml.variables();
+    for (final MapEntry(:key, :value) in (definedVariables ?? {}).entries) {
+      if (value is! String) {
+        print('Variable $key is not a string');
+        continue;
+      }
+
+      if (Vars.values.contains(key)) {
+        print('Variable $key is a reserved keyword');
+        continue;
+      }
+
+      variables[key] = value;
+    }
+
     return variables;
   }
 
