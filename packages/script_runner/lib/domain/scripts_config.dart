@@ -30,7 +30,10 @@ class ScriptsConfig extends Equatable {
   factory ScriptsConfig.fromJson(Map json) {
     final scripts = <String, Script>{};
 
-    final allowedKeys = RegExp(r'^[a-z0-9_.\-]+$');
+    final allowedKeys = RegExp(
+      r'^[a-z][a-z0-9_.\-]*(?<=[a-z0-9])$',
+      caseSensitive: false,
+    );
 
     for (final entry in json.entries) {
       final key = entry.key.trim();
@@ -44,7 +47,7 @@ class ScriptsConfig extends Equatable {
 
       if (!allowedKeys.hasMatch(key) && !Keys.values.contains(key)) {
         print(
-          'The script name "${key}" uses forbidden characters, allowed: ${allowedKeys.pattern}',
+          'The script name "${key}" uses forbidden characters, allowed: ${allowedKeys.pattern} (case insensitive)',
         );
         continue;
       }

@@ -318,6 +318,9 @@ scripts.yaml:
             'test*': 'echo "test"',
             'test(': 'echo "test"',
             'test)': 'echo "test"',
+            '-test': 'echo "test"',
+            '0test': 'echo "test"',
+            'test-': 'echo "test"',
           });
 
           expect(config.scripts, isEmpty);
