@@ -406,7 +406,7 @@ scripts.yaml:
         expect(script!.commands, commands);
       });
 
-      test('finds script when nested scripts exist', () {
+      test('finds script when nested (1)', () {
         const commands = ['echo "patrick"'];
 
         final config = ScriptsConfig(scripts: {
@@ -428,6 +428,59 @@ scripts.yaml:
 
         expect(script, isNotNull);
         expect(script!.commands, commands);
+      });
+
+      test('finds script when nested (2)', () {
+        final config = ScriptsConfig(scripts: {
+          'build_runner': Script.defaults(
+            name: 'build_runner',
+            scripts: ScriptsConfig(
+              scripts: {
+                'build': Script.defaults(
+                  name: 'build',
+                  commands: ['build_runner build --delete-conflicting-outputs'],
+                ),
+              },
+            ),
+          ),
+        });
+
+        final script = config.find(['build_runner', 'build']);
+
+        expect(script, isNotNull);
+        expect(
+          script!.commands,
+          [r'build_runner build --delete-conflicting-outputs'],
+        );
+      });
+
+      test('finds script when nested (3)', () {
+        final config = ScriptsConfig(scripts: {
+          'build_runner': Script.defaults(
+            name: 'build_runner',
+            scripts: ScriptsConfig(
+              scripts: {
+                'build': Script.defaults(
+                  name: 'build',
+                  commands: ['build_runner build --delete-conflicting-outputs'],
+                  scripts: ScriptsConfig(
+                    scripts: {
+                      'ui': Script.defaults(
+                        name: 'ui',
+                        commands: [r'cd packages/ui && {$build_runner:build}'],
+                      ),
+                    },
+                  ),
+                ),
+              },
+            ),
+          ),
+        });
+
+        final script = config.find(['build_runner', 'build', 'ui']);
+
+        expect(script, isNotNull);
+        expect(script!.commands, [r'cd packages/ui && {$build_runner:build}']);
       });
     });
   });

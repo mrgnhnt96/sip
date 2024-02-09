@@ -1,6 +1,6 @@
+import 'package:autoequal/autoequal.dart';
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
-import 'package:autoequal/autoequal.dart';
 // ignore_for_file: must_be_immutable
 import 'package:sip_script_runner/domain/script.dart';
 import 'package:sip_script_runner/utils/constants.dart';
@@ -119,12 +119,13 @@ class ScriptsConfig extends Equatable {
     }
 
     Script? script = _find(keys.first);
-    if (script == null) return null;
-    if (keys.length == 1) return script;
 
     for (var i = 1; i < keys.length; i++) {
-      script = script?.scripts?.find(keys.sublist(i));
-      if (script == null) return null;
+      final remainingKeys = keys.sublist(i);
+      final found = script?.scripts?.find(remainingKeys);
+      if (found == null) break;
+
+      script = found;
     }
 
     return script;
