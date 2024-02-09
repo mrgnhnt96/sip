@@ -1,7 +1,10 @@
+import 'package:equatable/equatable.dart';
+
 /// A class to parse optional flags from a list of strings.
 ///
 /// e.g. `['-f', 'file.txt', '--verbose', 'true']` would be parsed to `{'-f': '-f file.txt', '--verbose': '--verbose true'}`
-class OptionalFlags {
+// ignore: must_be_immutable
+class OptionalFlags extends Equatable {
   OptionalFlags(this._flags);
 
   final List<String> _flags;
@@ -47,4 +50,7 @@ class OptionalFlags {
 
     return _parsed![key];
   }
+
+  @override
+  List<Object?> get props => [_flags];
 }
