@@ -135,11 +135,13 @@ class ScriptsConfig extends Equatable {
   String listOut({
     StringBuffer? buffer,
     String? prefix,
-    String Function(String)? wrapKey,
+    String Function(String)? wrapCallableKey,
+    String Function(String)? wrapNonCallableKey,
     String Function(String)? wrapMeta,
   }) {
     buffer ??= StringBuffer();
-    wrapKey ??= (key) => key;
+    wrapCallableKey ??= (key) => key;
+    wrapNonCallableKey ??= (key) => key;
     wrapMeta ??= (meta) => meta;
     if (prefix == null) {
       buffer.writeln('scripts.yaml:');
@@ -153,13 +155,17 @@ class ScriptsConfig extends Equatable {
     for (final MapEntry(:key, value: script) in scripts.entries) {
       if (key.startsWith('_')) continue;
 
+      final wrapper =
+          script.commands.isEmpty ? wrapNonCallableKey : wrapCallableKey;
+
       final entry = isLast(key) ? '└──' : '├──';
-      buffer.writeln('$prefix$entry${wrapKey(key)}');
+      buffer.writeln('$prefix$entry${wrapper(key)}');
       final sub = isLast(key) ? '   ' : '│  ';
       script.listOut(
         buffer: buffer,
         prefix: prefix + sub,
-        wrapKey: wrapKey,
+        wrapCallableKey: wrapCallableKey,
+        wrapNonCallableKey: wrapNonCallableKey,
         wrapMeta: wrapMeta,
       );
     }

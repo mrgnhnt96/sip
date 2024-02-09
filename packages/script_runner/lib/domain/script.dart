@@ -60,14 +60,16 @@ class Script extends Equatable {
   String listOut({
     StringBuffer? buffer,
     String? prefix,
-    String Function(String)? wrapKey,
+    String Function(String)? wrapCallableKey,
+    String Function(String)? wrapNonCallableKey,
     String Function(String)? wrapMeta,
   }) {
     buffer ??= StringBuffer();
 
     if (name.startsWith('_')) return buffer.toString();
 
-    wrapKey ??= (key) => key;
+    wrapCallableKey ??= (key) => key;
+    wrapNonCallableKey ??= (key) => key;
     wrapMeta ??= (meta) => meta;
     prefix ??= '';
 
@@ -83,7 +85,8 @@ class Script extends Equatable {
     scripts?.listOut(
       buffer: buffer,
       prefix: '$prefix  ',
-      wrapKey: wrapKey,
+      wrapCallableKey: wrapCallableKey,
+      wrapNonCallableKey: wrapNonCallableKey,
       wrapMeta: wrapMeta,
     );
 

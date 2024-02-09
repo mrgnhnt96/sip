@@ -81,7 +81,7 @@ $ sip format ui
       ..emptyLine()
       ..l(script.name)
       ..print(script.listOut(
-        wrapKey: (s) => lightGreen.wrap(s) ?? s,
+        wrapCallableKey: (s) => lightGreen.wrap(s) ?? s,
         wrapMeta: (s) => lightBlue.wrap(s) ?? s,
       ))
       ..emptyLine();
