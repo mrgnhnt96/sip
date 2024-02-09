@@ -5,6 +5,28 @@ import 'package:test/test.dart';
 void main() {
   group('$ScriptsConfig', () {
     group('#listOut', () {
+      test('should not list out private scripts', () {
+        final scriptsConfig = ScriptsConfig(
+          scripts: {
+            'public': Script.defaults(
+              name: 'public',
+            ),
+            '_private': Script.defaults(
+              name: '_private',
+            ),
+          },
+        );
+
+        expect(
+          scriptsConfig.listOut(),
+          equals(
+            '''scripts.yaml:
+   └──public
+''',
+          ),
+        );
+      });
+
       test('lists out the scripts', () {
         final scriptsConfig = ScriptsConfig(
           scripts: {

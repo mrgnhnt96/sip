@@ -64,6 +64,9 @@ class Script extends Equatable {
     String Function(String)? wrapMeta,
   }) {
     buffer ??= StringBuffer();
+
+    if (name.startsWith('_')) return buffer.toString();
+
     wrapKey ??= (key) => key;
     wrapMeta ??= (meta) => meta;
     prefix ??= '';

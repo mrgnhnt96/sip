@@ -52,6 +52,24 @@ void main() {
           startsWith('  └──script1'),
         );
       });
+
+      test('should not list out the private script', () {
+        final script = Script.defaults(
+          name: '_',
+          scripts: ScriptsConfig(
+            scripts: {
+              'script1': Script.defaults(
+                name: 'script1',
+              ),
+            },
+          ),
+        );
+
+        expect(
+          script.listOut(),
+          equals(''),
+        );
+      });
     });
 
     group('serialization', () {

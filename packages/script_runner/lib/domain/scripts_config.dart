@@ -144,10 +144,12 @@ class ScriptsConfig extends Equatable {
 
     prefix ??= '   ';
 
-    final keys = scripts.keys.toList();
+    final keys = scripts.keys.where((e) => !e.startsWith('_'));
     bool isLast(String key) => keys.last == key;
 
     for (final MapEntry(:key, value: script) in scripts.entries) {
+      if (key.startsWith('_')) continue;
+
       final entry = isLast(key) ? '└──' : '├──';
       buffer.writeln('$prefix$entry${wrapKey(key)}');
       final sub = isLast(key) ? '   ' : '│  ';
