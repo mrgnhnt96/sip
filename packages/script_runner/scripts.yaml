@@ -1,5 +1,5 @@
 build_runner:
-  (command): cd {projectRoot} && dart run build_runner
+  (command): dart run build_runner
   (aliases):
     - b
     - br
