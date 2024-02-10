@@ -52,6 +52,8 @@ class SipRunner extends CommandRunner<ExitCode> {
 
     final result = await super.runCommand(topLevelResults);
 
+    getIt<SipConsole>().d('Ran sip command, exit code: $result');
+
     return result ?? ExitCode.success;
   }
 }

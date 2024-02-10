@@ -25,6 +25,8 @@ class RunOneScript {
 
     final result = await bindings.runScript(cmd, showOutput: showOutput);
 
+    getIt<SipConsole>().v('Native exited with $result');
+
     final codes = {
       ExitCode.success.code: ExitCode.success,
       ExitCode.usage.code: ExitCode.usage,
@@ -43,6 +45,6 @@ class RunOneScript {
       ExitCode.config.code: ExitCode.config,
     };
 
-    return codes[result] ?? ExitCode.success;
+    return codes[result] ?? ExitCode.unknown(result);
   }
 }

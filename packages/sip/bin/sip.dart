@@ -1,10 +1,14 @@
+import 'dart:io';
+
 import 'package:file/file.dart';
 import 'package:file/local.dart';
 import 'package:sip_cli/setup/setup.dart' as sip;
 import 'package:sip_cli/sip_runner.dart';
+import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_console/domain/level.dart';
+import 'package:sip_console/sip_console.dart';
 
-void main(List<String> _) {
+void main(List<String> _) async {
   final args = List<String>.from(_);
   final hasDebug = args.remove('--debug');
 
@@ -19,7 +23,9 @@ void main(List<String> _) {
 
   sip.getIt.registerLazySingleton<FileSystem>(LocalFileSystem.new);
 
-  final runner = SipRunner();
+  final exitCode = await SipRunner().run(args);
 
-  runner.run(args);
+  sip.getIt<SipConsole>().v('[$args] Finishing with: $exitCode');
+
+  exit(exitCode.code);
 }

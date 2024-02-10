@@ -76,6 +76,7 @@ class ExitCode {
   final String _name;
 
   const ExitCode._(this.code, this._name);
+  const ExitCode.unknown(this.code) : _name = 'unknown';
 
   @override
   String toString() => '$_name: $code';

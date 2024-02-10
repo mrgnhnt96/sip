@@ -22,13 +22,17 @@ extension ListExitCodeX on List<ExitCode> {
     mapped.remove(ExitCode.success.code);
 
     if (mapped.isEmpty) {
+      getIt<SipConsole>().v('Many exit codes: $this, returning success');
       return ExitCode.success;
     }
 
     if (mapped.length == 1) {
+      getIt<SipConsole>()
+          .v('Many exit codes: $this, returning ${mapped.values.first}');
       return mapped.values.first;
     }
 
+    getIt<SipConsole>().v('Many exit codes: $this, returning unavailable');
     return ExitCode.unavailable;
   }
 }
