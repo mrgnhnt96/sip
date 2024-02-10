@@ -14,6 +14,7 @@ class Script extends Equatable {
     required this.aliases,
     required this.description,
     required this.scripts,
+    required this.bail,
   });
 
   const Script.defaults({
@@ -22,6 +23,7 @@ class Script extends Equatable {
     this.aliases = const {},
     this.scripts,
     this.description,
+    this.bail = false,
   });
 
   factory Script.fromJson(String name, dynamic json) {
@@ -49,6 +51,11 @@ class Script extends Equatable {
     readValue: _retrieveStrings,
   )
   final Set<String> aliases;
+  @JsonKey(
+    name: Keys.bail,
+    readValue: _retrieveBool,
+  )
+  final bool bail;
   @JsonKey(name: Keys.description)
   final String? description;
 
@@ -97,6 +104,28 @@ class Script extends Equatable {
   List<Object?> get props => _$props;
 }
 
+bool? _retrieveBool(Map json, String key) {
+  final value = json[key];
+  if (value is bool) {
+    return value;
+  }
+
+  if (value == null && json.containsKey(key)) {
+    return true;
+  }
+
+  if (value is String) {
+    return switch (value.toLowerCase()) {
+      'true' => true,
+      'yes' => true,
+      'y' => true,
+      _ => false,
+    };
+  }
+
+  return null;
+}
+
 List? _retrieveStrings(Map json, String key) {
   return _tryReadListOrString(json[key]);
 }
@@ -107,9 +136,7 @@ Map? _readScriptsConfig(Map json, String key) {
   // remove all other keys
   mutableMap.removeWhere(
     (key, _) => {
-      Keys.command,
-      Keys.aliases,
-      Keys.description,
+      ...Keys.values,
       'name',
     }.contains(key),
   );

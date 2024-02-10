@@ -56,7 +56,7 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     assert(keys != null, 'keys should not be null');
     keys!;
 
-    final (exitCode, commands) = commandsToRun(keys);
+    var (exitCode, commands, bail) = commandsToRun(keys);
 
     if (exitCode != null) {
       return exitCode;
@@ -64,7 +64,11 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     assert(commands != null, 'commands should not be null');
     commands!;
 
-    final bail = argResults?['bail'] as bool? ?? false;
+    bail ^= argResults?['bail'] as bool? ?? false;
+
+    if (bail) {
+      getIt<SipConsole>().w('Bail is set, stopping on first error');
+    }
 
     getIt<SipConsole>().emptyLine();
 

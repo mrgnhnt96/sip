@@ -2,12 +2,13 @@
 class Keys {
   const Keys._();
 
+  static const String bail = '(bail)';
   static const String aliases = '(aliases)';
   static const String description = '(description)';
   static const String command = '(command)';
   static const String variables = '(variables)';
 
-  static const List<String> values = [aliases, description, command];
+  static const List<String> values = [aliases, description, command, bail];
 }
 
 /// The variables that can be used in the scripts

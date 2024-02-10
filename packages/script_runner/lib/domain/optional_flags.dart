@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+part 'optional_flags.g.dart';
+
 /// A class to parse optional flags from a list of strings.
 ///
 /// e.g. `['-f', 'file.txt', '--verbose', 'true']` would be parsed to `{'-f': '-f file.txt', '--verbose': '--verbose true'}`
@@ -52,5 +54,5 @@ class OptionalFlags extends Equatable {
   }
 
   @override
-  List<Object?> get props => [_flags];
+  List<Object?> get props => _$props;
 }

@@ -73,6 +73,62 @@ void main() {
     });
 
     group('serialization', () {
+      group('bail', () {
+        test('can parse truthy', () {
+          final scripts = [
+            Script.fromJson(
+              'script',
+              {Keys.bail: true},
+            ),
+            Script.fromJson(
+              'script',
+              {Keys.bail: 'true'},
+            ),
+            Script.fromJson(
+              'script',
+              {Keys.bail: 'yes'},
+            ),
+            Script.fromJson(
+              'script',
+              {Keys.bail: 'y'},
+            ),
+            Script.fromJson(
+              'script',
+              {Keys.bail: null},
+            ),
+          ];
+
+          for (final script in scripts) {
+            expect(script.bail, isTrue);
+          }
+        });
+
+        test('can parse falsy', () {
+          final scripts = [
+            Script.fromJson(
+              'script',
+              {Keys.bail: false},
+            ),
+            Script.fromJson(
+              'script',
+              {Keys.bail: 'false'},
+            ),
+            Script.fromJson(
+              'script',
+              {Keys.bail: 'anything else'},
+            ),
+            Script.fromJson(
+              'script',
+              {},
+            ),
+          ];
+
+          for (final script in scripts) {
+            expect(script.bail, isFalse);
+          }
+        });
+      });
+
       group('aliases', () {
         test('can parse string', () {
           final script = Script.fromJson(

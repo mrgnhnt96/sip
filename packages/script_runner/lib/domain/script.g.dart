@@ -11,6 +11,7 @@ extension _$ScriptAutoequal on Script {
         name,
         commands,
         aliases,
+        bail,
         description,
         scripts,
       ];
@@ -21,7 +22,7 @@ extension _$ScriptAutoequal on Script {
 // **************************************************************************
 
 Script _$ScriptFromJson(Map json) => Script.defaults(
-      name: json['name'] as String? ?? '',
+      name: json['name'] as String,
       commands: (_readCommand(json, 'commands') as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
@@ -34,12 +35,14 @@ Script _$ScriptFromJson(Map json) => Script.defaults(
           ? null
           : ScriptsConfig.fromJson(_readScriptsConfig(json, 'scripts') as Map),
       description: json['(description)'] as String?,
+      bail: _retrieveBool(json, '(bail)') as bool? ?? false,
     );
 
 Map<String, dynamic> _$ScriptToJson(Script instance) => <String, dynamic>{
       'name': instance.name,
       'commands': instance.commands,
       '(aliases)': instance.aliases.toList(),
+      '(bail)': instance.bail,
       '(description)': instance.description,
       'scripts': instance.scripts?.toJson(),
     };

@@ -150,13 +150,13 @@ void main() {
           'pub': 'echo "pub"',
         };
 
-        final (exitCode, commands) = command.getCommands(['pub']);
+        final (exitCode, commands, _) = command.getCommands(['pub']);
         expect(exitCode, isNull);
         expect(commands, ['echo "pub"']);
       });
 
       test('should return an exit code when the script is not found', () {
-        final (exitCode, commands) = command.getCommands(['pub']);
+        final (exitCode, commands, _) = command.getCommands(['pub']);
         expect(exitCode, isA<ExitCode>());
         expect(commands, isNull);
       });
@@ -166,7 +166,7 @@ void main() {
           'pub': null,
         };
 
-        final (exitCode, commands) = command.getCommands(['pub']);
+        final (exitCode, commands, _) = command.getCommands(['pub']);
         expect(exitCode, isA<ExitCode>());
         expect(commands, isNull);
       });
@@ -178,7 +178,7 @@ void main() {
           'pub': 'echo "pub"',
         };
 
-        final (exitCode, commands) = command.getCommands(['pub']);
+        final (exitCode, commands, _) = command.getCommands(['pub']);
 
         expect(exitCode, isA<ExitCode>());
         expect(commands, isNull);
@@ -194,7 +194,7 @@ void main() {
           'pub': 'echo "pub"',
         };
 
-        final (exitCode, commands) = command.commandsToRun(['pub']);
+        final (exitCode, commands, _) = command.commandsToRun(['pub']);
         expect(exitCode, isNull);
 
         expect(commands, isNotNull);
@@ -212,7 +212,7 @@ void main() {
       });
 
       test('should return an exit code when the script is not found', () {
-        final (exitCode, commands) = command.commandsToRun(['pub']);
+        final (exitCode, commands, _) = command.commandsToRun(['pub']);
         expect(exitCode, isA<ExitCode>());
         expect(commands, isNull);
       });

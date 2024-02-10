@@ -48,7 +48,7 @@ class ScriptRunManyCommand extends Command<ExitCode> with RunScriptHelper {
     assert(keys != null, 'keys should not be null');
     keys!;
 
-    final (exitCode, commands) = commandsToRun(keys);
+    final (exitCode, commands, _) = commandsToRun(keys);
 
     if (exitCode != null) {
       return exitCode;

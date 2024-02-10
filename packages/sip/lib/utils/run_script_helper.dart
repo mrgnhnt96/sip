@@ -88,14 +88,15 @@ $ sip format ui
       ..emptyLine();
   }
 
-  (ExitCode?, List<String>? commands) getCommands(List<String> keys) {
+  (ExitCode?, List<String>? commands, bool bail) getCommands(
+      List<String> keys) {
     final flagStartAt = keys.indexWhere((e) => e.startsWith('-'));
     final scriptKeys = keys.sublist(0, flagStartAt == -1 ? null : flagStartAt);
 
     final content = scriptsYaml.scripts();
     if (content == null) {
       getIt<SipConsole>().e('No ${ScriptsYaml.fileName} file found');
-      return (ExitCode.noInput, null);
+      return (ExitCode.noInput, null, false);
     }
 
     final scriptConfig = ScriptsConfig.fromJson(content);
@@ -104,7 +105,7 @@ $ sip format ui
 
     if (script == null) {
       getIt<SipConsole>().e('No script found for ${scriptKeys.join(' ')}');
-      return (ExitCode.config, null);
+      return (ExitCode.config, null, false);
     }
 
     if (script.commands.isEmpty) {
@@ -114,13 +115,13 @@ $ sip format ui
 
       _listOutScript(script);
 
-      return (ExitCode.config, null);
+      return (ExitCode.config, null, false);
     }
 
     if (argResults?.wasParsed('list') ?? false) {
       _listOutScript(script);
 
-      return (ExitCode.success, null);
+      return (ExitCode.success, null, false);
     }
 
     final resolvedCommands = variables.replace(
@@ -129,7 +130,7 @@ $ sip format ui
       flags: optionalFlags(keys),
     );
 
-    return (null, resolvedCommands);
+    return (null, resolvedCommands, script.bail);
   }
 
   Iterable<CommandToRun> _commandsToRun(List<String> commands) sync* {
@@ -153,16 +154,16 @@ $ sip format ui
     }
   }
 
-  (ExitCode?, Iterable<CommandToRun>?) commandsToRun(List<String> keys) {
-    final (exitCode, commands) = getCommands(keys);
+  (ExitCode?, Iterable<CommandToRun>?, bool) commandsToRun(List<String> keys) {
+    final (exitCode, commands, bail) = getCommands(keys);
 
     if (exitCode != null) {
-      return (exitCode, null);
+      return (exitCode, null, bail);
     }
 
     assert(commands != null, 'commands should not be null');
     commands!;
 
-    return (null, _commandsToRun(commands));
+    return (null, _commandsToRun(commands), bail);
   }
 }
