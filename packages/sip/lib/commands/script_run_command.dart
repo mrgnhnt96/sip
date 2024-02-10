@@ -68,11 +68,15 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
 
     getIt<SipConsole>().emptyLine();
 
+    ExitCode? failureExitCode;
+
     ExitCode? _bail(List<ExitCode> exitCodes, List<CommandToRun> commands) {
       getIt<SipConsole>().d('Checking for bail ($bail), bail: $exitCodes');
-      if (!bail) return null;
 
       if (exitCodes.exitCode == ExitCode.success) return null;
+      failureExitCode ??= exitCodes.exitCode;
+
+      if (!bail) return null;
 
       getIt<SipConsole>().e('Bailing...');
       getIt<SipConsole>().emptyLine();
@@ -134,6 +138,6 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
 
     getIt<SipConsole>().d('Success! Finished running scripts');
 
-    return ExitCode.success;
+    return failureExitCode ?? ExitCode.success;
   }
 }

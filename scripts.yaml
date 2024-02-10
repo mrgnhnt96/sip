@@ -11,9 +11,9 @@ test:
     - "{$test:sip}"
     - "{$test:script_runner}"
     - "{$test:console}"
-  sip: cd packages/sip && sip run test --bail
-  script_runner: cd packages/script_runner && sip run test --bail
-  console: cd packages/console && sip run test --bail
+  sip: cd packages/sip && sip run test
+  script_runner: cd packages/script_runner && sip run test
+  console: cd packages/console && sip run test
 
 prep:
   (command):
