@@ -35,7 +35,7 @@ class ScriptRunManyCommand extends Command<ExitCode> with RunScriptHelper {
   String get name => 'run-many';
 
   @override
-  List<String> get aliases => ['r-m'];
+  List<String> get aliases => ['r-m', 'run-m'];
 
   @override
   Future<ExitCode> run([List<String>? args]) async {
