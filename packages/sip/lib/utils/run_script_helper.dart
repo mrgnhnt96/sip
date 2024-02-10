@@ -137,6 +137,9 @@ $ sip format ui
       var runConcurrently = false;
 
       if (command.startsWith(Identifiers.concurrent)) {
+        getIt<SipConsole>().d(
+          'Running concurrently: "${darkGray.wrap(command)}"',
+        );
         runConcurrently = true;
         command = command.substring(Identifiers.concurrent.length);
       }

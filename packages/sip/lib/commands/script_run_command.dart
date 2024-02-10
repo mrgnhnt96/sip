@@ -96,7 +96,7 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
         bindings: bindings,
       ).run();
 
-      exitCodes.printErrors(commands);
+      exitCodes.printErrors(concurrentRuns);
 
       final bailExitCode = _bail(exitCodes, concurrentRuns);
       concurrentRuns.clear();
