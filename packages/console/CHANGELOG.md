@@ -1,3 +1,13 @@
+# 0.0.9 | 2/10/2024
+
+## Features
+
+- Declare when a script with fail with the `(bail):` key in `scripts.yaml`
+
+## Fixes
+
+- Fix issue where all commands were printing after running a group of concurrent commands
+
 # 0.0.8 | 2/9/2024
 
 ## Fixes

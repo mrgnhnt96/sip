@@ -168,6 +168,40 @@ format:
     core: cd packages/core && dart format .
 ```
 
+### Bail
+
+Bailing on a script means that the moment a command fails, the script will stop running, even if there are other commands to run.
+
+You can bail a script if you pass the `--bail` flag when running the script.
+
+```bash
+$ sip run test --bail
+
+...
+✖ Script dart run test failed with exit code unknown: 1 
+
+✖ Bailing...
+```
+
+Optionally, you can always set a script to fail by using the `(bail):` key in the `scripts.yaml` file.
+
+```yaml
+# scripts.yaml
+
+test:
+    (bail): # leave blank, or set to: true, yes, y
+    (command): dart test
+```
+
+```bash
+$ sip run test
+
+...
+✖ Script dart run test failed with exit code unknown: 1 
+
+✖ Bailing...
+```
+
 ### Referencing other scripts
 
 You can reference other scripts within the `scripts.yaml` file by using the `$` symbol. When referencing a script, the command defined for that referenced script will be used.
