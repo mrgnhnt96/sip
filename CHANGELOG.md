@@ -1,3 +1,9 @@
+# 0.0.6 | 2/9/2024
+
+## Fixes
+
+- Fix issue when parsing debug option
+
 # 0.0.5 | 2/9/2024
 
 ## Features
