@@ -46,6 +46,7 @@ prep:
     done
 
 publish:
+  (bail):
   (command):
     - "{$test}"
     - "{$prep}"
