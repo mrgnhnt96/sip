@@ -17,9 +17,10 @@ test:
 
 prep:
   (command):
-    - "{$prep:changelog}"
-    - "{$prep:license}"
-    - "{$prep:readme}"
+    - (+) {$prep:changelog}
+    - (+) {$prep:license}
+    - (+) {$prep:readme}
+    - (+) {$prep:pubspecs}
   changelog: |
     echo "Copying CHANGELOG.md to all packages"
     for dir in $(ls -d packages/*); do
