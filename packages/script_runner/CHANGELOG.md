@@ -1,3 +1,9 @@
+# 0.0.7 | 2/9/2024
+
+## Fixes
+
+- Fix issue where bail was not being respected and failing commands were not stopping the script
+
 # 0.0.6 | 2/9/2024
 
 ## Fixes
