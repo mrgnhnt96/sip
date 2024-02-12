@@ -271,123 +271,120 @@ void main() {
           );
         });
 
-        group('script path variables', () {
-          test('should replace when found', () {
-            final script = Script.defaults(
+        test('should replace when found', () {
+          final script = Script.defaults(
+            name: '',
+            commands: [
+              r'cd {projectRoot}/packages/application && {$build_runner:build}',
+            ],
+          );
+
+          final config = ScriptsConfig(scripts: {
+            'link': script,
+            'build_runner': Script.defaults(
               name: '',
-              commands: [
-                r'cd {projectRoot}/packages/application && {$build_runner:build}',
-              ],
-            );
-
-            final config = ScriptsConfig(scripts: {
-              'link': script,
-              'build_runner': Script.defaults(
-                name: '',
-                scripts: ScriptsConfig(
-                  scripts: {
-                    'build': Script.defaults(
-                      name: '',
-                      commands: [
-                        'dart run build_runner build --delete-conflicting-outputs',
-                      ],
-                    ),
-                  },
-                ),
-              )
-            });
-
-            final replaced = variables.replace(script, config);
-
-            expect(replaced, isNotNull);
-            expect(replaced, hasLength(1));
-
-            expect(
-              replaced[0],
-              'cd ./packages/application && dart run build_runner build --delete-conflicting-outputs',
-            );
+              scripts: ScriptsConfig(
+                scripts: {
+                  'build': Script.defaults(
+                    name: '',
+                    commands: [
+                      'dart run build_runner build --delete-conflicting-outputs',
+                    ],
+                  ),
+                },
+              ),
+            )
           });
 
-          test('should duplicate commands when script has multiple commands',
-              () {
-            final script = Script.defaults(
+          final replaced = variables.replace(script, config);
+
+          expect(replaced, isNotNull);
+          expect(replaced, hasLength(1));
+
+          expect(
+            replaced[0],
+            'cd ./packages/application && dart run build_runner build --delete-conflicting-outputs',
+          );
+        });
+
+        test('should duplicate commands when script has multiple commands', () {
+          final script = Script.defaults(
+            name: '',
+            commands: [
+              r'cd {projectRoot}/packages/application && {$build_runner:build}',
+            ],
+          );
+
+          final config = ScriptsConfig(scripts: {
+            'link': script,
+            'build_runner': Script.defaults(
               name: '',
-              commands: [
-                r'cd {projectRoot}/packages/application && {$build_runner:build}',
-              ],
-            );
-
-            final config = ScriptsConfig(scripts: {
-              'link': script,
-              'build_runner': Script.defaults(
-                name: '',
-                scripts: ScriptsConfig(
-                  scripts: {
-                    'build': Script.defaults(
-                      name: '',
-                      commands: [
-                        'dart run build_runner clean',
-                        'dart run build_runner build --delete-conflicting-outputs',
-                      ],
-                    ),
-                  },
-                ),
-              )
-            });
-
-            final replaced = variables.replace(script, config);
-
-            expect(replaced, isNotNull);
-            expect(replaced, hasLength(2));
-
-            expect(replaced, [
-              'cd ./packages/application && dart run build_runner clean',
-              'cd ./packages/application && dart run build_runner build --delete-conflicting-outputs',
-            ]);
+              scripts: ScriptsConfig(
+                scripts: {
+                  'build': Script.defaults(
+                    name: '',
+                    commands: [
+                      'dart run build_runner clean',
+                      'dart run build_runner build --delete-conflicting-outputs',
+                    ],
+                  ),
+                },
+              ),
+            )
           });
 
-          test('should resolve script that references another script', () {
-            final script = Script.defaults(
+          final replaced = variables.replace(script, config);
+
+          expect(replaced, isNotNull);
+          expect(replaced, hasLength(2));
+
+          expect(replaced, [
+            'cd ./packages/application && dart run build_runner clean',
+            'cd ./packages/application && dart run build_runner build --delete-conflicting-outputs',
+          ]);
+        });
+
+        test('should resolve script that references another script', () {
+          final script = Script.defaults(
+            name: '',
+            commands: [
+              r'cd {projectRoot}/packages/application && {$build_runner:watch}',
+            ],
+          );
+
+          final config = ScriptsConfig(scripts: {
+            'link': script,
+            'build_runner': Script.defaults(
               name: '',
-              commands: [
-                r'cd {projectRoot}/packages/application && {$build_runner:watch}',
-              ],
-            );
-
-            final config = ScriptsConfig(scripts: {
-              'link': script,
-              'build_runner': Script.defaults(
-                name: '',
-                scripts: ScriptsConfig(
-                  scripts: {
-                    'clean': Script.defaults(
-                      name: '',
-                      commands: [
-                        'dart run build_runner clean',
-                      ],
-                    ),
-                    'watch': Script.defaults(
-                      name: '',
-                      commands: [
-                        r'{$build_runner:clean}',
-                        'dart run build_runner watch --delete-conflicting-outputs',
-                      ],
-                    ),
-                  },
-                ),
-              )
-            });
-
-            final replaced = variables.replace(script, config);
-
-            expect(replaced, isNotNull);
-            expect(replaced, hasLength(2));
-
-            expect(replaced, [
-              'cd ./packages/application && dart run build_runner clean',
-              'cd ./packages/application && dart run build_runner watch --delete-conflicting-outputs',
-            ]);
+              scripts: ScriptsConfig(
+                scripts: {
+                  'clean': Script.defaults(
+                    name: '',
+                    commands: [
+                      'dart run build_runner clean',
+                    ],
+                  ),
+                  'watch': Script.defaults(
+                    name: '',
+                    commands: [
+                      r'{$build_runner:clean}',
+                      'dart run build_runner watch --delete-conflicting-outputs',
+                    ],
+                  ),
+                },
+              ),
+            )
           });
+
+          final replaced = variables.replace(script, config);
+
+          expect(replaced, isNotNull);
+          expect(replaced, hasLength(2));
+
+          expect(replaced, [
+            'cd ./packages/application && dart run build_runner clean',
+            'cd ./packages/application && dart run build_runner watch --delete-conflicting-outputs',
+          ]);
         });
       });
 
