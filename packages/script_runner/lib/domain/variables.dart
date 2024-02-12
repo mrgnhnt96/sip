@@ -154,7 +154,7 @@ class Variables {
             throw Exception('Script path $variable is invalid');
           }
 
-          final resolved = replace(found, config);
+          final resolved = replace(found, config, flags: flags);
 
           final commandsToCopy = [...resolvedCommands];
 

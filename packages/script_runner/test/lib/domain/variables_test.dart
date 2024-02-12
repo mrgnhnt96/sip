@@ -423,76 +423,108 @@ void main() {
           );
         });
 
-        test('should ignore flag when not provided', () {
-          final flags = OptionalFlags(['--foo']);
-          final script = Script.defaults(
-            name: 'foo',
-            commands: [
-              'echo "hello!" {--bar}',
-            ],
-          );
+        group('should ignore flag', () {
+          test('when not provided', () {
+            final flags = OptionalFlags(['--foo']);
+            final script = Script.defaults(
+              name: 'foo',
+              commands: [
+                'echo "hello!" {--bar}',
+              ],
+            );
 
-          final commands = variables.replace(
-            script,
-            ScriptsConfig(
-              scripts: {
-                'foo': script,
-              },
-            ),
-            flags: flags,
-          );
+            final commands = variables.replace(
+              script,
+              ScriptsConfig(
+                scripts: {
+                  'foo': script,
+                },
+              ),
+              flags: flags,
+            );
 
-          expect(commands, isNotNull);
-          expect(commands, hasLength(1));
-          expect(commands, ['echo "hello!"']);
+            expect(commands, isNotNull);
+            expect(commands, hasLength(1));
+            expect(commands, ['echo "hello!"']);
+          });
         });
 
-        test('should add flag when provided', () {
-          final flags = OptionalFlags(['--foo']);
-          final script = Script.defaults(
-            name: 'foo',
-            commands: [
-              'echo "hello!" {--foo}',
-            ],
-          );
+        group('should add flag', () {
+          test('when provided', () {
+            final flags = OptionalFlags(['--foo']);
+            final script = Script.defaults(
+              name: 'foo',
+              commands: [
+                'echo "hello!" {--foo}',
+              ],
+            );
 
-          final commands = variables.replace(
-            script,
-            ScriptsConfig(
-              scripts: {
-                'foo': script,
-              },
-            ),
-            flags: flags,
-          );
+            final commands = variables.replace(
+              script,
+              ScriptsConfig(
+                scripts: {
+                  'foo': script,
+                },
+              ),
+              flags: flags,
+            );
 
-          expect(commands, isNotNull);
-          expect(commands, hasLength(1));
-          expect(commands, ['echo "hello!" --foo']);
-        });
+            expect(commands, isNotNull);
+            expect(commands, hasLength(1));
+            expect(commands, ['echo "hello!" --foo']);
+          });
 
-        test('should add flag with values when provided', () {
-          final flags = OptionalFlags(['--foo', 'bar']);
-          final script = Script.defaults(
-            name: 'foo',
-            commands: [
-              'echo "hello!" {--foo}',
-            ],
-          );
+          test('when script is reference and flag is provided', () {
+            final flags = OptionalFlags(['--foo']);
+            final script = Script.defaults(
+              name: 'foo',
+              commands: [r'{$bar}'],
+            );
 
-          final commands = variables.replace(
-            script,
-            ScriptsConfig(
-              scripts: {
-                'foo': script,
-              },
-            ),
-            flags: flags,
-          );
+            final commands = variables.replace(
+              script,
+              ScriptsConfig(
+                scripts: {
+                  'foo': script,
+                  'bar': Script.defaults(
+                    name: 'bar',
+                    commands: [
+                      'echo "hello!" {--foo}',
+                    ],
+                  ),
+                },
+              ),
+              flags: flags,
+            );
 
-          expect(commands, isNotNull);
-          expect(commands, hasLength(1));
-          expect(commands, ['echo "hello!" --foo bar']);
+            expect(commands, isNotNull);
+            expect(commands, hasLength(1));
+            expect(commands, ['echo "hello!" --foo']);
+          });
+
+          test('with values when provided', () {
+            final flags = OptionalFlags(['--foo', 'bar']);
+            final script = Script.defaults(
+              name: 'foo',
+              commands: [
+                'echo "hello!" {--foo}',
+              ],
+            );
+
+            final commands = variables.replace(
+              script,
+              ScriptsConfig(
+                scripts: {
+                  'foo': script,
+                },
+              ),
+              flags: flags,
+            );
+
+            expect(commands, isNotNull);
+            expect(commands, hasLength(1));
+            expect(commands, ['echo "hello!" --foo bar']);
+          });
         });
       });
     });
