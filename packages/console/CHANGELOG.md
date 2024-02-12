@@ -1,3 +1,14 @@
+# 0.0.10 | 2/12/2024
+
+## Features
+
+- Support referencing variables within `(variables)`
+
+## Enhancements
+
+- Add extra line before printing the list of commands
+- Update README
+
 # 0.0.9 | 2/10/2024
 
 ## Features
