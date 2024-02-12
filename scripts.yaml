@@ -21,6 +21,7 @@ prep:
     - (+) {$prep:license}
     - (+) {$prep:readme}
     - (+) {$prep:pubspecs}
+    - (+) {$prep:assets}
     - sip pub get -r
   changelog: |
     echo "Copying CHANGELOG.md to all packages"
@@ -36,6 +37,8 @@ prep:
     echo "Copying README.md to packages/sip & example"
     cp README.md packages/sip/README.md
     cp README.md packages/sip/example/README.md
+    # update asset paths to ../assets in example
+    sed -i '' "s|assets/|../assets/|g" packages/sip/example/README.md
   pubspecs: |
     # get version from changelog
     version=$(grep -m 1 "# " CHANGELOG.md | awk '{print $2}')
@@ -44,6 +47,10 @@ prep:
     for dir in packages/*; do
       sed -i '' "s|^version: .*|version: $version|g" "$dir/pubspec.yaml"
     done
+  assets: |
+    echo "Copying assets to packages/sip"
+    rm -rf packages/sip/assets
+    cp -r assets packages/sip
 
 publish:
   (bail):
