@@ -32,11 +32,13 @@ class ListCommand extends Command<ExitCode> {
 
     final scriptConfig = ScriptsConfig.fromJson(content);
 
-    getIt<SipConsole>().l(scriptConfig.listOut(
-      wrapCallableKey: (s) => lightGreen.wrap(s) ?? s,
-      wrapNonCallableKey: (s) => cyan.wrap(s) ?? s,
-      wrapMeta: (s) => lightBlue.wrap(s) ?? s,
-    ));
+    getIt<SipConsole>()
+      ..emptyLine()
+      ..l(scriptConfig.listOut(
+        wrapCallableKey: (s) => lightGreen.wrap(s) ?? s,
+        wrapNonCallableKey: (s) => cyan.wrap(s) ?? s,
+        wrapMeta: (s) => lightBlue.wrap(s) ?? s,
+      ));
 
     return ExitCode.success;
   }
