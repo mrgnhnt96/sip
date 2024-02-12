@@ -119,6 +119,7 @@ class ScriptsConfig extends Equatable {
     }
 
     Script? script = _find(keys.first);
+    if (script == null) return null;
 
     for (var i = 1; i < keys.length; i++) {
       final remainingKeys = keys.sublist(i);
@@ -126,6 +127,11 @@ class ScriptsConfig extends Equatable {
       if (found == null) break;
 
       script = found;
+    }
+
+    if (script?.name != keys.last &&
+        script?.aliases.contains(keys.last) != true) {
+      return null;
     }
 
     return script;

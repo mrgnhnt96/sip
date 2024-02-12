@@ -238,7 +238,7 @@ void main() {
 
         test('should be replaced', () {
           final script = Script.defaults(
-            name: '',
+            name: 'dirs',
             commands: [
               'echo {projectRoot}',
               'echo {scriptsRoot}',
@@ -271,9 +271,33 @@ void main() {
           );
         });
 
+        test('throws when not found', () {
+          final script = Script.defaults(
+            name: 'lint',
+            commands: [
+              r'{$lint:dart}',
+            ],
+            scripts: ScriptsConfig(scripts: {
+              '_dart': Script.defaults(
+                name: '_dart',
+                commands: [
+                  'dart analyze .',
+                ],
+              ),
+            }),
+          );
+
+          final config = ScriptsConfig(scripts: {'lint': script});
+
+          expect(
+            () => variables.replace(script, config),
+            throwsA(isA<Exception>()),
+          );
+        });
+
         test('should replace when found', () {
           final script = Script.defaults(
-            name: '',
+            name: 'link',
             commands: [
               r'cd {projectRoot}/packages/application && {$build_runner:build}',
             ],
@@ -282,11 +306,11 @@ void main() {
           final config = ScriptsConfig(scripts: {
             'link': script,
             'build_runner': Script.defaults(
-              name: '',
+              name: 'build_runner',
               scripts: ScriptsConfig(
                 scripts: {
                   'build': Script.defaults(
-                    name: '',
+                    name: 'build',
                     commands: [
                       'dart run build_runner build --delete-conflicting-outputs',
                     ],
@@ -309,7 +333,7 @@ void main() {
 
         test('should duplicate commands when script has multiple commands', () {
           final script = Script.defaults(
-            name: '',
+            name: 'link',
             commands: [
               r'cd {projectRoot}/packages/application && {$build_runner:build}',
             ],
@@ -318,11 +342,11 @@ void main() {
           final config = ScriptsConfig(scripts: {
             'link': script,
             'build_runner': Script.defaults(
-              name: '',
+              name: 'build_runner',
               scripts: ScriptsConfig(
                 scripts: {
                   'build': Script.defaults(
-                    name: '',
+                    name: 'build',
                     commands: [
                       'dart run build_runner clean',
                       'dart run build_runner build --delete-conflicting-outputs',
@@ -346,7 +370,7 @@ void main() {
 
         test('should resolve script that references another script', () {
           final script = Script.defaults(
-            name: '',
+            name: 'link',
             commands: [
               r'cd {projectRoot}/packages/application && {$build_runner:watch}',
             ],
@@ -355,17 +379,17 @@ void main() {
           final config = ScriptsConfig(scripts: {
             'link': script,
             'build_runner': Script.defaults(
-              name: '',
+              name: 'build_runner',
               scripts: ScriptsConfig(
                 scripts: {
                   'clean': Script.defaults(
-                    name: '',
+                    name: 'clean',
                     commands: [
                       'dart run build_runner clean',
                     ],
                   ),
                   'watch': Script.defaults(
-                    name: '',
+                    name: 'watch',
                     commands: [
                       r'{$build_runner:clean}',
                       'dart run build_runner watch --delete-conflicting-outputs',
@@ -402,7 +426,7 @@ void main() {
         test('should ignore flag when not provided', () {
           final flags = OptionalFlags(['--foo']);
           final script = Script.defaults(
-            name: '',
+            name: 'foo',
             commands: [
               'echo "hello!" {--bar}',
             ],
@@ -426,7 +450,7 @@ void main() {
         test('should add flag when provided', () {
           final flags = OptionalFlags(['--foo']);
           final script = Script.defaults(
-            name: '',
+            name: 'foo',
             commands: [
               'echo "hello!" {--foo}',
             ],
@@ -450,7 +474,7 @@ void main() {
         test('should add flag with values when provided', () {
           final flags = OptionalFlags(['--foo', 'bar']);
           final script = Script.defaults(
-            name: '',
+            name: 'foo',
             commands: [
               'echo "hello!" {--foo}',
             ],
