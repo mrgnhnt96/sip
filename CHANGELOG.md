@@ -1,3 +1,9 @@
+# 0.0.12 | 2/12/2024
+
+## Fixes
+
+- Fix issue where flags where not being passed to referenced scripts
+
 # 0.0.11 | 2/12/2024
 
 ## Fixes
