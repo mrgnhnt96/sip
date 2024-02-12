@@ -4,7 +4,6 @@ import 'package:file/file.dart';
 import 'package:file/local.dart';
 import 'package:sip_cli/setup/setup.dart' as sip;
 import 'package:sip_cli/sip_runner.dart';
-import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_console/domain/level.dart';
 import 'package:sip_console/sip_console.dart';
 
