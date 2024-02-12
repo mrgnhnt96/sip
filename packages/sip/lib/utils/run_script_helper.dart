@@ -108,6 +108,12 @@ $ sip format ui
       return (ExitCode.config, null, false);
     }
 
+    if (argResults?.wasParsed('list') ?? false) {
+      _listOutScript(script);
+
+      return (ExitCode.success, null, false);
+    }
+
     if (script.commands.isEmpty) {
       getIt<SipConsole>()
         ..w('There are no commands to run for "${scriptKeys.join(' ')}"')
@@ -116,12 +122,6 @@ $ sip format ui
       _listOutScript(script);
 
       return (ExitCode.config, null, false);
-    }
-
-    if (argResults?.wasParsed('list') ?? false) {
-      _listOutScript(script);
-
-      return (ExitCode.success, null, false);
     }
 
     final resolvedCommands = variables.replace(
