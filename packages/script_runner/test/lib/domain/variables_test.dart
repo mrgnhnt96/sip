@@ -111,7 +111,7 @@ void main() {
         expect(populated['foo'], 'bar');
       });
 
-      test('should not allow sip variables', () {
+      test('should not allow sip variables names', () {
         final variables = Variables(
           pubspecYaml: _FakePubspecYaml('/pubspec.yaml'),
           scriptsYaml: _FakeScriptsYaml('/scripts.yaml', variables: {
@@ -123,6 +123,104 @@ void main() {
         final populated = variables.populate();
 
         expect(populated['cwd'], '/');
+      });
+
+      group('should resolve variable references when', () {
+        test('references other variables', () {
+          final variables = Variables(
+            pubspecYaml: _FakePubspecYaml('/pubspec.yaml'),
+            scriptsYaml: _FakeScriptsYaml('/scripts.yaml', variables: {
+              'foo': '{bar}',
+              'bar': 'baz',
+            }),
+            cwd: _FakeCWD('/'),
+          );
+
+          final populated = variables.populate();
+
+          expect(populated['foo'], 'baz');
+        });
+
+        test('contains multi-nested references', () {
+          final variables = Variables(
+            pubspecYaml: _FakePubspecYaml('/pubspec.yaml'),
+            scriptsYaml: _FakeScriptsYaml('/scripts.yaml', variables: {
+              'foo': '{bar}',
+              'bar': '{baz}',
+              'baz': 'loz',
+            }),
+            cwd: _FakeCWD('/'),
+          );
+
+          final populated = variables.populate();
+
+          expect(populated['foo'], 'loz');
+        });
+      });
+
+      group('should ignore variables', () {
+        test('that are flags or options', () {
+          final variables = Variables(
+            pubspecYaml: _FakePubspecYaml('/pubspec.yaml'),
+            scriptsYaml: _FakeScriptsYaml('/scripts.yaml', variables: {
+              'foo': 'dart test {--coverage}',
+            }),
+            cwd: _FakeCWD('/'),
+          );
+
+          final populated = variables.populate();
+
+          expect(populated['foo'], 'dart test {--coverage}');
+        });
+      });
+
+      group('should remove variable when', () {
+        test('circular reference is found', () {
+          final variables = Variables(
+            pubspecYaml: _FakePubspecYaml('/pubspec.yaml'),
+            scriptsYaml: _FakeScriptsYaml('/scripts.yaml', variables: {
+              'foo': '{bar}',
+              'bar': '{foo}',
+            }),
+            cwd: _FakeCWD('/'),
+          );
+
+          final populated = variables.populate();
+
+          expect(populated['foo'], isNull);
+          expect(populated['bar'], isNull);
+        });
+
+        test('circular reference is found in nested', () {
+          final variables = Variables(
+            pubspecYaml: _FakePubspecYaml('/pubspec.yaml'),
+            scriptsYaml: _FakeScriptsYaml('/scripts.yaml', variables: {
+              'foo': '{bar}',
+              'bar': '{baz}',
+              'baz': '{bar}',
+            }),
+            cwd: _FakeCWD('/'),
+          );
+
+          final populated = variables.populate();
+
+          expect(populated['foo'], isNull);
+          expect(populated['bar'], isNull);
+        });
+
+        test('reference to script is found', () {
+          final variables = Variables(
+            pubspecYaml: _FakePubspecYaml('/pubspec.yaml'),
+            scriptsYaml: _FakeScriptsYaml('/scripts.yaml', variables: {
+              'foo': r'{$bar}',
+            }),
+            cwd: _FakeCWD('/'),
+          );
+
+          final populated = variables.populate();
+
+          expect(populated['foo'], isNull);
+        });
       });
     });
 

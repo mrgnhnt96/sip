@@ -43,8 +43,81 @@ class Variables {
       variables[key] = value;
     }
 
+    for (final MapEntry(:key, value: variable) in {...variables.entries}) {
+      if (variable == null) {
+        continue;
+      }
+
+      final matches = variablePattern.allMatches(variable);
+
+      if (matches.isEmpty) {
+        continue;
+      }
+
+      final keyToCheckForCircular = {key};
+
+      String? resolve(RegExpMatch match, String variable) {
+        final referencedVariable = match.group(1);
+        final wholeMatch = match.group(0)!;
+
+        if (referencedVariable == null) {
+          print('Variable $referencedVariable is not defined');
+          return null;
+        }
+
+        if (referencedVariable.startsWith('\$')) {
+          print('Variable $key is referencing a script, this is forbidden');
+          return null;
+        }
+
+        if (referencedVariable.startsWith('-')) {
+          return variable;
+        }
+
+        keyToCheckForCircular.add(referencedVariable);
+
+        final referencedValue = variables[referencedVariable];
+
+        if (referencedValue == null) {
+          print('Variable $referencedVariable is not defined');
+          return null;
+        }
+
+        var almostResolved = variable.replaceAll(wholeMatch, referencedValue);
+
+        if (variablePattern.hasMatch(almostResolved)) {
+          for (final match in variablePattern.allMatches(almostResolved)) {
+            // check for circular references
+            if (keyToCheckForCircular.contains(match.group(1))) {
+              print('Circular reference detected for variable $key');
+              return null;
+            }
+
+            final partialResolved = resolve(match, almostResolved);
+
+            if (partialResolved == null) {
+              return null;
+            }
+
+            almostResolved =
+                almostResolved.replaceAll(match.group(0)!, partialResolved);
+          }
+        }
+
+        return almostResolved;
+      }
+
+      for (final match in matches) {
+        final resolved = resolve(match, variable);
+
+        variables[key] = resolved;
+      }
+    }
+
     return variables;
   }
+
+  static final variablePattern = RegExp(r'(?:{)(\$?-{0,2}\w+(?::\w+)*)(?:})');
 
   List<String> replace(
     Script script,
@@ -52,8 +125,6 @@ class Variables {
     OptionalFlags? flags,
   }) {
     final commands = <String>[];
-
-    final variablePattern = RegExp(r'(?:{)(\$?-{0,2}\w+(?::\w+)*)(?:})');
 
     late final Map<String, String?> sipVariables = populate();
 
