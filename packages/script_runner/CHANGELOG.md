@@ -1,3 +1,9 @@
+# 0.0.11 | 2/12/2024
+
+## Fixes
+
+- Handle when a script reference is not found
+
 # 0.0.10 | 2/12/2024
 
 ## Features
