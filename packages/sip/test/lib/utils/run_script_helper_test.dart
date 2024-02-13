@@ -83,8 +83,11 @@ class _FakeVariables implements Variables {
 
 void main() {
   late _FakeCommand command;
+  late ArgParser argParser;
 
   setUp(() {
+    argParser = ArgParser()..addFlag('list');
+
     setupTestingDependencyInjection();
 
     command = _FakeCommand(
@@ -145,18 +148,26 @@ void main() {
     });
 
     group('#getCommands', () {
+      late ArgResults argResults;
+
+      setUp(() {
+        argResults = argParser.parse([]);
+      });
+
       test('should return the list of commands', () {
         (command.scriptsYaml as _FakeScriptsYaml).content = {
           'pub': 'echo "pub"',
         };
 
-        final (exitCode, commands, _) = command.getCommands(['pub']);
+        final (exitCode, commands, _) =
+            command.getCommands(['pub'], argResults);
         expect(exitCode, isNull);
         expect(commands, ['echo "pub"']);
       });
 
       test('should return an exit code when the script is not found', () {
-        final (exitCode, commands, _) = command.getCommands(['pub']);
+        final (exitCode, commands, _) =
+            command.getCommands(['pub'], argResults);
         expect(exitCode, isA<ExitCode>());
         expect(commands, isNull);
       });
@@ -166,7 +177,8 @@ void main() {
           'pub': null,
         };
 
-        final (exitCode, commands, _) = command.getCommands(['pub']);
+        final (exitCode, commands, _) =
+            command.getCommands(['pub'], argResults);
         expect(exitCode, isA<ExitCode>());
         expect(commands, isNull);
       });
@@ -174,11 +186,14 @@ void main() {
       test('should return an exit code with list option is provided', () {
         command.argResults = command.argParser.parse(['--list']);
 
+        final argResults = command.argResults!;
+
         (command.scriptsYaml as _FakeScriptsYaml).content = {
           'pub': 'echo "pub"',
         };
 
-        final (exitCode, commands, _) = command.getCommands(['pub']);
+        final (exitCode, commands, _) =
+            command.getCommands(['pub'], argResults);
 
         expect(exitCode, isA<ExitCode>());
         expect(commands, isNull);
@@ -186,6 +201,12 @@ void main() {
     });
 
     group('#commandsToRun', () {
+      late ArgResults argResults;
+
+      setUp(() {
+        argResults = argParser.parse([]);
+      });
+
       test('should return the list of commands', () {
         (command.scriptsYaml as _FakeScriptsYaml).nearestFile =
             'some/path/to/test/scripts.yaml';
@@ -194,7 +215,8 @@ void main() {
           'pub': 'echo "pub"',
         };
 
-        final (exitCode, commands, _) = command.commandsToRun(['pub']);
+        final (exitCode, commands, _) =
+            command.commandsToRun(['pub'], argResults);
         expect(exitCode, isNull);
 
         expect(commands, isNotNull);
@@ -212,7 +234,8 @@ void main() {
       });
 
       test('should return an exit code when the script is not found', () {
-        final (exitCode, commands, _) = command.commandsToRun(['pub']);
+        final (exitCode, commands, _) =
+            command.commandsToRun(['pub'], argResults);
         expect(exitCode, isA<ExitCode>());
         expect(commands, isNull);
       });

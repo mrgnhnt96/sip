@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:args/args.dart';
 import 'package:file/file.dart';
 import 'package:path/path.dart' as path;
 import 'package:args/command_runner.dart';
@@ -89,7 +90,9 @@ $ sip format ui
   }
 
   (ExitCode?, List<String>? commands, bool bail) getCommands(
-      List<String> keys) {
+    List<String> keys,
+    ArgResults argResults,
+  ) {
     final flagStartAt = keys.indexWhere((e) => e.startsWith('-'));
     final scriptKeys = keys.sublist(0, flagStartAt == -1 ? null : flagStartAt);
 
@@ -108,7 +111,7 @@ $ sip format ui
       return (ExitCode.config, null, false);
     }
 
-    if (argResults?.wasParsed('list') ?? false) {
+    if (argResults['list'] ?? false) {
       _listOutScript(script);
 
       return (ExitCode.success, null, false);
@@ -154,8 +157,11 @@ $ sip format ui
     }
   }
 
-  (ExitCode?, Iterable<CommandToRun>?, bool) commandsToRun(List<String> keys) {
-    final (exitCode, commands, bail) = getCommands(keys);
+  (ExitCode?, Iterable<CommandToRun>?, bool) commandsToRun(
+    List<String> keys,
+    ArgResults argResults,
+  ) {
+    final (exitCode, commands, bail) = getCommands(keys, argResults);
 
     if (exitCode != null) {
       return (exitCode, null, bail);

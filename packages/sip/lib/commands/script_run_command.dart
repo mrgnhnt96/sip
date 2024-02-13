@@ -60,7 +60,7 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
       return validateResult;
     }
 
-    var (exitCode, commands, bail) = commandsToRun(keys);
+    var (exitCode, commands, bail) = commandsToRun(keys, argResults);
 
     if (exitCode != null) {
       return exitCode;

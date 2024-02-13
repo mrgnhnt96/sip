@@ -52,7 +52,7 @@ class ScriptRunManyCommand extends Command<ExitCode> with RunScriptHelper {
       return validateResult;
     }
 
-    final (exitCode, commands, _) = commandsToRun(keys);
+    final (exitCode, commands, _) = commandsToRun(keys, argResults);
 
     if (exitCode != null) {
       return exitCode;
