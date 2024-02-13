@@ -117,7 +117,8 @@ class Variables {
     return variables;
   }
 
-  static final variablePattern = RegExp(r'(?:{)(\$?-{0,2}\w+(?::\w+)*)(?:})');
+  static final variablePattern =
+      RegExp(r'(?:{)(\$?-{0,2}[\w-_]+(?::[\w-_]+)*)(?:})');
 
   List<String> replace(
     Script script,

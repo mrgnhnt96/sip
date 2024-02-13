@@ -451,11 +451,11 @@ void main() {
 
         group('should add flag', () {
           test('when provided', () {
-            final flags = OptionalFlags(['--foo']);
+            final flags = OptionalFlags(['--foo', '--fail-fast', '--bar_baz']);
             final script = Script.defaults(
               name: 'foo',
               commands: [
-                'echo "hello!" {--foo}',
+                'echo "hello!" {--foo} {--bar_baz} {--fail-fast}',
               ],
             );
 
@@ -471,7 +471,7 @@ void main() {
 
             expect(commands, isNotNull);
             expect(commands, hasLength(1));
-            expect(commands, ['echo "hello!" --foo']);
+            expect(commands, ['echo "hello!" --foo --bar_baz --fail-fast']);
           });
 
           test('when script is reference and flag is provided', () {
