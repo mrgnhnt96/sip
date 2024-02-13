@@ -23,7 +23,7 @@ void main() {
       expect(result.rest, ['flag']);
     });
 
-    test('should parse any flag', () {
+    test('should parse extra flags', () {
       final argParser = AnyArgParser();
       final result = argParser.parse(['--flag', '-c']);
       expect(
@@ -32,6 +32,28 @@ void main() {
       );
 
       expect(result.rest, ['--flag', '-c']);
+    });
+
+    test('should parse extra short flags', () {
+      final argParser = AnyArgParser();
+      final result = argParser.parse(['-f', '-c', '-de']);
+      expect(
+        () => result['f'],
+        throwsA(isA<ArgumentError>()),
+      );
+
+      expect(result.rest, ['-f', '-c', '-d', '-e']);
+    });
+
+    test('should parse extra short flags with values', () {
+      final argParser = AnyArgParser();
+      final result = argParser.parse(['-f', '-c', '-de', 'hello']);
+      expect(
+        () => result['f'],
+        throwsA(isA<ArgumentError>()),
+      );
+
+      expect(result.rest, ['-f', '-c', '-d', '-e', 'hello']);
     });
 
     group('should parse any flag with value', () {

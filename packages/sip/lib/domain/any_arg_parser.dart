@@ -149,6 +149,8 @@ class AnyArgParser implements ArgParser {
         rethrow;
       }
 
+      var grabValues = true;
+
       if (mutableArgs.remove(badFlag)) {
         removedArgs.add(badFlag);
       } else if (mutableArgs.remove('-$badFlag')) {
@@ -163,6 +165,21 @@ class AnyArgParser implements ArgParser {
             removedArgs.add(key);
             foundFlag = true;
             break;
+          } else if (RegExp(r'^-\w').hasMatch(badFlag) &&
+              RegExp(r'(?:-)\w*' '${badFlag.replaceAll('-', '')}')
+                  .hasMatch(key)) {
+            final badFlagOnly = badFlag.replaceAll('-', '');
+            grabValues = key.endsWith(badFlagOnly);
+
+            final updatedKey = key.replaceAll(badFlagOnly, '');
+
+            final replaceIndex = mutableArgs.indexOf(key);
+            mutableArgs
+                .replaceRange(replaceIndex, replaceIndex + 1, [updatedKey]);
+
+            removedArgs.add(badFlag);
+            foundFlag = true;
+            break;
           }
         }
 
@@ -171,11 +188,14 @@ class AnyArgParser implements ArgParser {
         }
       }
 
-      final removed = mutableArgs.takeWhile((value) => !value.startsWith('-'));
+      if (grabValues) {
+        final removed =
+            mutableArgs.takeWhile((value) => !value.startsWith('-'));
 
-      removedArgs.addAll(removed.expand((element) => element.split('=')));
+        removedArgs.addAll(removed.expand((element) => element.split('=')));
 
-      mutableArgs = mutableArgs.skip(removed.length).toList();
+        mutableArgs = mutableArgs.skip(removed.length).toList();
+      }
 
       return parse(
         mutableArgs,
