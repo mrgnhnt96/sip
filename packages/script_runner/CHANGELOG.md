@@ -1,3 +1,11 @@
+# 0.0.13 | 2/12/2024
+
+## Features
+
+- Allow any args to be provided in any order without the requirement of `--` before any "extra" args.
+  - Before: `sip run-many my-script -- --arg1 --arg2`
+  - After : `sip run-many my-script --arg1 --arg2`
+
 # 0.0.12 | 2/12/2024
 
 ## Fixes
