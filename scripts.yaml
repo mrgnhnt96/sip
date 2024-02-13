@@ -11,9 +11,9 @@ test:
     - "{$test:sip}"
     - "{$test:script_runner}"
     - "{$test:console}"
-  sip: cd packages/sip && sip run test
-  script_runner: cd packages/script_runner && sip run test
-  console: cd packages/console && sip run test
+  sip: cd packages/sip && sip run test {--fail-fast}
+  script_runner: cd packages/script_runner && sip run test {--fail-fast}
+  console: cd packages/console && sip run test {--fail-fast}
 
 prep:
   (command):
@@ -55,7 +55,7 @@ prep:
 publish:
   (bail):
   (command):
-    - "{$test}"
+    - "{$test} --fail-fast"
     - "{$prep}"
     - "{$publish:sip}"
     - "{$publish:script_runner}"
