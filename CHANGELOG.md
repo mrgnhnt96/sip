@@ -1,3 +1,9 @@
+# 0.0.14 | 2/12/2024
+
+## Fixes
+
+- Fix issue where - and _ chars were being ignored in variables
+
 # 0.0.13 | 2/12/2024
 
 ## Features
