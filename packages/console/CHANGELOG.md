@@ -1,3 +1,9 @@
+# 0.0.16 | 2/13/2024
+
+## Features
+
+- Add parsing support for chained short flags (`sip run my-script -abc`)
+
 # 0.0.15 | 2/12/2024
 
 ## Fixes
