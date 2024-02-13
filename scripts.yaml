@@ -60,6 +60,26 @@ publish:
     - "{$publish:sip}"
     - "{$publish:script_runner}"
     - "{$publish:console}"
+    - "{$publish:commit}"
+    - "{$publish:tag}"
+    - "{$publish:_push}"
   sip: cd packages/sip; dart pub publish
   script_runner: cd packages/script_runner; dart pub publish
   console: cd packages/console; dart pub publish
+  commit: |
+    # get version from changelog
+    version=$(grep -m 1 "# " CHANGELOG.md | awk '{print $2}')
+
+    echo "Committing version $version"
+    git add .
+    git commit -m "v$version"
+  tag: |
+    # get version from changelog
+    version=$(grep -m 1 "# " CHANGELOG.md | awk '{print $2}')
+
+    echo "Tagging version $version"
+    git tag -a "v$version" -m "v$version"
+  _push: |
+    echo "Pushing to origin"
+    git push
+    git push --tags
