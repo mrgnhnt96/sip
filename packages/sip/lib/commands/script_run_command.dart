@@ -1,4 +1,6 @@
+import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
+import 'package:sip_cli/domain/any_arg_parser.dart';
 import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/domain/cwd_impl.dart';
 import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
@@ -22,7 +24,7 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
       cwd: CWDImpl(),
     ),
     this.bindings = const BindingsImpl(),
-  }) {
+  }) : argParser = AnyArgParser() {
     addFlags();
 
     argParser.addFlag(
@@ -31,6 +33,9 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
       help: 'Stop on first error',
     );
   }
+
+  @override
+  final ArgParser argParser;
 
   final ScriptsYaml scriptsYaml;
   final Variables variables;
@@ -47,14 +52,13 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
 
   @override
   Future<ExitCode> run([List<String>? args]) async {
-    final keys = args ?? argResults?.rest;
+    final argResults = argParser.parse(args ?? this.argResults?.rest ?? []);
+    final keys = args ?? argResults.rest;
 
     final validateResult = await validate(keys);
     if (validateResult != null) {
       return validateResult;
     }
-    assert(keys != null, 'keys should not be null');
-    keys!;
 
     var (exitCode, commands, bail) = commandsToRun(keys);
 
@@ -64,7 +68,7 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     assert(commands != null, 'commands should not be null');
     commands!;
 
-    bail ^= argResults?['bail'] as bool? ?? false;
+    bail ^= argResults['bail'] as bool? ?? false;
 
     if (bail) {
       getIt<SipConsole>().w('Bail is set, stopping on first error');

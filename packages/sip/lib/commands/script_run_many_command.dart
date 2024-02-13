@@ -1,4 +1,6 @@
+import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
+import 'package:sip_cli/domain/any_arg_parser.dart';
 import 'package:sip_cli/domain/cwd_impl.dart';
 import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
 import 'package:sip_cli/domain/run_many_scripts.dart';
@@ -20,9 +22,12 @@ class ScriptRunManyCommand extends Command<ExitCode> with RunScriptHelper {
       cwd: CWDImpl(),
     ),
     this.bindings = const BindingsImpl(),
-  }) {
+  }) : argParser = AnyArgParser() {
     addFlags();
   }
+
+  @override
+  final ArgParser argParser;
 
   final ScriptsYaml scriptsYaml;
   final Variables variables;
@@ -39,14 +44,13 @@ class ScriptRunManyCommand extends Command<ExitCode> with RunScriptHelper {
 
   @override
   Future<ExitCode> run([List<String>? args]) async {
-    final keys = args ?? argResults?.rest;
+    final argResults = argParser.parse(args ?? this.argResults?.rest ?? []);
+    final keys = args ?? argResults.rest;
 
     final validateResult = await validate(keys);
     if (validateResult != null) {
       return validateResult;
     }
-    assert(keys != null, 'keys should not be null');
-    keys!;
 
     final (exitCode, commands, _) = commandsToRun(keys);
 
