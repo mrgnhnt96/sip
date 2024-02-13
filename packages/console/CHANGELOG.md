@@ -1,3 +1,9 @@
+# 0.0.15 | 2/12/2024
+
+## Fixes
+
+- Fix issue `--list` on `sip run` was not working
+
 # 0.0.14 | 2/12/2024
 
 ## Fixes
