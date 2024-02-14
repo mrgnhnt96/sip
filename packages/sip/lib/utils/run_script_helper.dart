@@ -145,7 +145,9 @@ $ sip format ui
           'Running concurrently: "${darkGray.wrap(command)}"',
         );
         runConcurrently = true;
-        command = command.substring(Identifiers.concurrent.length);
+        while (command.startsWith(Identifiers.concurrent)) {
+          command = command.substring(Identifiers.concurrent.length);
+        }
       }
 
       yield CommandToRun(

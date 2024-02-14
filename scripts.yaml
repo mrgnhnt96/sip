@@ -27,9 +27,9 @@ prep:
   _build:
     run: sip run build_runner build only
     (command):
-      - (+) cd packages/script_runner; {$prep:_build:run}
-      - (+) cd packages/console; {$prep:_build:run}
-      - (+) cd packages/sip; {$prep:_build:run}
+      - cd packages/script_runner; {$prep:_build:run}
+      - cd packages/console; {$prep:_build:run}
+      - cd packages/sip; {$prep:_build:run}
   changelog: |
     echo "Copying CHANGELOG.md to all packages"
     for dir in $(ls -d packages/*); do
