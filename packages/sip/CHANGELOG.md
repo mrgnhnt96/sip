@@ -1,3 +1,15 @@
+# 0.0.17 | 2/13/2024
+
+## Features
+
+- Handle removing multiple concurrent symbols
+- This could happen if a script was defined with the concurrent symbol, and then was referenced in another script also using a concurrent symbol
+
+## Enhancements
+
+- Update readme
+- chore: Update internal version file
+
 # 0.0.16 | 2/13/2024
 
 ## Features

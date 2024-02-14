@@ -69,12 +69,14 @@ $: sip run-many pub get
 
 `sip pub get` runs `pub get` in the closest parent directory containing a `pubspec.yaml` file.
 
-The following flags are supported:
+There are flags that can be passed to `sip pub get` that will be passed to `pub get`. The following flags are supported:
 
 - offline
 - dry-run
 - enforce-lockfile
 - precompile
+
+_You can read more about these flags [here](https://dart.dev/tools/pub/cmd/pub-get#options)._
 
 ```bash
 # Current working directory: packages/core/lib
@@ -117,13 +119,17 @@ $ sip pub get --recursive
 
 `sip pub upgrade` runs `pub upgrade`. It performs and functions the same as `sip pub get` but will upgrade all dependencies to the latest version.
 
-The following flags are supported:
+There are flags that can be passed to `sip pub upgrade` that will be passed to `pub upgrade`. The following flags are supported:
 
 - offline
 - dry-run
 - precompile
 - tighten
 - major-versions
+
+_You can read more about these flags [here](https://dart.dev/tools/pub/cmd/pub-upgrade#options)._
+
+```bash
 
 ## List of commands
 
@@ -379,10 +385,8 @@ $ sip run deps
 
 # The name of the script
 build_runner:
-
     # The command to run
     build: dart run build_runner build --delete-conflicting-outputs
-
     watch:
         # The description of the script
         (description): Run build_runner in watch mode
@@ -411,4 +415,18 @@ echo:
         - echo "{scriptsRoot}" # The directory that the scripts.yaml file is in
         - echo "{cwd}" # The current directory that you are in
 
+format:
+    _command: dart format .
+    (command):
+        - echo "Running format"
+        # ---- start concurrent commands
+        - (+) {$format:ui} # References the Format UI command
+        - (+) {$format:data} # References the Format Data command
+        - (+) {$format:application} # References the Format Application command
+        # ---- end concurrent commands
+        - echo "Finished running format"
+
+    ui: cd packages/ui && {$format:_command}
+    data: cd packages/data && {$format:_command}
+    application: cd application && {$format:_command}
 ```
