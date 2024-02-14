@@ -17,19 +17,26 @@ test:
 
 prep:
   (command):
+    - '{$prep:_build}'
     - (+) {$prep:changelog}
     - (+) {$prep:license}
     - (+) {$prep:readme}
     - (+) {$prep:pubspecs}
     - (+) {$prep:assets}
-    - (+) {$prep:_build}
     - sip pub get -r
   _build:
-    run: sip run build_runner build only
+    clean: sip run build_runner clean
+    build: sip run build_runner build only
     (command):
-      - cd packages/script_runner; {$prep:_build:run}
-      - cd packages/console; {$prep:_build:run}
-      - cd packages/sip; {$prep:_build:run}
+      - echo "Running build_runner clean in all packages"
+      - (+) cd packages/script_runner; {$prep:_build:clean}
+      - (+) cd packages/console; {$prep:_build:clean}
+      - (+) cd packages/sip; {$prep:_build:clean}
+      - echo "Running build_runner build in all packages"
+      - (+) cd packages/script_runner; {$prep:_build:build}
+      - (+) cd packages/console; {$prep:_build:build}
+      - (+) cd packages/sip; {$prep:_build:build}
+      - echo "build_runner complete"
   changelog: |
     echo "Copying CHANGELOG.md to all packages"
     for dir in $(ls -d packages/*); do
