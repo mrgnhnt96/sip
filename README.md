@@ -143,7 +143,7 @@ If you have many scripts, you can filter the list by using the `--list` flag.
 
 ![Sip](assets/list_build_runner.png)
 
-## `Script.yaml` configuration
+## `Scripts.yaml` configuration
 
 ### Nesting scripts
 
