@@ -30,9 +30,3 @@ class Vars {
 
   static const Set<String> values = {projectRoot, scriptsRoot, cwd};
 }
-
-class Identifiers {
-  const Identifiers._();
-
-  static const String concurrent = '(+) ';
-}

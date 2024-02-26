@@ -230,37 +230,6 @@ void main() {
         expect(commandToRun, expected);
       });
 
-      test('should remove concurrent symbol when found', () {
-        (command.scriptsYaml as _FakeScriptsYaml).nearestFile =
-            'some/path/to/test/scripts.yaml';
-
-        (command.scriptsYaml as _FakeScriptsYaml).content = {
-          'pub': '(+) echo "pub"',
-        };
-
-        final (exitCode, commands, _) =
-            command.commandsToRun(['pub'], argResults);
-        expect(exitCode, isNull);
-        expect(commands?.map((e) => e.command), ['echo "pub"']);
-        expect(commands?.map((e) => e.runConcurrently), [true]);
-      });
-
-      test('should remove extra concurrent symbols when found', () {
-        (command.scriptsYaml as _FakeScriptsYaml).nearestFile =
-            'some/path/to/test/scripts.yaml';
-
-        (command.scriptsYaml as _FakeScriptsYaml).content = {
-          // This can happen if the user references an already concurrent script
-          'pub': '(+) (+) echo "pub"',
-        };
-
-        final (exitCode, commands, _) =
-            command.commandsToRun(['pub'], argResults);
-        expect(exitCode, isNull);
-        expect(commands?.map((e) => e.command), ['echo "pub"']);
-        expect(commands?.map((e) => e.runConcurrently), [true]);
-      });
-
       test('should return an exit code when the script is not found', () {
         final (exitCode, commands, _) =
             command.commandsToRun(['pub'], argResults);

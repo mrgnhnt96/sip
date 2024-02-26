@@ -10,7 +10,6 @@ import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_console/sip_console.dart';
 import 'package:sip_console/utils/ansi.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
-import 'package:sip_script_runner/utils/constants.dart';
 
 mixin RunScriptHelper on Command<ExitCode> {
   ScriptsYaml get scriptsYaml;
@@ -138,22 +137,11 @@ $ sip format ui
       Script script, List<String> commands) sync* {
     for (var i = 0; i < commands.length; i++) {
       var command = commands[i];
-      var runConcurrently = false;
-
-      if (command.startsWith(Identifiers.concurrent)) {
-        getIt<SipConsole>().d(
-          'Running concurrently: "${darkGray.wrap(command)}"',
-        );
-        runConcurrently = true;
-        while (command.startsWith(Identifiers.concurrent)) {
-          command = command.substring(Identifiers.concurrent.length);
-        }
-      }
 
       yield CommandToRun(
         command: command,
         label: command,
-        runConcurrently: runConcurrently,
+        runConcurrently: false,
         workingDirectory: directory,
         keys: [...?script.parents, script.name],
       );
