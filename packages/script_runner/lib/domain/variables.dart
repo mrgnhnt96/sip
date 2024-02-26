@@ -1,5 +1,4 @@
 import 'package:path/path.dart' as path;
-import 'package:sip_script_runner/domain/optional_flags.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 import 'package:sip_script_runner/utils/constants.dart';
 
