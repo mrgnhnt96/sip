@@ -227,9 +227,7 @@ void main() {
           keys: ['pub'],
         );
 
-        expect(commandToRun.command, expected.command);
-        expect(commandToRun.label, expected.label);
-        expect(commandToRun.workingDirectory, expected.workingDirectory);
+        expect(commandToRun, expected);
       });
 
       test('should remove concurrent symbol when found', () {
