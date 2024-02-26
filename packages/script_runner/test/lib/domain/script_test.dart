@@ -73,6 +73,50 @@ void main() {
     });
 
     group('serialization', () {
+      group('concurrent', () {
+        test('when script is string', () {
+          final _ = Script.fromJson(
+            'script',
+            {
+              'foo': {Keys.concurrent: 'echo "hello"'},
+            },
+          );
+
+          // we will need to update the type for the command to be a list
+          // of Commands which will contain a string (the command) and a
+          // boolean (whether it is concurrent or not)
+          expect(true, isFalse);
+        });
+
+        test('when script is list', () {
+          final _ = Script.fromJson(
+            'script',
+            {
+              'foo': {
+                Keys.concurrent: ['echo "hello"']
+              },
+            },
+          );
+
+          expect(true, isFalse);
+        });
+
+        test('when found in list of scripts', () {
+          final _ = Script.fromJson(
+            'script',
+            {
+              'foo': [
+                'echo "hello"',
+                {Keys.concurrent: 'echo "world"'},
+                'echo "goodbye"'
+              ]
+            },
+          );
+
+          expect(true, isFalse);
+        });
+      });
+
       group('parents', () {
         test('passes parents to children', () {
           final script = Script.fromJson(

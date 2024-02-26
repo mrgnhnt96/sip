@@ -9,6 +9,7 @@ class Keys {
   static const String variables = '(variables)';
   static const String name = '__(name)__';
   static const String parents = '__(parents)__';
+  static const String concurrent = '(concurrent)';
 
   static const List<String> values = [
     aliases,
