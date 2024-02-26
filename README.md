@@ -168,6 +168,13 @@ format:
     core: cd packages/core && dart format .
 ```
 
+### Restricted Script Keys
+
+- Allowed characters regex pattern: `^_?([a-z][a-z0-9_.\-]*)?(?<=[a-z0-9_])$`
+- Keys that start and end with a parenthesis `(` `)` are reserved for sip.
+- Keys must start with a letter or an underscore followed by a letter (optional)
+- Keys must end with a letter, number, or underscore
+
 ### Bail
 
 Bailing on a script means that the moment a command fails, the script will stop running, even if there are other commands to run.
