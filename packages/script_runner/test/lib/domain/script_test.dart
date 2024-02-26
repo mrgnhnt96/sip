@@ -73,6 +73,26 @@ void main() {
     });
 
     group('serialization', () {
+      group('parents', () {
+        test('passes parents to children', () {
+          final script = Script.fromJson(
+            'script',
+            {
+              'foo': {'bar': 'baz'}
+            },
+          );
+
+          expect(script.parents, null);
+          expect(script.scripts?.parents, ['script']);
+          expect(script.scripts?.scripts['foo']?.parents, ['script']);
+          expect(script.scripts?.scripts['foo']?.scripts?.parents,
+              ['script', 'foo']);
+          expect(
+              script.scripts?.scripts['foo']?.scripts?.scripts['bar']?.parents,
+              ['script', 'foo']);
+        });
+      });
+
       group('bail', () {
         test('can parse truthy', () {
           final scripts = [

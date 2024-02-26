@@ -7,7 +7,10 @@ part of 'scripts_config.dart';
 // **************************************************************************
 
 extension _$ScriptsConfigAutoequal on ScriptsConfig {
-  List<Object?> get _$props => [scripts];
+  List<Object?> get _$props => [
+        scripts,
+        parents,
+      ];
 }
 
 // **************************************************************************
@@ -19,5 +22,6 @@ Map<String, dynamic> _$ScriptsConfigToJson(ScriptsConfig instance) =>
       'stringify': instance.stringify,
       'hash_code': instance.hashCode,
       'scripts': instance.scripts.map((k, e) => MapEntry(k, e.toJson())),
+      'parents': instance.parents,
       'props': instance.props,
     };

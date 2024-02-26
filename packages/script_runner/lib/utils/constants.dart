@@ -7,8 +7,16 @@ class Keys {
   static const String description = '(description)';
   static const String command = '(command)';
   static const String variables = '(variables)';
+  static const String name = '__(name)__';
+  static const String parents = '__(parents)__';
 
-  static const List<String> values = [aliases, description, command, bail];
+  static const List<String> values = [
+    aliases,
+    description,
+    command,
+    bail,
+    name,
+  ];
 }
 
 /// The variables that can be used in the scripts

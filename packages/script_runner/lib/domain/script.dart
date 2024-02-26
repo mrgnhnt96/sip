@@ -15,6 +15,7 @@ class Script extends Equatable {
     required this.description,
     required this.scripts,
     required this.bail,
+    required this.parents,
   });
 
   const Script.defaults({
@@ -24,27 +25,37 @@ class Script extends Equatable {
     this.scripts,
     this.description,
     this.bail = false,
+    this.parents,
   });
 
-  factory Script.fromJson(String name, dynamic json) {
+  factory Script.fromJson(String name, dynamic json, {List<String>? parents}) {
     final possibleCommands = _tryReadListOrString(json);
 
     if (possibleCommands != null) {
-      return Script.defaults(name: name, commands: possibleCommands);
+      return Script.defaults(
+        name: name,
+        commands: possibleCommands,
+        parents: parents,
+      );
     }
 
     return _$ScriptFromJson(
       {
         ...?json,
-        'name': name,
+        Keys.name: name,
+        if (parents != null) Keys.parents: parents,
       },
     );
   }
 
+  @JsonKey(name: Keys.name)
   final String name;
 
   @JsonKey(readValue: _readCommand)
   final List<String> commands;
+
+  @JsonKey(name: Keys.parents)
+  final List<String>? parents;
 
   @JsonKey(
     name: Keys.aliases,
@@ -131,19 +142,23 @@ List? _retrieveStrings(Map json, String key) {
 }
 
 Map? _readScriptsConfig(Map json, String key) {
+  final parents = [...(json[Keys.parents] as List<String>? ?? [])];
+  final name = json[Keys.name] as String;
+
   final mutableMap = {...json};
 
+  final removeKeys = {...Keys.values};
   // remove all other keys
   mutableMap.removeWhere(
-    (key, _) => {
-      ...Keys.values,
-      'name',
-    }.contains(key),
+    (key, _) => removeKeys.contains(key),
   );
 
   if (mutableMap.isEmpty) {
     return null;
   }
+
+  parents.add(name);
+  mutableMap[Keys.parents] = parents;
 
   return mutableMap;
 }

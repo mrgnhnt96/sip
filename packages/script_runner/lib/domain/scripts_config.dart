@@ -14,6 +14,7 @@ part 'scripts_config.g.dart';
 class ScriptsConfig extends Equatable {
   ScriptsConfig({
     required this.scripts,
+    this.parents,
   })  : assert(
           !scripts.containsKey(Keys.command),
           'The key "${Keys.command}" cannot exist in the config',
@@ -29,6 +30,8 @@ class ScriptsConfig extends Equatable {
 
   factory ScriptsConfig.fromJson(Map json) {
     final scripts = <String, Script>{};
+
+    final parents = (json.remove(Keys.parents) as List?)?.cast<String>();
 
     final allowedKeys = RegExp(
       r'^_?([a-z][a-z0-9_.\-]*)?(?<=[a-z0-9_])$',
@@ -55,14 +58,19 @@ class ScriptsConfig extends Equatable {
       scripts[key] = Script.fromJson(
         key,
         entry.value,
+        parents: parents,
       );
     }
 
-    return ScriptsConfig(scripts: scripts);
+    return ScriptsConfig(
+      scripts: scripts,
+      parents: parents,
+    );
   }
 
   @JsonKey(defaultValue: {})
   final Map<String, Script> scripts;
+  final List<String>? parents;
 
   @ignore
   bool _hasSetupAliases = false;

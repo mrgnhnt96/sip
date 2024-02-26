@@ -178,10 +178,12 @@ scripts.yaml:
                 'test': Script.defaults(
                   name: 'test',
                   scripts: ScriptsConfig(
+                    parents: ['test'],
                     scripts: {
                       'nested': const Script.defaults(
                         commands: ['echo "test"'],
                         name: 'nested',
+                        parents: ['test'],
                       ),
                     },
                   ),
@@ -212,10 +214,12 @@ scripts.yaml:
                 description: 'this is a test',
                 commands: ['echo "test"'],
                 scripts: ScriptsConfig(
+                  parents: ['test'],
                   scripts: {
                     'test2': const Script.defaults(
                       name: 'test2',
                       commands: ['echo "test2"'],
+                      parents: ['test'],
                     ),
                   },
                 ),

@@ -89,7 +89,7 @@ $ sip format ui
       ..emptyLine();
   }
 
-  (ExitCode?, List<String>? commands, bool bail) getCommands(
+  (ExitCode?, List<String>? commands, Script?) getCommands(
     List<String> keys,
     ArgResults argResults,
   ) {
@@ -99,7 +99,7 @@ $ sip format ui
     final content = scriptsYaml.scripts();
     if (content == null) {
       getIt<SipConsole>().e('No ${ScriptsYaml.fileName} file found');
-      return (ExitCode.noInput, null, false);
+      return (ExitCode.noInput, null, null);
     }
 
     final scriptConfig = ScriptsConfig.fromJson(content);
@@ -108,13 +108,13 @@ $ sip format ui
 
     if (script == null) {
       getIt<SipConsole>().e('No script found for ${scriptKeys.join(' ')}');
-      return (ExitCode.config, null, false);
+      return (ExitCode.config, null, null);
     }
 
     if (argResults['list'] ?? false) {
       _listOutScript(script);
 
-      return (ExitCode.success, null, false);
+      return (ExitCode.success, null, null);
     }
 
     if (script.commands.isEmpty) {
@@ -124,7 +124,7 @@ $ sip format ui
 
       _listOutScript(script);
 
-      return (ExitCode.config, null, false);
+      return (ExitCode.config, null, null);
     }
 
     final resolvedCommands = variables.replace(
@@ -133,11 +133,13 @@ $ sip format ui
       flags: optionalFlags(keys),
     );
 
-    return (null, resolvedCommands, script.bail);
+    return (null, resolvedCommands, script);
   }
 
-  Iterable<CommandToRun> _commandsToRun(List<String> commands) sync* {
-    for (var command in commands) {
+  Iterable<CommandToRun> _commandsToRun(
+      Script script, List<String> commands) sync* {
+    for (var i = 0; i < commands.length; i++) {
+      var command = commands[i];
       var runConcurrently = false;
 
       if (command.startsWith(Identifiers.concurrent)) {
@@ -163,15 +165,15 @@ $ sip format ui
     List<String> keys,
     ArgResults argResults,
   ) {
-    final (exitCode, commands, bail) = getCommands(keys, argResults);
+    final (exitCode, commands, script) = getCommands(keys, argResults);
 
-    if (exitCode != null) {
-      return (exitCode, null, bail);
+    if (exitCode != null || script == null) {
+      return (exitCode, null, script?.bail ?? false);
     }
 
     assert(commands != null, 'commands should not be null');
     commands!;
 
-    return (null, _commandsToRun(commands), bail);
+    return (null, _commandsToRun(script, commands), script.bail);
   }
 }
