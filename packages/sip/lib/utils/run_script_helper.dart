@@ -1,16 +1,14 @@
 import 'dart:async';
 
 import 'package:args/args.dart';
+import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
 import 'package:path/path.dart' as path;
-import 'package:args/command_runner.dart';
 import 'package:sip_cli/commands/list_command.dart';
-import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/setup/setup.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_console/sip_console.dart';
 import 'package:sip_console/utils/ansi.dart';
-import 'package:sip_script_runner/domain/optional_flags.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 import 'package:sip_script_runner/utils/constants.dart';
 
@@ -157,6 +155,7 @@ $ sip format ui
         label: command,
         runConcurrently: runConcurrently,
         workingDirectory: directory,
+        keys: [...?script.parents, script.name],
       );
     }
   }

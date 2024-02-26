@@ -1,4 +1,3 @@
-import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/domain/run_one_script.dart';
 import 'package:sip_cli/setup/setup.dart';
 import 'package:sip_cli/utils/exit_code.dart';

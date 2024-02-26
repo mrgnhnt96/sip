@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
 import 'package:path/path.dart' as path;
-import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/pubspec_lock_impl.dart';
 import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
@@ -13,7 +12,6 @@ import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/exit_code_extensions.dart';
 import 'package:sip_console/sip_console.dart';
 import 'package:sip_console/utils/ansi.dart';
-import 'package:sip_script_runner/domain/pubspec_lock.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
 /// A command that runs `pub *`.
@@ -104,6 +102,7 @@ abstract class APubCommand extends Command<ExitCode> {
           command: '$tool pub $name ${pubFlags.join(' ')}',
           workingDirectory: directory,
           label: label,
+          keys: null,
         ),
       );
     }

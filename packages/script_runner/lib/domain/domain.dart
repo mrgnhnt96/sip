@@ -1,5 +1,8 @@
 export 'bindings.dart';
+export 'command_to_run.dart';
 export 'cwd.dart';
+export 'optional_flags.dart';
+export 'pubspec_lock.dart';
 export 'pubspec_yaml.dart';
 export 'script.dart';
 export 'scripts_config.dart';
