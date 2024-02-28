@@ -8,6 +8,8 @@ import 'package:sip_script_runner/domain/scripts_yaml.dart';
 import 'package:sip_script_runner/domain/variables.dart';
 import 'package:test/test.dart';
 
+import '../../utils/setup_testing_dependency_injection.dart';
+
 class _FakePubspecYaml extends Fake implements PubspecYaml {
   _FakePubspecYaml(this._path);
 
@@ -40,6 +42,10 @@ class _FakeCWD extends Fake implements CWD {
 }
 
 void main() {
+  setUp(() {
+    setupTestingDependencyInjection();
+  });
+
   group('$Variables', () {
     group('#populate', () {
       test('should populate nested dir', () {
