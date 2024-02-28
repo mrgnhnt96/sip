@@ -81,6 +81,7 @@ class TestCommand extends Command<ExitCode> {
     }
 
     final commandsToRun = <CommandToRun>[];
+    final optimizedFiles = <String>[];
 
     for (final testable in testables) {
       final allFiles =
@@ -107,6 +108,7 @@ class TestCommand extends Command<ExitCode> {
 
       final optimizedPath = path.join(testable, '.optimized_test.dart');
       fs.file(optimizedPath)..createSync(recursive: true);
+      optimizedFiles.add(optimizedPath);
 
       final testables = <Testable>[];
 
@@ -155,6 +157,10 @@ class TestCommand extends Command<ExitCode> {
       if (exitCode != ExitCode.success) {
         return exitCode;
       }
+    }
+
+    for (final optimizedFile in optimizedFiles) {
+      fs.file(optimizedFile).deleteSync();
     }
 
     return ExitCode.success;
