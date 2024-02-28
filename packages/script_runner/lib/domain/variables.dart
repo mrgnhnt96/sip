@@ -1,4 +1,6 @@
 import 'package:path/path.dart' as path;
+import 'package:sip_console/domain/domain.dart';
+import 'package:sip_script_runner/setup.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 import 'package:sip_script_runner/utils/constants.dart';
 
@@ -30,12 +32,12 @@ class Variables {
     final definedVariables = scriptsYaml.variables();
     for (final MapEntry(:key, :value) in (definedVariables ?? {}).entries) {
       if (value is! String) {
-        print('Variable $key is not a string');
+        getIt<SipConsole>().w('Variable $key is not a string');
         continue;
       }
 
       if (Vars.values.contains(key)) {
-        print('Variable $key is a reserved keyword');
+        getIt<SipConsole>().w('Variable $key is a reserved keyword');
         continue;
       }
 
@@ -60,12 +62,13 @@ class Variables {
         final wholeMatch = match.group(0)!;
 
         if (referencedVariable == null) {
-          print('Variable $referencedVariable is not defined');
+          getIt<SipConsole>().w('Variable $referencedVariable is not defined');
           return null;
         }
 
         if (referencedVariable.startsWith('\$')) {
-          print('Variable $key is referencing a script, this is forbidden');
+          getIt<SipConsole>()
+              .w('Variable $key is referencing a script, this is forbidden');
           return null;
         }
 
@@ -78,7 +81,7 @@ class Variables {
         final referencedValue = variables[referencedVariable];
 
         if (referencedValue == null) {
-          print('Variable $referencedVariable is not defined');
+          getIt<SipConsole>().w('Variable $referencedVariable is not defined');
           return null;
         }
 
@@ -88,7 +91,8 @@ class Variables {
           for (final match in variablePattern.allMatches(almostResolved)) {
             // check for circular references
             if (keyToCheckForCircular.contains(match.group(1))) {
-              print('Circular reference detected for variable $key');
+              getIt<SipConsole>()
+                  .w('Circular reference detected for variable $key');
               return null;
             }
 

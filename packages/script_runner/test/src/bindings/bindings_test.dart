@@ -1,7 +1,7 @@
 import 'package:sip_script_runner/src/bindings/bindings_impl.dart';
 import 'package:test/test.dart';
 
-void main() async {
+void main() {
   final bindings = const BindingsImpl();
 
   group('$BindingsImpl', () {

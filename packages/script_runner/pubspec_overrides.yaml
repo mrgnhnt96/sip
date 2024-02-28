@@ -1,0 +1,3 @@
+dependency_overrides:
+  sip_console:
+    path: ../console
