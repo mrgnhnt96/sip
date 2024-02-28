@@ -4,12 +4,14 @@ import 'package:path/path.dart' as path;
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/pubspec_lock_impl.dart';
 import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
+import 'package:sip_cli/domain/run_many_scripts.dart';
 import 'package:sip_cli/domain/run_one_script.dart';
 import 'package:sip_cli/setup/setup.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_console/sip_console.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
+import 'package:sip_cli/utils/exit_code_extensions.dart';
 
 class TestCommand extends Command<ExitCode> {
   TestCommand({
@@ -25,6 +27,25 @@ class TestCommand extends Command<ExitCode> {
       defaultsTo: false,
       negatable: false,
     );
+
+    argParser.addFlag(
+      'concurrent',
+      aliases: ['parallel'],
+      abbr: 'c',
+      help: 'Run tests concurrently',
+      defaultsTo: false,
+      negatable: false,
+    );
+
+    // bail
+    argParser.addFlag(
+      'bail',
+      abbr: 'b',
+      help: 'Bail after first test failure',
+      defaultsTo: false,
+      negatable: false,
+    );
+
     // review https://github.com/dart-lang/test/tree/master/pkgs/test_core/lib/src/runner/configuration/args.dart to add dart test flags
     // review https://github.com/flutter/flutter/blob/master/packages/flutter_tools/lib/src/commands/test.dart#L82 to add flutter test flags
     fs = getIt();
@@ -146,16 +167,31 @@ class TestCommand extends Command<ExitCode> {
       );
     }
 
-    for (final command in commandsToRun) {
-      final scriptRunner = RunOneScript(
-        command: command,
+    ExitCode? exitCode;
+
+    if (argResults!['concurrent'] as bool) {
+      final runMany = RunManyScripts(
+        commands: commandsToRun,
         bindings: bindings,
       );
 
-      final exitCode = await scriptRunner.run();
+      final exitCodes = await runMany.run();
 
-      if (exitCode != ExitCode.success) {
-        return exitCode;
+      exitCodes.printErrors(commandsToRun);
+
+      exitCode = exitCodes.exitCode;
+    } else {
+      for (final command in commandsToRun) {
+        final scriptRunner = RunOneScript(
+          command: command,
+          bindings: bindings,
+        );
+
+        final _exitCode = await scriptRunner.run();
+
+        if (_exitCode != ExitCode.success && argResults!['bail'] as bool) {
+          exitCode = _exitCode;
+        }
       }
     }
 
@@ -163,7 +199,14 @@ class TestCommand extends Command<ExitCode> {
       fs.file(optimizedFile).deleteSync();
     }
 
-    return ExitCode.success;
+    if (exitCode != null && exitCode != ExitCode.success) {
+      console.e('Tests failed');
+      return exitCode;
+    }
+
+    console.s('Tests passed');
+
+    return exitCode ?? ExitCode.success;
   }
 }
 
