@@ -4,6 +4,7 @@ import 'package:sip_cli/commands/list_command.dart';
 import 'package:sip_cli/commands/pub_command.dart';
 import 'package:sip_cli/commands/script_run_command.dart';
 import 'package:sip_cli/commands/script_run_many_command.dart';
+import 'package:sip_cli/commands/test_command.dart';
 import 'package:sip_cli/setup/setup.dart';
 import 'package:sip_cli/src/version.dart';
 import 'package:sip_cli/utils/exit_code.dart';
@@ -26,6 +27,7 @@ class SipRunner extends CommandRunner<ExitCode> {
     addCommand(ScriptRunManyCommand());
     addCommand(PubCommand());
     addCommand(ListCommand());
+    addCommand(TestCommand());
   }
 
   @override
