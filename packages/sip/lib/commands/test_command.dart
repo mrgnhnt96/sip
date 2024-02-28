@@ -10,6 +10,7 @@ import 'package:sip_cli/setup/setup.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_console/sip_console.dart';
+import 'package:sip_console/utils/ansi.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 import 'package:sip_cli/utils/exit_code_extensions.dart';
 
@@ -156,11 +157,17 @@ class TestCommand extends Command<ExitCode> {
       final script =
           '$tool test ${path.relative(optimizedPath, from: projectRoot)}';
 
+      var label = darkGray.wrap('Running (') ?? 'Running (';
+      label += cyan.wrap(tool) ?? tool;
+      label += darkGray.wrap(') tests in ') ?? ') tests in ';
+      label +=
+          yellow.wrap(path.relative(projectRoot)) ?? path.relative(projectRoot);
+
       commandsToRun.add(
         CommandToRun(
           command: script,
           workingDirectory: projectRoot,
-          label: script,
+          label: label,
           runConcurrently: false,
           keys: null,
         ),
