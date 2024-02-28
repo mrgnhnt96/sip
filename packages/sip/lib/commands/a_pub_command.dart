@@ -8,6 +8,7 @@ import 'package:sip_cli/domain/pubspec_lock_impl.dart';
 import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
 import 'package:sip_cli/domain/run_many_scripts.dart';
 import 'package:sip_cli/setup/setup.dart';
+import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/exit_code_extensions.dart';
 import 'package:sip_console/sip_console.dart';
@@ -20,9 +21,11 @@ abstract class APubCommand extends Command<ExitCode> {
     PubspecLock pubspecLock = const PubspecLockImpl(),
     PubspecYaml pubspecYaml = const PubspecYamlImpl(),
     Bindings bindings = const BindingsImpl(),
+    FindFile findFile = const FindFile(),
   })  : _pubspecLock = pubspecLock,
         _pubspecYaml = pubspecYaml,
-        _bindings = bindings {
+        _bindings = bindings,
+        _findFile = findFile {
     argParser.addFlag(
       'recursive',
       abbr: 'r',
@@ -36,6 +39,7 @@ abstract class APubCommand extends Command<ExitCode> {
   final PubspecLock _pubspecLock;
   final PubspecYaml _pubspecYaml;
   final Bindings _bindings;
+  final FindFile _findFile;
 
   @override
   String get description => '$name dependencies for pubspec.yaml files';
@@ -62,28 +66,16 @@ abstract class APubCommand extends Command<ExitCode> {
 
     final commands = <CommandToRun>[];
     for (final pubspec in allPubspecs) {
-      final directory = path.dirname(pubspec);
+      final tool = DetermineFlutterOrDart(
+        pubspecYaml: pubspec,
+        pubspecLock: _pubspecLock,
+        findFile: _findFile,
+      ).tool();
 
-      final nestedLock = _pubspecLock.findIn(directory);
-
-      var tool = 'dart';
-
-      if (nestedLock != null) {
-        final contents = FindFile().retrieveContent(nestedLock);
-
-        if (contents != null && contents.contains(RegExp('flutter'))) {
-          tool = 'flutter';
-        }
-      } else {
-        final contents = FindFile().retrieveContent(pubspec);
-
-        if (contents != null && contents.contains('flutter')) {
-          tool = 'flutter';
-        }
-      }
+      final project = path.dirname(pubspec);
 
       final relativeDir = path.relative(
-        directory,
+        project,
         from: getIt<FileSystem>().currentDirectory.path,
       );
 
@@ -100,7 +92,7 @@ abstract class APubCommand extends Command<ExitCode> {
       commands.add(
         CommandToRun(
           command: '$tool pub $name ${pubFlags.join(' ')}',
-          workingDirectory: directory,
+          workingDirectory: project,
           label: label,
           keys: null,
         ),
