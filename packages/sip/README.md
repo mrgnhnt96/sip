@@ -13,7 +13,7 @@ Sip is a command-line tool with the goal of making it easier to manage the many 
 ## Installation
 
 ```bash
-dart pub global activate sip
+dart pub global activate sip_cli
 ```
 
 ## Usage
