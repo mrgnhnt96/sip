@@ -1,6 +1,8 @@
+import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
 import 'package:path/path.dart' as path;
+import 'package:sip_cli/domain/any_arg_parser.dart';
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/pubspec_lock_impl.dart';
 import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
@@ -13,6 +15,10 @@ import 'package:sip_console/sip_console.dart';
 import 'package:sip_console/utils/ansi.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 import 'package:sip_cli/utils/exit_code_extensions.dart';
+
+part '__flutter_args.dart';
+part '__dart_args.dart';
+part '__both_args.dart';
 
 class TestCommand extends Command<ExitCode> {
   TestCommand({
@@ -31,14 +37,13 @@ class TestCommand extends Command<ExitCode> {
 
     argParser.addFlag(
       'concurrent',
-      aliases: ['parallel'],
       abbr: 'c',
+      aliases: ['parallel'],
       help: 'Run tests concurrently',
       defaultsTo: false,
       negatable: false,
     );
 
-    // bail
     argParser.addFlag(
       'bail',
       abbr: 'b',
@@ -46,6 +51,22 @@ class TestCommand extends Command<ExitCode> {
       defaultsTo: false,
       negatable: false,
     );
+
+    argParser.addFlag(
+      'clean',
+      help: 'Whether to remove the optimized test files after running tests',
+      defaultsTo: true,
+      negatable: true,
+    );
+
+    argParser.addSeparator('Dart Flags:');
+    _addDartArgs();
+
+    argParser.addSeparator('Flutter Flags:');
+    _addFlutterArgs();
+
+    argParser.addSeparator('Overlapping Flags:');
+    _addBothArgs();
 
     // review https://github.com/dart-lang/test/tree/master/pkgs/test_core/lib/src/runner/configuration/args.dart to add dart test flags
     // review https://github.com/flutter/flutter/blob/master/packages/flutter_tools/lib/src/commands/test.dart#L82 to add flutter test flags
@@ -104,6 +125,9 @@ class TestCommand extends Command<ExitCode> {
 
     final commandsToRun = <CommandToRun>[];
     final optimizedFiles = <String>[];
+    final flutterArgs = _getFlutterArgs();
+    final dartArgs = _getDartArgs();
+    final bothArgs = _getBothArgs();
 
     for (final testable in testables) {
       final allFiles =
@@ -154,14 +178,19 @@ class TestCommand extends Command<ExitCode> {
         pubspecLock: pubspecLock,
       ).tool();
 
-      final script =
-          '$tool test ${path.relative(optimizedPath, from: projectRoot)}';
+      final toolArgs =
+          tool == 'flutter' ? flutterArgs.toList() : dartArgs.toList();
 
-      var label = darkGray.wrap('Running (') ?? 'Running (';
-      label += cyan.wrap(tool) ?? tool;
-      label += darkGray.wrap(') tests in ') ?? ') tests in ';
-      label +=
-          yellow.wrap(path.relative(projectRoot)) ?? path.relative(projectRoot);
+      toolArgs.addAll(bothArgs);
+
+      final script =
+          '$tool test ${path.relative(optimizedPath, from: projectRoot)} ${toolArgs.join(' ')}';
+
+      var label = darkGray.wrap('Running (')!;
+      label += cyan.wrap(tool)!;
+      label += darkGray.wrap(') tests in ')!;
+      label += yellow.wrap(path.relative(projectRoot))!;
+      label += darkGray.wrap('\n  ${script}')!;
 
       commandsToRun.add(
         CommandToRun(
@@ -202,16 +231,19 @@ class TestCommand extends Command<ExitCode> {
       }
     }
 
-    for (final optimizedFile in optimizedFiles) {
-      fs.file(optimizedFile).deleteSync();
+    if (argResults!['clean'] as bool) {
+      for (final optimizedFile in optimizedFiles) {
+        fs.file(optimizedFile).deleteSync();
+      }
     }
 
     if (exitCode != null && exitCode != ExitCode.success) {
       console.e('Tests failed');
-      return exitCode;
+    } else {
+      console.s('Tests passed');
     }
 
-    console.s('Tests passed');
+    console.emptyLine();
 
     return exitCode ?? ExitCode.success;
   }
