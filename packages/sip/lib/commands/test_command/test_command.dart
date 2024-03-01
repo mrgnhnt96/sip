@@ -8,9 +8,11 @@ import 'package:sip_cli/domain/pubspec_lock_impl.dart';
 import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
 import 'package:sip_cli/domain/run_many_scripts.dart';
 import 'package:sip_cli/domain/run_one_script.dart';
+import 'package:sip_cli/domain/testable.dart';
 import 'package:sip_cli/setup/setup.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/exit_code.dart';
+import 'package:sip_cli/utils/write_optimized_test_file.dart';
 import 'package:sip_console/sip_console.dart';
 import 'package:sip_console/utils/ansi.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
@@ -220,7 +222,7 @@ class TestCommand extends Command<ExitCode> {
       final tool = testableTool[testable]!;
 
       final content =
-          writeOptimized(testables, isFlutterPackage: tool.isFlutter);
+          writeOptimizedTestFile(testables, isFlutterPackage: tool.isFlutter);
 
       fs.file(optimizedPath).writeAsStringSync(content);
 
@@ -298,49 +300,4 @@ class TestCommand extends Command<ExitCode> {
 
     return exitCode ?? ExitCode.success;
   }
-}
-
-class Testable {
-  Testable({
-    required this.absolute,
-    required this.optimizedPath,
-  })  : fileName = path.basenameWithoutExtension(absolute),
-        relativeToOptimized =
-            path.relative(absolute, from: path.dirname(optimizedPath));
-
-  final String absolute;
-  final String fileName;
-  final String optimizedPath;
-  final String relativeToOptimized;
-}
-
-String writeOptimized(
-  Iterable<Testable> testables, {
-  required bool isFlutterPackage,
-}) {
-  String writeTest(Testable testable) {
-    return "group('${testable.relativeToOptimized}', () => ${testable.fileName}.main());";
-  }
-
-  String writeImport(Testable testable) {
-    return "import '${testable.relativeToOptimized}' as ${testable.fileName};";
-  }
-
-  String testImport() {
-    var package = 'test';
-    if (isFlutterPackage) {
-      package = 'flutter_test';
-    }
-
-    return "import 'package:$package/$package.dart';";
-  }
-
-  return '''
-${testImport()}
-${testables.map(writeImport).join('\n')}
-
-void main() {
-  ${testables.map(writeTest).join('\n  ')}
-}
-''';
 }
