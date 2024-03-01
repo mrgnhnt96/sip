@@ -103,17 +103,27 @@ class TestCommand extends Command<ExitCode> {
 
   @override
   Future<ExitCode> run([List<String>? args]) async {
+    final argResults = this.argResults!;
+
+    final dartOnly =
+        argResults.wasParsed('dart-only') && argResults['dart-only'] as bool;
+    final flutterOnly = argResults.wasParsed('flutter-only') &&
+        argResults['flutter-only'] as bool;
+
+    if (dartOnly) {
+      console.v('Running only dart tests');
+    }
+    if (flutterOnly) {
+      console.v('Running only flutter tests');
+    }
+
     final pubspecs = <String>[];
 
-    if (argResults!['recursive'] as bool) {
-      final allFiles = fs.directory('.').listSync(recursive: true);
-
-      for (final file in allFiles) {
-        if (path.basename(file.path) == 'pubspec.yaml') {
-          pubspecs.add(file.path);
-        }
-      }
+    if (argResults['recursive'] as bool) {
+      console.v('Running tests recursively');
+      pubspecs.addAll(await pubspecYaml.children());
     } else {
+      console.v('Running tests in current directory');
       final pubspec = await pubspecYaml.nearest();
 
       if (pubspec == null) {
@@ -123,25 +133,47 @@ class TestCommand extends Command<ExitCode> {
 
       pubspecs.add(pubspec);
     }
-    final children = await pubspecYaml.children();
 
     final testables = <String>[];
+    final testableTool = <String, DetermineFlutterOrDart>{};
 
-    for (final child in children) {
-      final testDirectory = path.join(path.dirname(child), 'test');
+    console
+        .v('Found ${pubspecs.length} pubspecs, checking for test directories');
+    for (final pubspec in pubspecs) {
+      final projectRoot = path.dirname(pubspec);
+      final testDirectory = path.join(path.dirname(pubspec), 'test');
 
       if (!fs.directory(testDirectory).existsSync()) {
+        console.v('No test directory found in ${path.relative(projectRoot)}');
         continue;
       }
 
+      final tool = DetermineFlutterOrDart(
+        pubspecYaml: path.join(projectRoot, 'pubspec.yaml'),
+        findFile: findFile,
+        pubspecLock: pubspecLock,
+      );
+
+      // we only care checking for flutter or dart tests if we are not running both
+      if (flutterOnly ^ dartOnly) {
+        if (tool.isFlutter && dartOnly && !flutterOnly) {
+          continue;
+        }
+
+        if (tool.isDart && flutterOnly) {
+          continue;
+        }
+      }
+
       testables.add(testDirectory);
+      testableTool[testDirectory] = tool;
     }
 
     final commandsToRun = <CommandToRun>[];
     final optimizedFiles = <String>[];
-    final flutterArgs = _getFlutterArgs();
-    final dartArgs = _getDartArgs();
     final bothArgs = _getBothArgs();
+    final flutterArgs = [..._getFlutterArgs(), ...bothArgs];
+    final dartArgs = [..._getDartArgs(), ...bothArgs];
 
     for (final testable in testables) {
       final allFiles =
@@ -170,40 +202,18 @@ class TestCommand extends Command<ExitCode> {
       fs.file(optimizedPath)..createSync(recursive: true);
       optimizedFiles.add(optimizedPath);
 
-      final testables = <Testable>[];
+      final testables = testFiles
+          .map((e) => Testable(absolute: e, optimizedPath: optimizedPath));
 
-      for (final testFile in testFiles) {
-        final testable = Testable(
-          absolute: testFile,
-          optimizedPath: optimizedPath,
-        );
+      final projectRoot = path.dirname(testable);
+      final tool = testableTool[testable]!;
 
-        testables.add(testable);
-      }
-
-      final content = writeOptimized(testables);
+      final content =
+          writeOptimized(testables, isFlutterPackage: tool.isFlutter);
 
       fs.file(optimizedPath).writeAsStringSync(content);
-      final projectRoot = path.dirname(testable);
 
-      final tool = DetermineFlutterOrDart(
-        pubspecYaml: path.join(projectRoot, 'pubspec.yaml'),
-        findFile: findFile,
-        pubspecLock: pubspecLock,
-      );
-
-      if (tool.isDart && !(argResults!['dart-only'] as bool)) {
-        continue;
-      }
-
-      if (tool.isFlutter && !(argResults!['flutter-only'] as bool)) {
-        continue;
-      }
-
-      final toolArgs =
-          tool.isFlutter ? flutterArgs.toList() : dartArgs.toList();
-
-      toolArgs.addAll(bothArgs);
+      final toolArgs = tool.isFlutter ? flutterArgs : dartArgs;
 
       final command = tool.tool();
 
@@ -229,7 +239,7 @@ class TestCommand extends Command<ExitCode> {
 
     ExitCode? exitCode;
 
-    if (argResults!['concurrent'] as bool) {
+    if (argResults['concurrent'] as bool) {
       final runMany = RunManyScripts(
         commands: commandsToRun,
         bindings: bindings,
@@ -249,13 +259,13 @@ class TestCommand extends Command<ExitCode> {
 
         final _exitCode = await scriptRunner.run();
 
-        if (_exitCode != ExitCode.success && argResults!['bail'] as bool) {
+        if (_exitCode != ExitCode.success && argResults['bail'] as bool) {
           exitCode = _exitCode;
         }
       }
     }
 
-    if (argResults!['clean'] as bool) {
+    if (argResults['clean'] as bool) {
       for (final optimizedFile in optimizedFiles) {
         fs.file(optimizedFile).deleteSync();
       }
@@ -287,7 +297,10 @@ class Testable {
   final String relativeToOptimized;
 }
 
-String writeOptimized(List<Testable> testables) {
+String writeOptimized(
+  Iterable<Testable> testables, {
+  required bool isFlutterPackage,
+}) {
   String writeTest(Testable testable) {
     return "group('${testable.relativeToOptimized}', () => ${testable.fileName}.main());";
   }
@@ -296,8 +309,17 @@ String writeOptimized(List<Testable> testables) {
     return "import '${testable.relativeToOptimized}' as ${testable.fileName};";
   }
 
+  String testImport() {
+    var package = 'test';
+    if (isFlutterPackage) {
+      package = 'flutter_test';
+    }
+
+    return "import 'package:$package/$package.dart';";
+  }
+
   return '''
-import 'package:test/test.dart';
+${testImport()}
 ${testables.map(writeImport).join('\n')}
 
 void main() {
