@@ -84,8 +84,6 @@ class TestCommand extends Command<ExitCode> {
     argParser.addSeparator('Overlapping Flags:');
     _addBothArgs();
 
-    // review https://github.com/dart-lang/test/tree/master/pkgs/test_core/lib/src/runner/configuration/args.dart to add dart test flags
-    // review https://github.com/flutter/flutter/blob/master/packages/flutter_tools/lib/src/commands/test.dart#L82 to add flutter test flags
     fs = getIt();
     console = getIt();
   }
@@ -112,11 +110,14 @@ class TestCommand extends Command<ExitCode> {
     final flutterOnly = argResults.wasParsed('flutter-only') &&
         argResults['flutter-only'] as bool;
 
-    if (dartOnly) {
-      console.v('Running only dart tests');
-    }
-    if (flutterOnly) {
-      console.v('Running only flutter tests');
+    if (dartOnly || flutterOnly) {
+      if (dartOnly && !flutterOnly) {
+        console.l('Running only dart tests');
+      } else if (flutterOnly && !dartOnly) {
+        console.l('Running only flutter tests');
+      } else {
+        console.l('Running both dart and flutter tests');
+      }
     }
 
     final pubspecs = <String>[];
