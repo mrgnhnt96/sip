@@ -25,7 +25,6 @@ class SipRunner extends CommandRunner<ExitCode> {
 
     argParser.addFlag(
       'loud',
-      abbr: 'v',
       negatable: false,
       defaultsTo: false,
       help: 'Prints verbose output',
