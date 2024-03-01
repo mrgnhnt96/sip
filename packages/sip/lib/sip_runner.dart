@@ -23,6 +23,14 @@ class SipRunner extends CommandRunner<ExitCode> {
       help: 'Print the current version',
     );
 
+    argParser.addFlag(
+      'loud',
+      abbr: 'v',
+      negatable: false,
+      defaultsTo: false,
+      help: 'Prints verbose output',
+    );
+
     addCommand(ScriptRunCommand());
     addCommand(ScriptRunManyCommand());
     addCommand(PubCommand());
@@ -34,6 +42,10 @@ class SipRunner extends CommandRunner<ExitCode> {
   Future<ExitCode> run(Iterable<String> args) async {
     try {
       final argResults = parse(args);
+
+      if (argResults['loud'] == true) {
+        getIt<SipConsole>().enableVerbose();
+      }
 
       final exitCode = await runCommand(argResults);
 

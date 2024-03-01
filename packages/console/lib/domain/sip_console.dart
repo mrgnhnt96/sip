@@ -34,7 +34,11 @@ class SipConsole {
   final Print _log;
   final Print _debug;
 
-  final Level _level;
+  Level _level;
+
+  void enableVerbose() {
+    _level = Level.verbose;
+  }
 
   /// Prints an error message.
   void e(String message) async {
