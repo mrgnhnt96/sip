@@ -7,11 +7,22 @@ String writeOptimizedTestFile(
   var count = 0;
   final indexedTestables = testables.map((e) => (count++, e)).toList();
   return '''
+import 'dart:async';
 ${_testImport(isFlutterPackage: isFlutterPackage)}
 ${indexedTestables.map((e) => _writeImport(e.$1, e.$2)).join('\n')}
 
+${_ignoreAsync()}
+
 void main() {
   ${indexedTestables.map((e) => _writeTest(e.$1, e.$2)).join('\n  ')}
+}
+''';
+}
+
+String _ignoreAsync() {
+  return '''
+void _ignoreAsync(FutureOr<void> Function() fn) {
+  fn();
 }
 ''';
 }
@@ -26,7 +37,7 @@ String _testImport({required bool isFlutterPackage}) {
 }
 
 String _writeTest(int index, Testable testable) {
-  return "group('${testable.relativeToOptimized}', () => _i$index.main());";
+  return "group('${testable.relativeToOptimized}', () => _ignoreAsync(_i$index.main));";
 }
 
 String _writeImport(int index, Testable testable) {
