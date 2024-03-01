@@ -4,7 +4,7 @@ import 'package:sip_script_runner/sip_script_runner.dart';
 import 'package:path/path.dart' as path;
 
 class DetermineFlutterOrDart {
-  const DetermineFlutterOrDart({
+  DetermineFlutterOrDart({
     required this.pubspecYaml,
     PubspecLock pubspecLock = const PubspecLockImpl(),
     FindFile findFile = const FindFile(),
@@ -15,7 +15,16 @@ class DetermineFlutterOrDart {
   final String pubspecYaml;
   final PubspecLock _pubspecLock;
 
+  String? _tool;
+
+  bool get isFlutter => tool() == 'flutter';
+  bool get isDart => tool() == 'dart';
+
   String tool() {
+    if (_tool != null) {
+      return _tool!;
+    }
+
     final root = path.dirname(pubspecYaml);
 
     final nestedLock = _pubspecLock.findIn(root);
@@ -28,6 +37,6 @@ class DetermineFlutterOrDart {
       tool = 'flutter';
     }
 
-    return tool;
+    return _tool = tool;
   }
 }
