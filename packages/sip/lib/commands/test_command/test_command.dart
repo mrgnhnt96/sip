@@ -279,8 +279,12 @@ class TestCommand extends Command<ExitCode> {
 
         final _exitCode = await scriptRunner.run();
 
-        if (_exitCode != ExitCode.success && argResults['bail'] as bool) {
+        if (_exitCode != ExitCode.success) {
           exitCode = _exitCode;
+
+          if (argResults['bail'] == true) {
+            break;
+          }
         }
       }
     }
