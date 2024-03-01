@@ -37,7 +37,14 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
       aliases: ['parallel'],
       abbr: 'c',
       negatable: false,
-      help: 'Whether to run scripts concurrently',
+      help: 'Runs all scripts concurrently',
+    );
+
+    argParser.addFlag(
+      'disable-concurrency',
+      negatable: false,
+      defaultsTo: false,
+      help: 'Disable all concurrent runs, even if set in the scripts.yaml',
     );
   }
 
@@ -62,6 +69,9 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     final argResults = argParser.parse(args ?? this.argResults?.rest ?? []);
     final keys = args ?? argResults.rest;
 
+    final disableConcurrency =
+        argResults['disable-concurrency'] as bool? ?? false;
+
     final validateResult = await validate(keys);
     if (validateResult != null) {
       return validateResult;
@@ -75,7 +85,7 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     assert(commands != null, 'commands should not be null');
     commands!;
 
-    if (argResults['concurrent'] == true) {
+    if (!disableConcurrency && argResults['concurrent'] == true) {
       final exitCodes =
           await RunManyScripts(commands: commands, bindings: bindings).run();
 
@@ -131,12 +141,14 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     }
 
     for (final command in commands) {
-      if (command.runConcurrently) {
-        concurrentRuns.add(command);
-        continue;
-      } else if (concurrentRuns.isNotEmpty) {
-        if (await _runMany() case final ExitCode exitCode) {
-          return exitCode;
+      if (!disableConcurrency) {
+        if (command.runConcurrently) {
+          concurrentRuns.add(command);
+          continue;
+        } else if (concurrentRuns.isNotEmpty) {
+          if (await _runMany() case final ExitCode exitCode) {
+            return exitCode;
+          }
         }
       }
 
