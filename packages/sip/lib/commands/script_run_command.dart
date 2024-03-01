@@ -72,6 +72,10 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     final disableConcurrency =
         argResults['disable-concurrency'] as bool? ?? false;
 
+    if (disableConcurrency) {
+      getIt<SipConsole>().w('Disabling all concurrent runs');
+    }
+
     final validateResult = await validate(keys);
     if (validateResult != null) {
       return validateResult;
@@ -86,6 +90,8 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     commands!;
 
     if (!disableConcurrency && argResults['concurrent'] == true) {
+      getIt<SipConsole>().w('Running ${commands.length} scripts concurrently');
+
       final exitCodes =
           await RunManyScripts(commands: commands, bindings: bindings).run();
 
@@ -99,8 +105,6 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     if (bail) {
       getIt<SipConsole>().w('Bail is set, stopping on first error');
     }
-
-    getIt<SipConsole>().emptyLine();
 
     ExitCode? failureExitCode;
 
