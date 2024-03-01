@@ -1,4 +1,5 @@
 import 'package:file/file.dart';
+import 'package:glob/glob.dart';
 import 'package:sip_cli/setup/setup.dart';
 
 class FindFile {
@@ -68,12 +69,15 @@ class FindFile {
 
     final directory = getIt<FileSystem>().currentDirectory;
 
-    final entities = directory.list(
+    final glob = Glob('**/$fileName', recursive: true);
+
+    final entities = glob.listFileSystemSync(
+      getIt(),
       followLinks: false,
-      recursive: true,
+      root: directory.path,
     );
 
-    await for (final entity in entities) {
+    for (final entity in entities) {
       if (entity is! File) continue;
       if (entity.basename != fileName) continue;
 
