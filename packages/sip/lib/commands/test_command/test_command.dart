@@ -169,6 +169,17 @@ class TestCommand extends Command<ExitCode> {
       testableTool[testDirectory] = tool;
     }
 
+    if (testables.isEmpty) {
+      var forTool = '';
+
+      if (flutterOnly ^ dartOnly) {
+        forTool = ' ';
+        forTool += dartOnly ? 'dart' : 'flutter';
+      }
+      console.e('No$forTool tests found');
+      return ExitCode.unavailable;
+    }
+
     final commandsToRun = <CommandToRun>[];
     final optimizedFiles = <String>[];
     final bothArgs = _getBothArgs();
@@ -224,7 +235,6 @@ class TestCommand extends Command<ExitCode> {
       label += cyan.wrap(command)!;
       label += darkGray.wrap(') tests in ')!;
       label += yellow.wrap(path.relative(projectRoot))!;
-      label += darkGray.wrap('\n  ${script}')!;
 
       commandsToRun.add(
         CommandToRun(
@@ -240,6 +250,12 @@ class TestCommand extends Command<ExitCode> {
     ExitCode? exitCode;
 
     if (argResults['concurrent'] as bool) {
+      console.w('Running (${commandsToRun.length}) tests concurrently');
+
+      for (final command in commandsToRun) {
+        console.v('Script: ${darkGray.wrap(command.command)}');
+      }
+
       final runMany = RunManyScripts(
         commands: commandsToRun,
         bindings: bindings,
@@ -252,6 +268,7 @@ class TestCommand extends Command<ExitCode> {
       exitCode = exitCodes.exitCode;
     } else {
       for (final command in commandsToRun) {
+        console.v('${command.command}');
         final scriptRunner = RunOneScript(
           command: command,
           bindings: bindings,
