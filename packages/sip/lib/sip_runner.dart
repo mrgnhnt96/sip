@@ -27,6 +27,7 @@ class SipRunner extends CommandRunner<ExitCode> {
       'loud',
       negatable: false,
       defaultsTo: false,
+      hide: true,
       help: 'Prints verbose output',
     );
 
