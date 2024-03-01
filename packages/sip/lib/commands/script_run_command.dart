@@ -31,6 +31,14 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
       negatable: false,
       help: 'Stop on first error',
     );
+
+    argParser.addFlag(
+      'concurrent',
+      aliases: ['parallel'],
+      abbr: 'c',
+      negatable: false,
+      help: 'Whether to run scripts concurrently',
+    );
   }
 
   @override
@@ -66,6 +74,15 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     }
     assert(commands != null, 'commands should not be null');
     commands!;
+
+    if (argResults['concurrent'] == true) {
+      final exitCodes =
+          await RunManyScripts(commands: commands, bindings: bindings).run();
+
+      exitCodes.printErrors(commands);
+
+      return exitCodes.exitCode;
+    }
 
     bail ^= argResults['bail'] as bool? ?? false;
 
