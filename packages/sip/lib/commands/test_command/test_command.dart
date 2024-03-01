@@ -122,19 +122,20 @@ class TestCommand extends Command<ExitCode> {
 
     final pubspecs = <String>[];
 
+    final pubspec = await pubspecYaml.nearest();
+
+    if (pubspec != null) {
+      pubspecs.add(pubspec);
+    }
+
     if (argResults['recursive'] as bool) {
       console.v('Running tests recursively');
       pubspecs.addAll(await pubspecYaml.children());
-    } else {
-      console.v('Running tests in current directory');
-      final pubspec = await pubspecYaml.nearest();
+    }
 
-      if (pubspec == null) {
-        console.e('No pubspec.yaml found');
-        return ExitCode.unavailable;
-      }
-
-      pubspecs.add(pubspec);
+    if (pubspecs.isEmpty) {
+      console.e('No pubspec.yaml files found');
+      return ExitCode.unavailable;
     }
 
     final testables = <String>[];
