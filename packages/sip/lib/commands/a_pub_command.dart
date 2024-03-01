@@ -7,6 +7,7 @@ import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/pubspec_lock_impl.dart';
 import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
 import 'package:sip_cli/domain/run_many_scripts.dart';
+import 'package:sip_cli/domain/run_one_script.dart';
 import 'package:sip_cli/setup/setup.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/exit_code.dart';
@@ -30,7 +31,25 @@ abstract class APubCommand extends Command<ExitCode> {
       'recursive',
       abbr: 'r',
       defaultsTo: false,
+      negatable: false,
       help: 'Run command recursively in all subdirectories.',
+    );
+
+    argParser.addFlag(
+      'concurrent',
+      aliases: ['parallel'],
+      abbr: 'c',
+      defaultsTo: true,
+      negatable: true,
+      help: 'Run command concurrently in all subdirectories.',
+    );
+
+    argParser.addFlag(
+      'bail',
+      abbr: 'b',
+      defaultsTo: false,
+      negatable: false,
+      help: 'Stop running commands if one fails.',
     );
   }
 
@@ -59,7 +78,9 @@ abstract class APubCommand extends Command<ExitCode> {
       final children = await _pubspecYaml.children();
 
       allPubspecs.addAll(children);
-    } else if (allPubspecs.isEmpty) {
+    }
+
+    if (allPubspecs.isEmpty) {
       getIt<SipConsole>().e('No pubspec.yaml file found.');
       return ExitCode.osFile;
     }
@@ -99,18 +120,36 @@ abstract class APubCommand extends Command<ExitCode> {
       );
     }
 
-    final runMany = RunManyScripts(
-      commands: commands,
-      bindings: _bindings,
-    );
+    if (argResults!['concurrent'] == true) {
+      final runMany = RunManyScripts(
+        commands: commands,
+        bindings: _bindings,
+      );
 
-    getIt<SipConsole>()
-        .l('Running ${lightCyan.wrap('pub $name ${pubFlags.join(' ')}')}');
+      getIt<SipConsole>()
+          .l('Running ${lightCyan.wrap('pub $name ${pubFlags.join(' ')}')}');
 
-    final exitCodes = await runMany.run();
+      final exitCodes = await runMany.run();
 
-    exitCodes.printErrors(commands);
+      exitCodes.printErrors(commands);
 
-    return exitCodes.exitCode;
+      return exitCodes.exitCode;
+    } else {
+      for (final command in commands) {
+        getIt<SipConsole>().l('\nRunning ${lightCyan.wrap(command.command)}');
+
+        final exitCode = await RunOneScript(
+          command: command,
+          bindings: _bindings,
+        ).run();
+
+        if (exitCode != ExitCode.success && argResults!['bail'] == true) {
+          exitCode.printError(command);
+          return exitCode;
+        }
+      }
+
+      return ExitCode.success;
+    }
   }
 }
