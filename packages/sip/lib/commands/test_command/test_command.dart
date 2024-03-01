@@ -59,6 +59,20 @@ class TestCommand extends Command<ExitCode> {
       negatable: true,
     );
 
+    argParser.addFlag(
+      'dart-only',
+      help: 'Run only dart tests',
+      defaultsTo: false,
+      negatable: false,
+    );
+
+    argParser.addFlag(
+      'flutter-only',
+      help: 'Run only flutter tests',
+      defaultsTo: false,
+      negatable: false,
+    );
+
     argParser.addSeparator('Dart Flags:');
     _addDartArgs();
 
@@ -176,18 +190,28 @@ class TestCommand extends Command<ExitCode> {
         pubspecYaml: path.join(projectRoot, 'pubspec.yaml'),
         findFile: findFile,
         pubspecLock: pubspecLock,
-      ).tool();
+      );
+
+      if (tool.isDart && !(argResults!['dart-only'] as bool)) {
+        continue;
+      }
+
+      if (tool.isFlutter && !(argResults!['flutter-only'] as bool)) {
+        continue;
+      }
 
       final toolArgs =
-          tool == 'flutter' ? flutterArgs.toList() : dartArgs.toList();
+          tool.isFlutter ? flutterArgs.toList() : dartArgs.toList();
 
       toolArgs.addAll(bothArgs);
 
+      final command = tool.tool();
+
       final script =
-          '$tool test ${path.relative(optimizedPath, from: projectRoot)} ${toolArgs.join(' ')}';
+          '$command test ${path.relative(optimizedPath, from: projectRoot)} ${toolArgs.join(' ')}';
 
       var label = darkGray.wrap('Running (')!;
-      label += cyan.wrap(tool)!;
+      label += cyan.wrap(command)!;
       label += darkGray.wrap(') tests in ')!;
       label += yellow.wrap(path.relative(projectRoot))!;
       label += darkGray.wrap('\n  ${script}')!;
