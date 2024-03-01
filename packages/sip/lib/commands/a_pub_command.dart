@@ -81,8 +81,8 @@ abstract class APubCommand extends Command<ExitCode> {
     }
 
     if (allPubspecs.isEmpty) {
-      getIt<SipConsole>().e('No pubspec.yaml file found.');
-      return ExitCode.osFile;
+      getIt<SipConsole>().e('No pubspec.yaml files found.');
+      return ExitCode.unavailable;
     }
 
     final commands = <CommandToRun>[];
