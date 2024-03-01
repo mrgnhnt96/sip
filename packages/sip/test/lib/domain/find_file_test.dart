@@ -64,5 +64,28 @@ void main() {
         expect(nearest, path.separator + sipPubspec.path);
       });
     });
+
+    group('#childrenOf', () {
+      test('find all scripts.yaml of nested dirs', () async {
+        final nested = fs.directory(path.join('packages', 'sip', 'nested'));
+        nested.createSync(recursive: true);
+
+        final nestedScripts = nested.childFile('scripts.yaml');
+        nestedScripts.createSync(recursive: true);
+
+        final scripts = fs.directory('scripts');
+        scripts.createSync(recursive: true);
+
+        final scriptsScripts = scripts.childFile('scripts.yaml');
+        scriptsScripts.createSync(recursive: true);
+
+        final children = await findFile.childrenOf('scripts.yaml');
+
+        expect(children, isNotNull);
+        expect(children, hasLength(2));
+        expect(children, contains(nestedScripts.path));
+        expect(children, contains(scriptsScripts.path));
+      });
+    });
   });
 }
