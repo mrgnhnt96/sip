@@ -27,6 +27,13 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     addFlags();
 
     argParser.addFlag(
+      'help',
+      abbr: 'h',
+      negatable: false,
+      help: 'Prints usage information.',
+    );
+
+    argParser.addFlag(
       'bail',
       negatable: false,
       help: 'Stop on first error',
@@ -42,6 +49,13 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
 
     argParser.addFlag(
       'disable-concurrency',
+      aliases: [
+        'no-concurrent',
+        'no-parallel',
+        'no-c',
+        'no-p',
+        'disable-concurrent'
+      ],
       negatable: false,
       defaultsTo: false,
       help: 'Disable all concurrent runs, even if set in the scripts.yaml',
@@ -67,6 +81,12 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
   @override
   Future<ExitCode> run([List<String>? args]) async {
     final argResults = argParser.parse(args ?? this.argResults?.rest ?? []);
+
+    if (argResults['help'] as bool? ?? false) {
+      printUsage();
+      return ExitCode.success;
+    }
+
     final keys = args ?? argResults.rest;
 
     final disableConcurrency =
