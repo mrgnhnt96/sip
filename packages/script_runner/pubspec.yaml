@@ -21,7 +21,7 @@ dependencies:
   get_it: ">=7.0.0 <8.0.0"
   json_annotation: ">=4.0.0 <5.0.0"
   path: ">=1.8.0 <2.0.0"
-  sip_console: ">=0.0.1 <0.1.0"
+  sip_console: ">=0.0.1 <0.2.0"
   yaml: ">=3.0.0 <4.0.0"
 
 dev_dependencies:
@@ -30,4 +30,5 @@ dev_dependencies:
   build_version: ^2.1.1
   json_serializable: ^6.7.1
   mocktail: ^1.0.3
+  pana: ^0.22.2
   test: ^1.25.1
