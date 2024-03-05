@@ -1,18 +1,19 @@
 # SIP
 
-Sip is a command-line tool with the goal of making it easier to manage the many commands needed to run a Dart or Flutter project.
+Sip is a command-line tool with the goal of making it easier to manage the many commands needed to run a Dart or Flutter project, get dependencies, run tests, and more.
 
 ![Sip](assets/build_runner.gif)
 
 ## Features
 
 - Define and run scripts from a `scripts.yaml` file
-- Run pub commands, such as `pub get` and `pub upgrade`, _recursively and concurrently_
-- Run commands concurrently
+  - Run scripts concurrently
+- Run pub commands, such as `pub get` and `pub upgrade`
+  - _recursively and concurrently_
 - Run dart/flutter tests
-  - _Recursively and Concurrently_
+  - _Recursively and concurrently_
   - Pass most all dart/flutter test flags
-  - Only dart/flutter tests
+  - Run only dart or flutter tests
 
 ## Installation
 
@@ -98,6 +99,7 @@ $ sip pub get --recursive
 - (dart)    ./core
 - (dart)    ./data
 - (flutter) ./ui
+- (flutter) ./.
 ```
 
 ### PUB UPGRADE
@@ -114,40 +116,68 @@ There are flags that can be passed to `sip pub upgrade` that will be passed to `
 
 _You can read more about these flags [here](https://dart.dev/tools/pub/cmd/pub-upgrade#options)._
 
-```bash
-
-## List of commands
-
-```bash
-sip list # or sip ls
-```
-
-![Sip](assets/list_commands.png)
-
-If you have many scripts, you can filter the list by using the `--list` flag.
-
-![Sip](assets/list_build_runner.png)
-
 ## Running Tests
 
-Sip can run dart/flutter tests, and pass most all dart/flutter test flags. To view all the flags that can be passed to `sip run test`, you can run `sip test --help`.
+Sip can run dart/flutter tests, and pass most all dart/flutter test flags. To view all the flags that can be passed to `sip test`, you can run `sip test --help`.
 
 ```bash
 # Run all tests
-$ sip run test --recursive --concurrent
+$ sip test --recursive --concurrent
 ```
 
-### Bail
+### --bail
 
 Bailing on tests means that the moment a test fails, the script will stop running, even if there are other tests to run.
 
-You can bail a test if you pass the `--bail` flag when running the test.
+By passing the `--bail` flag, the script will stop running after the a test fails. For dart tests, the `--bail` flag will enable the `--fail-fast` flag.
 
 ```bash
-sip run test --bail
+sip test --bail
 ```
 
 ## `Scripts.yaml` configuration
+
+The `scripts.yaml` file is where you define all the scripts that you would like to run. The `scripts.yaml` file is generally located in the root of your project.
+
+### Defining a script
+
+A script is defined by a key, followed by a colon `:`. The key is the name of the script, and the value is the command to run.
+
+```yaml
+# scripts.yaml
+
+build_runner: dart run build_runner build --delete-conflicting-outputs
+```
+
+```bash
+sip run build_runner # Runs `dart run build_runner build --delete-conflicting-outputs`
+```
+
+The value of the script can be a string or a list of strings.
+
+```yaml
+# scripts.yaml
+
+build_runner:
+    - cd packages/core && dart run build_runner build --delete-conflicting-outputs
+    - cd packages/data && dart run build_runner build --delete-conflicting-outputs
+```
+
+```bash
+$ sip run build_runner
+
+- cd packages/core && dart run build_runner build --delete-conflicting-outputs
+...
+- cd packages/data && dart run build_runner build --delete-conflicting-outputs
+...
+```
+
+### Restricted Script Keys
+
+- Allowed characters regex pattern: `^_?([a-z][a-z0-9_.\-]*)?(?<=[a-z0-9_])$`
+- Keys that start and end with a parenthesis `(` `)` are reserved for sip.
+- Keys must start with a letter or an underscore followed by a letter (optional)
+- Keys must end with a letter, number, or underscore
 
 ### Nesting scripts
 
@@ -161,7 +191,7 @@ format:
     core: cd packages/core && dart format .
 ```
 
-If you would like to define a script to run **and** nest other scripts, you can use the `(command)` key.
+If you would like to define a script to run **_and_** nest scripts, you can use the `(command)` key to define the command to run.
 
 ```yaml
 # scripts.yaml
@@ -172,50 +202,29 @@ format:
     core: cd packages/core && dart format .
 ```
 
-### Restricted Script Keys
+```bash
+sip run format # Runs `dart format .`
 
-- Allowed characters regex pattern: `^_?([a-z][a-z0-9_.\-]*)?(?<=[a-z0-9_])$`
-- Keys that start and end with a parenthesis `(` `)` are reserved for sip.
-- Keys must start with a letter or an underscore followed by a letter (optional)
-- Keys must end with a letter, number, or underscore
+sip run format ui # Runs `cd packages/ui && dart format .`
+```
 
-### Bail
+### List Commands
 
-Bailing on a script means that the moment a command fails, the script will stop running, even if there are other commands to run.
-
-You can bail a script if you pass the `--bail` flag when running the script.
+You can list all the scripts that are defined within the `scripts.yaml` file.
 
 ```bash
-$ sip run test --bail
-
-...
-✖ Script dart run test failed with exit code unknown: 1
-
-✖ Bailing...
+sip list # or sip ls
 ```
 
-Optionally, you can always set a script to fail by using the `(bail):` key in the `scripts.yaml` file.
+![Sip](assets/list_commands.png)
 
-```yaml
-# scripts.yaml
+You can filter nested scripts by passing in the `--list` flag.
 
-test:
-    (bail): # leave blank, or set to: `true`, `yes`, `y`
-    (command): dart test
-```
-
-```bash
-$ sip run test
-
-...
-✖ Script dart run test failed with exit code unknown: 1
-
-✖ Bailing...
-```
+![Sip](assets/list_build_runner.png)
 
 ### Referencing other scripts
 
-You can reference other scripts within the `scripts.yaml` file by using the `$` symbol. When referencing a script, the command defined for that referenced script will be used.
+You can reference other scripts within the `scripts.yaml` file by using the `{$<key>}` symbol. When referencing a script, the command defined for that referenced script will be used.
 
 ```yaml
 # scripts.yaml
@@ -231,8 +240,7 @@ $ sip run pub_get
 - cd packages/ui && dart pub get
 ```
 
-Chain references together to access nested scripts.\
-The `(command)` key is omitted when referencing a script that has the `(command)` key defined.
+Chain references together to access nested scripts.
 
 ```yaml
 # scripts.yaml
@@ -249,9 +257,11 @@ $ sip run pub get ui
 - cd packages/ui && dart pub get
 ```
 
+**_NOTICE:_** The `(command)` key is omitted when referencing a script.
+
 ### Flags
 
-By default, anything (flags/options) passed after the script is ignored.
+By default, all flags passed after the script are ignored.
 
 ```yaml
 # scripts.yaml
@@ -262,10 +272,10 @@ test: dart test
 ```bash
 $ sip run test --coverage
 
-- dart test
+- dart test # The --coverage flag is ignored
 ```
 
-If you would like to tell sip to include a flag _if it is provided_ you can use the `{-*}` symbol. Any and all values passed after the flag will be passed to the script.
+If you would like to tell sip to include a flag _**if it is provided**_ you can use the `{-<flag>}` symbol. Any and all values passed after the flag will be passed to the script.
 
 These flags will remain optional, and can be omitted when running the script.
 
@@ -314,13 +324,66 @@ To define a private key, prepend the key with the `_` symbol.
 # scripts.yaml
 
 format:
-    _command: dart format .
-    (command): cd packages/ui && {$format:_command}
+    _hidden: dart format .
+    (command): cd packages/ui && {$format:_hidden}
 ```
 
-### Always run commands concurrently
+### Bail
 
-Sometimes you may want to run a command concurrently, regardless of whether `run` or `run-many` is used. You can use the concurrent key `(+)` to achieve this.
+Bailing on a script means that the moment a command fails, the script will stop running, even if there are other commands to run.
+
+You can bail a script if you pass the `--bail` flag when running the script.
+
+```bash
+$ sip run format --bail
+
+...
+✖ Script dart run format failed with exit code unknown: 1
+
+✖ Bailing...
+```
+
+Optionally, you can always set a script to fail by using the `(bail):` key in the `scripts.yaml` file.
+
+```yaml
+# scripts.yaml
+
+format:
+    (bail): # leave blank, or set to: `true`, `yes`, `y`
+    (command): dart format
+```
+
+```bash
+$ sip run format
+
+...
+✖ Script dart run format failed with exit code unknown: 1
+
+✖ Bailing...
+```
+
+### Run Commands Concurrently
+
+Running scripts concurrently can be useful when you have multiple commands that can be run at the same time. To run commands concurrently, you can run the `sip run` command with the `--concurrent` flag.
+
+```yaml
+# scripts.yaml
+
+test:
+    - cd packages/ui && dart test
+    - cd packages/core && dart test
+```
+
+```bash
+$ sip run test --concurrent
+
+Running 2 scripts concurrently
+
+- cd packages/ui && dart test
+- cd packages/core && dart test
+```
+
+Sometimes you may want to single out a group of commands to run concurrently, You can use the concurrent key `(+)` to achieve this.
 
 The commands will be grouped together and run concurrently. Meaning that you can have concurrent and non-concurrent commands mixed together. The commands will always run in the order they are defined.
 
@@ -335,10 +398,10 @@ The commands will be grouped together and run concurrently. Meaning that you can
 format:
     (command):
         - echo "Running format"
-        # ---- start concurrent commands
+        # ---- start concurrent group
         - (+) cd packages/ui && dart format .
         - (+) cd packages/core && dart format .
-        # ---- end concurrent commands
+        # ---- end concurrent group
         - echo "Finished running format"
 ```
 
