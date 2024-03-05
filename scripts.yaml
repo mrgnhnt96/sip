@@ -6,36 +6,33 @@ install:
 
 compile-blob: sh packages/script_runner/scripts/compile_blob.sh {--platform} {--arch}
 
-test:
-  (command):
-    - "{$test:sip}"
-    - "{$test:script_runner}"
-    - "{$test:console}"
-  sip: cd packages/sip && sip run test {--fail-fast}
-  script_runner: cd packages/script_runner && sip run test {--fail-fast}
-  console: cd packages/console && sip run test {--fail-fast}
+_packages:
+  - cd packages/sip &&
+  - cd packages/script_runner &&
+  - cd packages/console &&
+
+pana: "{$_packages} dart pub run pana"
+
+format: '{$_packages} dart format .'
 
 prep:
   (command):
-    - '{$prep:_build}'
+    - "{$install}"
+    - "{$prep:_build}"
     - (+) {$prep:changelog}
     - (+) {$prep:license}
     - (+) {$prep:readme}
     - (+) {$prep:pubspecs}
     - (+) {$prep:assets}
     - sip pub get -r
-  _build:
+  build:
     clean: sip run build_runner clean
-    build: sip run build_runner build only
+    _build: sip run build_runner build only
     (command):
       - echo "Running build_runner clean in all packages"
-      - (+) cd packages/script_runner; {$prep:_build:clean}
-      - (+) cd packages/console; {$prep:_build:clean}
-      - (+) cd packages/sip; {$prep:_build:clean}
+      - (+) {$_packages} {$prep:_build:clean}
       - echo "Running build_runner build in all packages"
-      - (+) cd packages/script_runner; {$prep:_build:build}
-      - (+) cd packages/console; {$prep:_build:build}
-      - (+) cd packages/sip; {$prep:_build:build}
+      - (+) {$_packages} {$prep:_build:build}
       - echo "build_runner complete"
   changelog: |
     echo "Copying CHANGELOG.md to all packages"
@@ -69,17 +66,12 @@ prep:
 publish:
   (bail):
   (command):
-    - "{$test} --fail-fast"
+    - sip test --bail --recursive --concurrent
     - "{$prep}"
-    - "{$publish:sip}"
-    - "{$publish:script_runner}"
-    - "{$publish:console}"
+    - "{$_packages} dart pub publish"
     - "{$publish:commit}"
     - "{$publish:tag}"
     - "{$publish:_push}"
-  sip: cd packages/sip; dart pub publish
-  script_runner: cd packages/script_runner; dart pub publish
-  console: cd packages/console; dart pub publish
   commit: |
     # get version from changelog
     version=$(grep -m 1 "# " CHANGELOG.md | awk '{print $2}')
