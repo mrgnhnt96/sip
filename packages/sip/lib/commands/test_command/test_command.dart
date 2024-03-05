@@ -109,7 +109,7 @@ class TestCommand extends Command<ExitCode> {
   Future<List<String>> pubspecs({
     required bool isRecursive,
   }) async {
-    final pubspecs = <String>[];
+    final pubspecs = <String>{};
 
     final pubspec = await pubspecYaml.nearest();
 
@@ -119,10 +119,11 @@ class TestCommand extends Command<ExitCode> {
 
     if (isRecursive) {
       console.v('Running tests recursively');
-      pubspecs.addAll(await pubspecYaml.children());
+      final children = await pubspecYaml.children();
+      pubspecs.addAll(children.map((e) => path.join(path.separator, e)));
     }
 
-    return pubspecs;
+    return pubspecs.toList();
   }
 
   (
@@ -171,14 +172,11 @@ class TestCommand extends Command<ExitCode> {
     return (testables, testableTool);
   }
 
-  List<CommandToRun> getCommandsToRun(
+  Map<String, DetermineFlutterOrDart> writeOptimizedFiles(
     List<String> testables,
     Map<String, DetermineFlutterOrDart> testableTool,
-    List<String> optimizedFiles,
-    List<String> flutterArgs,
-    List<String> dartArgs,
   ) {
-    final commandsToRun = <CommandToRun>[];
+    final optimizedFiles = <String, DetermineFlutterOrDart>{};
 
     for (final testable in testables) {
       final allFiles =
@@ -205,18 +203,33 @@ class TestCommand extends Command<ExitCode> {
 
       final optimizedPath = path.join(testable, optimizedTestFileName);
       fs.file(optimizedPath)..createSync(recursive: true);
-      optimizedFiles.add(optimizedPath);
 
       final testables = testFiles
           .map((e) => Testable(absolute: e, optimizedPath: optimizedPath));
 
-      final projectRoot = path.dirname(testable);
       final tool = testableTool[testable]!;
 
       final content =
           writeOptimizedTestFile(testables, isFlutterPackage: tool.isFlutter);
 
       fs.file(optimizedPath).writeAsStringSync(content);
+
+      optimizedFiles[optimizedPath] = tool;
+    }
+
+    return optimizedFiles;
+  }
+
+  List<CommandToRun> getCommandsToRun(
+    Map<String, DetermineFlutterOrDart> optimizedFiles, {
+    required List<String> flutterArgs,
+    required List<String> dartArgs,
+  }) {
+    final commandsToRun = <CommandToRun>[];
+
+    for (final MapEntry(key: optimizedPath, value: tool)
+        in optimizedFiles.entries) {
+      final projectRoot = path.dirname(path.dirname(optimizedPath));
 
       final toolArgs = tool.isFlutter ? flutterArgs : dartArgs;
 
@@ -291,7 +304,7 @@ class TestCommand extends Command<ExitCode> {
     return exitCode ?? ExitCode.success;
   }
 
-  void cleanUp(List<String> optimizedFiles) {
+  void cleanUp(Iterable<String> optimizedFiles) {
     for (final optimizedFile in optimizedFiles) {
       fs.file(optimizedFile).deleteSync();
     }
@@ -326,11 +339,6 @@ class TestCommand extends Command<ExitCode> {
       return ExitCode.unavailable;
     }
 
-    final optimizedFiles = <String>[];
-    final bothArgs = _getBothArgs();
-    final flutterArgs = [..._getFlutterArgs(), ...bothArgs];
-    final dartArgs = [..._getDartArgs(), ...bothArgs];
-
     final (testables, testableTool) = getTestables(
       pubspecs,
       isFlutterOnly: isFlutterOnly,
@@ -348,12 +356,15 @@ class TestCommand extends Command<ExitCode> {
       return ExitCode.unavailable;
     }
 
+    final optimizedFiles = writeOptimizedFiles(testables, testableTool);
+
+    final bothArgs = _getBothArgs();
+    final flutterArgs = [..._getFlutterArgs(), ...bothArgs];
+    final dartArgs = [..._getDartArgs(), ...bothArgs];
     final commandsToRun = getCommandsToRun(
-      testables,
-      testableTool,
       optimizedFiles,
-      flutterArgs,
-      dartArgs,
+      flutterArgs: flutterArgs,
+      dartArgs: dartArgs,
     );
 
     final exitCode = await runCommands(
@@ -363,7 +374,7 @@ class TestCommand extends Command<ExitCode> {
     );
 
     if (argResults['clean'] as bool) {
-      cleanUp(optimizedFiles);
+      cleanUp(optimizedFiles.keys);
     }
 
     if (exitCode != ExitCode.success) {
