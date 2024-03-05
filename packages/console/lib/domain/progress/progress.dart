@@ -74,11 +74,9 @@ class Progress {
     List<Line> items,
     void Function() onFinish,
   ) async {
-    final console = getIt<Console>();
+    final console = getIt<Console>()..hideCursor();
 
-    console.hideCursor();
-
-    StreamSubscription? stdinListener;
+    StreamSubscription<dynamic>? stdinListener;
 
     if (console.hasTerminal) {
       stdin
@@ -86,12 +84,12 @@ class Progress {
         ..lineMode = false;
 
       stdinListener = stdin.listen((event) {
-        print('event: $event');
         // check if ctrl+c
         const ctrlCCode = 3;
         if (event.first == ctrlCCode) {
-          console.cursorDown();
-          console.showCursor();
+          console
+            ..cursorDown()
+            ..showCursor();
           exit(0);
         }
       });
@@ -106,8 +104,9 @@ class Progress {
         buffer.writeln(item.string);
 
         if (hasEmitted) {
-          console.cursorUp();
-          console.eraseLine();
+          console
+            ..cursorUp()
+            ..eraseLine();
         }
       }
 
@@ -129,10 +128,11 @@ class Progress {
     // write last time to solidify final state
     await Future.sync(() => write(loadingItems));
 
-    console.cursorDown();
-    console.showCursor();
+    console
+      ..cursorDown()
+      ..showCursor();
 
-    stdinListener?.cancel();
+    await stdinListener?.cancel();
 
     onFinish();
   }

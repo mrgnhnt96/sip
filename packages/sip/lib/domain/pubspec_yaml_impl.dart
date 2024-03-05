@@ -5,17 +5,17 @@ class PubspecYamlImpl extends FindYaml implements PubspecYaml {
   const PubspecYamlImpl();
 
   @override
-  Map<String, dynamic>? parse([String? _]) {
+  Map<String, dynamic>? parse([String? fileName]) {
     return super.parse(PubspecYaml.fileName);
   }
 
   @override
-  String? nearest([String? _]) {
+  String? nearest([String? fileName]) {
     return super.nearest(PubspecYaml.fileName);
   }
 
   @override
-  String? retrieveNearestContent([String? _]) {
+  String? retrieveNearestContent([String? fileName]) {
     return super.retrieveNearestContent(PubspecYaml.fileName);
   }
 

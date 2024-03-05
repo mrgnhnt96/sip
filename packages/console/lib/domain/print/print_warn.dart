@@ -5,7 +5,7 @@ import 'package:sip_console/utils/ansi.dart';
 class PrintWarn extends Print {
   PrintWarn()
       : super(
-          group: Group(
+          group: const Group(
             tag: '⚠',
             color: lightYellow,
           ),

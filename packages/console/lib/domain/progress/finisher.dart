@@ -1,4 +1,5 @@
-/// When a task is finished, it can be in one of three states: success, failure, or cancelled.
+/// When a task is finished, it can be in one of three
+/// states: success, failure, or cancelled.
 enum FinisherType {
   /// The task was successful.
   success,
@@ -10,7 +11,8 @@ enum FinisherType {
   cancelled,
 }
 
-/// A finisher is a callback that can be called to indicate that a task has finished.
+/// A finisher is a callback that can be called to
+/// indicate that a task has finished.
 abstract class Finisher {
   const Finisher();
 
@@ -56,19 +58,25 @@ class Finishers {
 
   /// Finish all tasks successfully.
   void all() {
-    finishers.forEach((e) => e());
+    for (final e in finishers) {
+      e();
+    }
   }
 
   /// Fail all tasks.
   void failAll() {
-    finishers.forEach((e) => e.fail());
+    for (final e in finishers) {
+      e.fail();
+    }
   }
 
   /// Cancel all tasks.
   void cancelAll() {
-    finishers.forEach((e) => e.cancel());
+    for (final e in finishers) {
+      e.cancel();
+    }
   }
 
   /// Get the finisher at the given index.
-  operator [](int index) => finishers.elementAt(index);
+  Finisher operator [](int index) => finishers.elementAt(index);
 }

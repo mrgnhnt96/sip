@@ -1,9 +1,9 @@
 import 'dart:async';
 
 class StreamGroup<T> {
-  final List<Stream<T>> streams;
-
   StreamGroup(this.streams);
+
+  final List<Stream<T>> streams;
 
   static Stream<T> merge<T>(Iterable<Stream<T>> streams) {
     return StreamGroup(streams.toList()).stream;

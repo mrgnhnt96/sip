@@ -23,7 +23,7 @@ void main() {
       fs.file(PubspecYaml.fileName).createSync(recursive: true);
       fs.file(ScriptsYaml.fileName).createSync(recursive: true);
 
-      variables = Variables(
+      variables = const Variables(
         pubspecYaml: PubspecYamlImpl(),
         scriptsYaml: ScriptsYamlImpl(),
         cwd: CWDImpl(),

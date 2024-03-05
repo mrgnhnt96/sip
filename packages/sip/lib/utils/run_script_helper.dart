@@ -52,7 +52,8 @@ mixin RunScriptHelper on Command<ExitCode> {
 
     if (keys.any((e) => e.startsWith('_'))) {
       getIt<SipConsole>().e(
-        r'''Private scripts are not intended to be invoked, only to be used as a references in other scripts.
+        r'''
+Private scripts are not intended to be invoked, only to be used as a references in other scripts.
 
 ```yaml
 format:
@@ -80,10 +81,12 @@ $ sip format ui
     getIt<SipConsole>()
       ..emptyLine()
       ..l(script.name)
-      ..print(script.listOut(
-        wrapCallableKey: (s) => lightGreen.wrap(s) ?? s,
-        wrapMeta: (s) => lightBlue.wrap(s) ?? s,
-      ))
+      ..print(
+        script.listOut(
+          wrapCallableKey: (s) => lightGreen.wrap(s) ?? s,
+          wrapMeta: (s) => lightBlue.wrap(s) ?? s,
+        ),
+      )
       ..emptyLine();
   }
 
@@ -109,7 +112,7 @@ $ sip format ui
       return (ExitCode.config, null, null);
     }
 
-    if (argResults['list'] ?? false) {
+    if (argResults['list'] as bool? ?? false) {
       _listOutScript(script);
 
       return (ExitCode.success, null, null);
@@ -135,7 +138,9 @@ $ sip format ui
   }
 
   Iterable<CommandToRun> _commandsToRun(
-      Script script, List<String> commands) sync* {
+    Script script,
+    List<String> commands,
+  ) sync* {
     for (var i = 0; i < commands.length; i++) {
       var command = commands[i];
       var runConcurrently = false;

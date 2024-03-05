@@ -41,48 +41,44 @@ class SipConsole {
   }
 
   /// Prints an error message.
-  void e(String message) async {
+  void e(String message) {
     _error.print(message);
   }
 
   /// Prints a warning message.
-  void w(String message) async {
+  void w(String message) {
     _warn.print(message);
   }
 
   /// Prints a verbose message.
-  void v(String message) async {
+  void v(String message) {
     if (!_level.isVerbose && !_level.isDebug) return;
 
     _verbose.print(message);
   }
 
   /// Prints a log message.
-  void l(String message) async {
+  void l(String message) {
     _log.print(message);
   }
 
   /// Prints a success message.
-  void s(String message) async {
+  void s(String message) {
     _success.print(message);
   }
 
   /// Prints a debug message.
-  void d(String message) async {
+  void d(String message) {
     if (!_level.isDebug) return;
 
     _debug.print(message);
   }
 
-  void emptyLine() async {
-    final console = getIt<Console>();
-
-    console.writeLine('');
+  void emptyLine() {
+    getIt<Console>().writeLine('');
   }
 
-  void print(String message) async {
-    final console = getIt<Console>();
-
-    console.writeLine(message);
+  void print(String message) {
+    getIt<Console>().writeLine(message);
   }
 }

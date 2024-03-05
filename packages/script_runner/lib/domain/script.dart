@@ -41,7 +41,7 @@ class Script extends Equatable {
 
     return _$ScriptFromJson(
       {
-        ...?json,
+        ...?json as Map?,
         Keys.name: name,
         if (parents != null) Keys.parents: parents,
       },
@@ -92,12 +92,11 @@ class Script extends Equatable {
     prefix ??= '';
 
     if (description != null) {
-      buffer.writeln('${prefix}${wrapMeta(Keys.description)}: $description');
+      buffer.writeln('$prefix${wrapMeta(Keys.description)}: $description');
     }
 
     if (aliases.isNotEmpty) {
-      buffer
-          .writeln('${prefix}${wrapMeta(Keys.aliases)}: ${aliases.join(', ')}');
+      buffer.writeln('$prefix${wrapMeta(Keys.aliases)}: ${aliases.join(', ')}');
     }
 
     scripts?.listOut(
@@ -115,6 +114,7 @@ class Script extends Equatable {
   List<Object?> get props => _$props;
 }
 
+// ignore: strict_raw_type
 bool? _retrieveBool(Map json, String key) {
   final value = json[key];
   if (value is bool) {
@@ -137,12 +137,14 @@ bool? _retrieveBool(Map json, String key) {
   return null;
 }
 
+// ignore: strict_raw_type
 List? _retrieveStrings(Map json, String key) {
   return _tryReadListOrString(json[key]);
 }
 
+// ignore: strict_raw_type
 Map? _readScriptsConfig(Map json, String key) {
-  final parents = [...(json[Keys.parents] as List<String>? ?? [])];
+  final parents = [...json[Keys.parents] as List<String>? ?? []];
   final name = json[Keys.name] as String;
 
   final mutableMap = {...json};
@@ -163,6 +165,7 @@ Map? _readScriptsConfig(Map json, String key) {
   return mutableMap;
 }
 
+// ignore: strict_raw_type
 List<String>? _readCommand(Map json, String key) {
   return _tryReadListOrString(json[key]) ??
       _tryReadListOrString(json[Keys.command]);

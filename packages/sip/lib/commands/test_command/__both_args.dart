@@ -6,9 +6,8 @@ extension _BothX on TestCommand {
       ..addOption(
         'concurrency',
         abbr: 'j',
-        help:
-            'The number of concurrent test processes to run. This will be ignored '
-            'when running integration tests.',
+        help: 'The number of concurrent test processes to run. '
+            'This will be ignored when running integration tests.',
         valueHelp: 'jobs',
       )
       ..addOption(
@@ -51,16 +50,16 @@ extension _BothX on TestCommand {
       )
       ..addOption(
         'reporter',
-        help:
-            'Set how to print test results. If unset, value will default to either compact or expanded.',
+        help: 'Set how to print test results. If unset, '
+            'value will default to either compact or expanded.',
         allowed: <String>['compact', 'expanded', 'github', 'json'],
         allowedHelp: <String, String>{
           'compact':
               'A single line that updates dynamically (The default reporter).',
-          'expanded':
-              'A separate line for each update. May be preferred when logging to a file or in continuous integration.',
-          'github':
-              'A custom reporter for GitHub Actions (the default reporter when running on GitHub Actions).',
+          'expanded': 'A separate line for each update. May be preferred '
+              'when logging to a file or in continuous integration.',
+          'github': 'A custom reporter for GitHub Actions (the default '
+              'reporter when running on GitHub Actions).',
           'json':
               'A machine-readable format. See: https://dart.dev/go/test-docs/json_reporter.md',
         },
@@ -71,22 +70,22 @@ extension _BothX on TestCommand {
       )
       ..addOption(
         'shard-index',
-        help:
-            'Tests can be sharded with the "--total-shards" and "--shard-index" '
+        help: 'Tests can be sharded with the '
+            '"--total-shards" and "--shard-index" '
             'arguments, allowing you to split up your test suites and run '
             'them separately.',
       )
       ..addOption(
         'total-shards',
-        help:
-            'Tests can be sharded with the "--total-shards" and "--shard-index" '
+        help: 'Tests can be sharded with the '
+            '"--total-shards" and "--shard-index" '
             'arguments, allowing you to split up your test suites and run '
             'them separately.',
       )
       ..addOption(
         'test-randomize-ordering-seed',
-        help:
-            'The seed to randomize the execution order of test cases within test files. '
+        help: 'The seed to randomize the execution order '
+            'of test cases within test files. '
             'Must be a 32bit unsigned integer or the string "random", '
             'which indicates that a seed should be selected randomly. '
             'By default, tests run in the order they are declared.',
@@ -170,7 +169,7 @@ extension _BothX on TestCommand {
           args.add('--no-$option');
         }
       } else {
-        args.addAll(['--$option', value]);
+        args.addAll(['--$option', '$value']);
       }
     }
 

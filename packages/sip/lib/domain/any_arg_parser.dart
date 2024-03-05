@@ -19,6 +19,7 @@ class AnyArgParser implements ArgParser {
     String? help,
     bool? defaultsTo = false,
     bool negatable = true,
+    // ignore: avoid_positional_boolean_parameters
     void Function(bool p1)? callback,
     bool hide = false,
     List<String> aliases = const [],
@@ -103,7 +104,7 @@ class AnyArgParser implements ArgParser {
   Map<String, ArgParser> get commands => _argParser.commands;
 
   @override
-  defaultFor(String option) => _argParser.defaultFor(option);
+  dynamic defaultFor(String option) => _argParser.defaultFor(option);
 
   @override
   Option? findByAbbreviation(String abbr) =>
@@ -114,7 +115,7 @@ class AnyArgParser implements ArgParser {
 
   @override
   @Deprecated('Use defaultFor instead.')
-  getDefault(String option) => _argParser.getDefault(option);
+  dynamic getDefault(String option) => _argParser.getDefault(option);
 
   @override
   Map<String, Option> get options => _argParser.options;
@@ -130,18 +131,18 @@ class AnyArgParser implements ArgParser {
 
     ArgResults backUpResult;
 
-    final _preFlags = <String>[];
+    final preFlags0 = <String>[];
 
     if (preFlags != null) {
-      _preFlags.addAll(preFlags);
+      preFlags0.addAll(preFlags);
     } else {
       final preFlags = mutableArgs.takeWhile((value) => !value.startsWith('-'));
-      _preFlags.addAll(preFlags);
+      preFlags0.addAll(preFlags);
       mutableArgs = mutableArgs.skip(preFlags.length).toList();
     }
 
     try {
-      backUpResult = _argParser.parse([..._preFlags, ...mutableArgs]);
+      backUpResult = _argParser.parse([...preFlags0, ...mutableArgs]);
     } on ArgParserException catch (e) {
       final badFlag = RegExp('"([a-z-_=]+)"').firstMatch(e.message)?.group(1);
 
@@ -200,13 +201,11 @@ class AnyArgParser implements ArgParser {
       return parse(
         mutableArgs,
         badArgs: removedArgs,
-        preFlags: _preFlags,
+        preFlags: preFlags0,
       );
     }
 
-    final AnyArgResults anyArgResults = AnyArgResults(backUpResult);
-
-    anyArgResults.addAllRest(removedArgs);
+    final anyArgResults = AnyArgResults(backUpResult)..addAllRest(removedArgs);
 
     return anyArgResults;
   }

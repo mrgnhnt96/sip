@@ -23,6 +23,7 @@ class ListCommand extends Command<ExitCode> {
   @override
   List<String> get aliases => ['ls'];
 
+  @override
   Future<ExitCode> run() async {
     final content = scriptsYaml.scripts();
     if (content == null) {
@@ -34,11 +35,13 @@ class ListCommand extends Command<ExitCode> {
 
     getIt<SipConsole>()
       ..emptyLine()
-      ..l(scriptConfig.listOut(
-        wrapCallableKey: (s) => lightGreen.wrap(s) ?? s,
-        wrapNonCallableKey: (s) => cyan.wrap(s) ?? s,
-        wrapMeta: (s) => lightBlue.wrap(s) ?? s,
-      ));
+      ..l(
+        scriptConfig.listOut(
+          wrapCallableKey: (s) => lightGreen.wrap(s) ?? s,
+          wrapNonCallableKey: (s) => cyan.wrap(s) ?? s,
+          wrapMeta: (s) => lightBlue.wrap(s) ?? s,
+        ),
+      );
 
     return ExitCode.success;
   }

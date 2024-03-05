@@ -1,7 +1,11 @@
 {
     "cSpell.words": [
+        "debuggability",
         "dylib",
+        "goldens",
         "Pubspecs",
-        "testables"
+        "sharded",
+        "testables",
+        "unconfigured"
     ]
 }

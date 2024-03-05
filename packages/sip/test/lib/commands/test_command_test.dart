@@ -26,6 +26,7 @@ class _FakeDetermineFlutterOrDart extends Fake
 
   @override
   bool get isDart => _isDart;
+  @override
   bool get isFlutter => _isFlutter;
 
   @override
@@ -116,7 +117,7 @@ void main() {
           fs.file('pubspec.yaml').createSync();
           fs.directory('test').createSync();
 
-          final (testables, testableTool) = await testCommand.getTestables(
+          final (testables, testableTool) = testCommand.getTestables(
             ['pubspec.yaml'],
             isFlutterOnly: false,
             isDartOnly: false,
@@ -170,7 +171,7 @@ void main() {
         test('test dir does not exists', () async {
           fs.file('pubspec.yaml').createSync();
 
-          final (testables, testableTool) = await testCommand.getTestables(
+          final (testables, testableTool) = testCommand.getTestables(
             ['pubspec.yaml'],
             isFlutterOnly: false,
             isDartOnly: false,
@@ -384,7 +385,7 @@ void main() {
         ).thenAnswer((_) => Future.value(0));
 
         final commands = [
-          CommandToRun(
+          const CommandToRun(
             command: 'something',
             workingDirectory: '.',
             keys: [],
@@ -409,12 +410,12 @@ void main() {
         ).thenAnswer((_) => Future.value(1));
 
         final commands = [
-          CommandToRun(
+          const CommandToRun(
             command: 'something',
             workingDirectory: '.',
             keys: [],
           ),
-          CommandToRun(
+          const CommandToRun(
             command: 'else',
             workingDirectory: '.',
             keys: [],
@@ -428,8 +429,12 @@ void main() {
         );
 
         expect(results.code, 1);
-        verify(() => mockBindings.runScript(any(),
-            showOutput: any(named: 'showOutput'))).called(1);
+        verify(
+          () => mockBindings.runScript(
+            any(),
+            showOutput: any(named: 'showOutput'),
+          ),
+        ).called(1);
       });
 
       group('should run all commands', () {
@@ -442,12 +447,12 @@ void main() {
           ).thenAnswer((_) => Future.value(0));
 
           final commands = [
-            CommandToRun(
+            const CommandToRun(
               command: 'something',
               workingDirectory: '.',
               keys: [],
             ),
-            CommandToRun(
+            const CommandToRun(
               command: 'else',
               workingDirectory: '.',
               keys: [],
@@ -461,8 +466,12 @@ void main() {
           );
 
           expect(results, ExitCode.success);
-          verify(() => mockBindings.runScript(any(),
-              showOutput: any(named: 'showOutput'))).called(2);
+          verify(
+            () => mockBindings.runScript(
+              any(),
+              showOutput: any(named: 'showOutput'),
+            ),
+          ).called(2);
         });
 
         test('not concurrently', () async {
@@ -474,12 +483,12 @@ void main() {
           ).thenAnswer((_) => Future.value(0));
 
           final commands = [
-            CommandToRun(
+            const CommandToRun(
               command: 'something',
               workingDirectory: '.',
               keys: [],
             ),
-            CommandToRun(
+            const CommandToRun(
               command: 'else',
               workingDirectory: '.',
               keys: [],
@@ -493,8 +502,12 @@ void main() {
           );
 
           expect(results, ExitCode.success);
-          verify(() => mockBindings.runScript(any(),
-              showOutput: any(named: 'showOutput'))).called(2);
+          verify(
+            () => mockBindings.runScript(
+              any(),
+              showOutput: any(named: 'showOutput'),
+            ),
+          ).called(2);
         });
       });
     });

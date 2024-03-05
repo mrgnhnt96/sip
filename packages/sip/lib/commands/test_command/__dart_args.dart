@@ -3,9 +3,12 @@ part of './test_command.dart';
 extension _DartX on TestCommand {
   void _addDartArgs() {
     argParser
-      // The UI term "platform" corresponds with the implementation term "runtime".
-      // The [Runtime] class used to be called [TestPlatform], but it was changed to
-      // avoid conflicting with [SuitePlatform]. We decided not to also change the
+      // The UI term "platform" corresponds with
+      // the implementation term "runtime".
+      // The [Runtime] class used to be called
+      // [TestPlatform], but it was changed to
+      // avoid conflicting with [SuitePlatform].
+      // We decided not to also change the
       // UI to avoid a painful migration.
       ..addMultiOption(
         'platform',
@@ -14,7 +17,7 @@ extension _DartX on TestCommand {
       )
       ..addMultiOption(
         'compiler',
-        help: 'The compiler(s) to use to run tests'
+        help: 'The compiler(s) to use to run tests '
             'Each platform has a default compiler but may support other '
             'compilers.\n'
             'You can target a compiler to a specific platform using arguments '
@@ -56,7 +59,6 @@ extension _DartX on TestCommand {
             'especially for asynchronous code. It may be useful to disable\n'
             'to provide improved test performance but at the cost of\n'
             'debuggability.',
-        defaultsTo: false,
       )
       // --bail will enable this flag
       // ..addFlag(
@@ -66,14 +68,12 @@ extension _DartX on TestCommand {
       ..addFlag(
         'no-retry',
         help: "Don't rerun tests that have retry set.",
-        defaultsTo: false,
         negatable: false,
       )
       ..addFlag(
         'use-data-isolate-strategy',
         help:
             '**DEPRECATED**: This is now just an alias for --compiler source.',
-        defaultsTo: false,
         hide: true,
         negatable: false,
       )
@@ -119,7 +119,7 @@ typedef Callback<T> = void Function(T);
 
 extension _ArgParserX on ArgParser {
   void inject(Option option) {
-    final Callback voidCallback = (_) {};
+    void voidCallback(_) {}
 
     if (option.isFlag) {
       addFlag(

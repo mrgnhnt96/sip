@@ -5,7 +5,7 @@ import 'package:sip_console/utils/ansi.dart';
 class PrintDebug extends Print {
   PrintDebug()
       : super(
-          group: Group(
+          group: const Group(
             tag: '[D]',
             color: lightCyan,
           ),

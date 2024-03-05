@@ -6,17 +6,17 @@ class ScriptsYamlImpl extends FindYaml implements ScriptsYaml {
   const ScriptsYamlImpl();
 
   @override
-  Map<String, dynamic>? parse([String? _]) {
+  Map<String, dynamic>? parse([String? fileName]) {
     return super.parse(ScriptsYaml.fileName);
   }
 
   @override
-  String? nearest([String? _]) {
+  String? nearest([String? fileName]) {
     return super.nearest(ScriptsYaml.fileName);
   }
 
   @override
-  String? retrieveNearestContent([String? _]) {
+  String? retrieveNearestContent([String? fileName]) {
     return super.retrieveNearestContent(ScriptsYaml.fileName);
   }
 
@@ -29,8 +29,7 @@ class ScriptsYamlImpl extends FindYaml implements ScriptsYaml {
   Map<String, dynamic>? scripts() {
     final parsed = parse();
 
-    final all = {...?parsed};
-    all.remove(Keys.variables);
+    final all = {...?parsed}..remove(Keys.variables);
 
     return all;
   }
@@ -39,6 +38,6 @@ class ScriptsYamlImpl extends FindYaml implements ScriptsYaml {
   Map<String, dynamic>? variables() {
     final parsed = parse();
 
-    return parsed?[Keys.variables]?.cast<String, dynamic>();
+    return Map.from(parsed?[Keys.variables] as Map? ?? {});
   }
 }

@@ -1,3 +1,5 @@
+// ignore_for_file: cascade_invocations
+
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:sip_cli/commands/list_command.dart';
@@ -25,7 +27,6 @@ class SipRunner extends CommandRunner<ExitCode> {
     argParser.addFlag(
       'loud',
       negatable: false,
-      defaultsTo: false,
       hide: true,
       help: 'Prints verbose output',
     );

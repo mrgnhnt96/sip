@@ -4,7 +4,8 @@ part 'optional_flags.g.dart';
 
 /// A class to parse optional flags from a list of strings.
 ///
-/// e.g. `['-f', 'file.txt', '--verbose', 'true']` would be parsed to `{'-f': '-f file.txt', '--verbose': '--verbose true'}`
+/// e.g. `['-f', 'file.txt', '--verbose', 'true']`
+/// would be parsed to `{'-f': '-f file.txt', '--verbose': '--verbose true'}`
 // ignore: must_be_immutable
 class OptionalFlags extends Equatable {
   OptionalFlags(this._flags);
@@ -20,7 +21,7 @@ class OptionalFlags extends Equatable {
     if (_parsed != null) return;
     final parsed = <String, String>{};
 
-    List<String> consecutive = [];
+    final consecutive = <String>[];
     for (final flag in _flags) {
       if (flag.startsWith('-')) {
         if (consecutive.isNotEmpty) {

@@ -8,7 +8,7 @@ class AnyArgResults implements ArgResults {
   final ArgResults _argResults;
 
   @override
-  operator [](String name) {
+  dynamic operator [](String name) {
     return _argResults[name];
   }
 
@@ -28,7 +28,7 @@ class AnyArgResults implements ArgResults {
   List<String> get rest =>
       UnmodifiableListView([..._argResults.rest, ..._moreRest]);
 
-  List<String> _moreRest = [];
+  final List<String> _moreRest = [];
 
   void addRest(String rest) {
     _argResults.rest.add(rest);

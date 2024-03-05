@@ -1,7 +1,7 @@
+import 'package:path/path.dart' as path;
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/pubspec_lock_impl.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
-import 'package:path/path.dart' as path;
 
 class DetermineFlutterOrDart {
   DetermineFlutterOrDart({

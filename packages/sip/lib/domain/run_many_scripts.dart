@@ -22,13 +22,15 @@ class RunManyScripts {
   Future<List<ExitCode>> _run(Iterable<CommandToRun> commands) async {
     getIt<SipConsole>().emptyLine();
 
-    final exitCodes = await Future.wait(commands.map(
-      (e) => RunOneScript(
-        command: e,
-        bindings: bindings,
-        showOutput: false,
-      ).run(),
-    ));
+    final exitCodes = await Future.wait(
+      commands.map(
+        (e) => RunOneScript(
+          command: e,
+          bindings: bindings,
+          showOutput: false,
+        ).run(),
+      ),
+    );
 
     return exitCodes;
   }

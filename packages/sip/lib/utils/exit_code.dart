@@ -6,6 +6,9 @@
 ///
 /// [Source](https://www.freebsd.org/cgi/man.cgi?query=sysexits).
 class ExitCode {
+  const ExitCode._(this.code, this._name);
+  const ExitCode.unknown(this.code) : _name = 'unknown';
+
   /// Command completed successfully.
   static const success = ExitCode._(0, 'success');
 
@@ -74,9 +77,6 @@ class ExitCode {
 
   /// Name of the exit code.
   final String _name;
-
-  const ExitCode._(this.code, this._name);
-  const ExitCode.unknown(this.code) : _name = 'unknown';
 
   @override
   String toString() => '$_name: $code';

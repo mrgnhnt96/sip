@@ -1,3 +1,5 @@
+// ignore_for_file: cascade_invocations
+
 import 'package:sip_cli/commands/a_pub_command.dart';
 import 'package:sip_cli/domain/pubspec_lock_impl.dart';
 import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
@@ -23,8 +25,8 @@ class PubGetCommand extends APubCommand {
     argParser.addFlag(
       'enforce-lockfile',
       negatable: false,
-      help:
-          'Enforce pubspec.lock. Fail resolution if pubspec.lock does not satisfy pubspec.yaml',
+      help: 'Enforce pubspec.lock. Fail resolution if '
+          'pubspec.lock does not satisfy pubspec.yaml',
     );
 
     argParser.addFlag(

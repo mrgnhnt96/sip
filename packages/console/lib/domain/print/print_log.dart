@@ -5,7 +5,7 @@ import 'package:sip_console/utils/ansi.dart';
 class PrintLog extends Print {
   PrintLog()
       : super(
-          group: Group(
+          group: const Group(
             tag: '-',
             color: darkGray,
           ),

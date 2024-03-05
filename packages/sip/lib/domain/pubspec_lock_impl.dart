@@ -12,7 +12,7 @@ class PubspecLockImpl extends FindFile implements PubspecLock {
   }
 
   @override
-  String? retrieveContent([String? _]) {
+  String? retrieveContent([String? path]) {
     return super.retrieveNearestContent(PubspecLock.fileName);
   }
 }

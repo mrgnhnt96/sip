@@ -30,6 +30,7 @@ class ScriptsConfig extends Equatable {
           'The key "${Keys.aliases}" cannot exist in the config',
         );
 
+  // ignore: strict_raw_type
   factory ScriptsConfig.fromJson(Map json) {
     final scripts = <String, Script>{};
 
@@ -41,10 +42,10 @@ class ScriptsConfig extends Equatable {
     );
 
     for (final entry in json.entries) {
-      final key = entry.key.trim();
+      final key = '${entry.key}'.trim();
       if (key.contains(' ')) {
         getIt<SipConsole>().e(
-          'The script name "${key}" contains spaces, '
+          'The script name "$key" contains spaces, '
           'which is not allowed.',
         );
         continue;
@@ -52,7 +53,8 @@ class ScriptsConfig extends Equatable {
 
       if (!allowedKeys.hasMatch(key) && !Keys.values.contains(key)) {
         getIt<SipConsole>().e(
-          'The script name "${key}" uses forbidden characters, allowed: ${allowedKeys.pattern} (case insensitive)',
+          'The script name "$key" uses forbidden characters, allowed: '
+          '${allowedKeys.pattern} (case insensitive)',
         );
         continue;
       }
@@ -103,7 +105,7 @@ class ScriptsConfig extends Equatable {
   }
 
   Script? find(List<String> keys) {
-    Script? _find(String key) {
+    Script? find(String key) {
       if (scripts.containsKey(key)) {
         return scripts[key];
       }
@@ -128,7 +130,7 @@ class ScriptsConfig extends Equatable {
       return null;
     }
 
-    Script? script = _find(keys.first);
+    var script = find(keys.first);
     if (script == null) return null;
 
     for (var i = 1; i < keys.length; i++) {

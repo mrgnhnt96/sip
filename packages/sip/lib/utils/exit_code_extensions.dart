@@ -1,12 +1,12 @@
-import 'package:sip_script_runner/domain/domain.dart';
 import 'package:sip_cli/setup/setup.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_console/domain/sip_console.dart';
 import 'package:sip_console/utils/ansi.dart';
+import 'package:sip_script_runner/domain/domain.dart';
 
 extension ListExitCodeX on List<ExitCode> {
-  void printErrors(Iterable<CommandToRun> _commands) {
-    final commands = _commands.toList();
+  void printErrors(Iterable<CommandToRun> commands_) {
+    final commands = commands_.toList();
 
     for (var i = 0; i < length; i++) {
       this[i]._printError(
@@ -17,9 +17,8 @@ extension ListExitCodeX on List<ExitCode> {
   }
 
   ExitCode get exitCode {
-    final mapped = asMap().map((key, value) => MapEntry(value.code, value));
-
-    mapped.remove(ExitCode.success.code);
+    final mapped = asMap().map((key, value) => MapEntry(value.code, value))
+      ..remove(ExitCode.success.code);
 
     if (mapped.isEmpty) {
       getIt<SipConsole>().v('Many exit codes: $this, returning success');
@@ -47,7 +46,7 @@ extension ExitCodeX on ExitCode {
     final indexString = index == null ? '' : '(${index + 1}) ';
     getIt<SipConsole>().e(
       'Script $indexString${lightCyan.wrap(label)} '
-      'failed with exit code ${lightRed.wrap(this.toString())}',
+      'failed with exit code ${lightRed.wrap(toString())}',
     );
   }
 

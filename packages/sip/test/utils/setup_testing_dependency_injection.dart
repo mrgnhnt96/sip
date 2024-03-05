@@ -1,3 +1,5 @@
+// ignore_for_file: cascade_invocations
+
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
 import 'package:get_it/get_it.dart';
@@ -8,8 +10,8 @@ import 'package:sip_console/sip_console.dart';
 void setupTestingDependencyInjection() {
   final getIt = GetIt.asNewInstance();
 
-  getIt.registerLazySingleton<FileSystem>(() => MemoryFileSystem());
-  getIt.registerLazySingleton<SipConsole>(() => _SipConsoleMock());
+  getIt.registerLazySingleton<FileSystem>(MemoryFileSystem.new);
+  getIt.registerLazySingleton<SipConsole>(_SipConsoleMock.new);
 
   setup(getIt);
 }

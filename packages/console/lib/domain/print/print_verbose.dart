@@ -5,7 +5,7 @@ import 'package:sip_console/utils/ansi.dart';
 class PrintVerbose extends Print {
   PrintVerbose()
       : super(
-          group: Group(
+          group: const Group(
             tag: '[V]',
             color: lightBlue,
           ),

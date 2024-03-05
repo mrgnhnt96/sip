@@ -13,12 +13,12 @@ class Line {
     _liveFrame = _frames.progress.get(0);
 
     _stopwatch
-      ..reset
+      ..reset()
       ..start();
   }
 
   final int key;
-  Frame _frames;
+  final Frame _frames;
 
   String _liveFrame = '';
 
@@ -32,6 +32,7 @@ class Line {
   bool get wasCancelled => _finishedType == FinisherType.cancelled;
   bool get wasFailure => _finishedType == FinisherType.failure;
 
+  // ignore: use_setters_to_change_properties
   void updateFrame(String frame) => _liveFrame = frame;
 
   void finish(FinisherType type) {

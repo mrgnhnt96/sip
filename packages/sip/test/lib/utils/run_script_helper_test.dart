@@ -15,6 +15,7 @@ class _FakeCommand extends Command<ExitCode> with RunScriptHelper {
     addFlags();
   }
 
+  @override
   ArgResults? argResults;
 
   @override
@@ -129,18 +130,18 @@ void main() {
 
     group('#optionalFlags', () {
       test('should return an nothing', () {
-        expect(command.optionalFlags([]), OptionalFlags([]));
+        expect(command.optionalFlags([]), OptionalFlags(const []));
       });
 
       test('should return a map with the provided flags', () {
         expect(
           command.optionalFlags(['--verbose', 'true']),
-          OptionalFlags(['--verbose', 'true']),
+          OptionalFlags(const ['--verbose', 'true']),
         );
 
         expect(
           command.optionalFlags(['some', 'script', '--verbose', 'true']),
-          OptionalFlags(['--verbose', 'true']),
+          OptionalFlags(const ['--verbose', 'true']),
         );
       });
     });
@@ -220,7 +221,7 @@ void main() {
         expect(commands, isNotNull);
 
         final commandToRun = commands!.first;
-        final expected = CommandToRun(
+        const expected = CommandToRun(
           command: 'echo "pub"',
           label: 'echo "pub"',
           workingDirectory: 'some/path/to/test',

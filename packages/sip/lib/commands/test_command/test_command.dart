@@ -1,3 +1,5 @@
+// ignore_for_file: cascade_invocations
+
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
@@ -12,15 +14,15 @@ import 'package:sip_cli/domain/testable.dart';
 import 'package:sip_cli/setup/setup.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/exit_code.dart';
+import 'package:sip_cli/utils/exit_code_extensions.dart';
 import 'package:sip_cli/utils/write_optimized_test_file.dart';
 import 'package:sip_console/sip_console.dart';
 import 'package:sip_console/utils/ansi.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
-import 'package:sip_cli/utils/exit_code_extensions.dart';
 
-part '__flutter_args.dart';
-part '__dart_args.dart';
 part '__both_args.dart';
+part '__dart_args.dart';
+part '__flutter_args.dart';
 
 class TestCommand extends Command<ExitCode> {
   TestCommand({
@@ -33,7 +35,6 @@ class TestCommand extends Command<ExitCode> {
       'recursive',
       abbr: 'r',
       help: 'Run tests in subdirectories',
-      defaultsTo: false,
       negatable: false,
     );
 
@@ -42,7 +43,6 @@ class TestCommand extends Command<ExitCode> {
       abbr: 'c',
       aliases: ['parallel'],
       help: 'Run tests concurrently',
-      defaultsTo: false,
       negatable: false,
     );
 
@@ -50,7 +50,6 @@ class TestCommand extends Command<ExitCode> {
       'bail',
       abbr: 'b',
       help: 'Bail after first test failure',
-      defaultsTo: false,
       negatable: false,
     );
 
@@ -58,20 +57,17 @@ class TestCommand extends Command<ExitCode> {
       'clean',
       help: 'Whether to remove the optimized test files after running tests',
       defaultsTo: true,
-      negatable: true,
     );
 
     argParser.addFlag(
       'dart-only',
       help: 'Run only dart tests',
-      defaultsTo: false,
       negatable: false,
     );
 
     argParser.addFlag(
       'flutter-only',
       help: 'Run only flutter tests',
-      defaultsTo: false,
       negatable: false,
     );
 
@@ -154,7 +150,8 @@ class TestCommand extends Command<ExitCode> {
         pubspecLock: pubspecLock,
       );
 
-      // we only care checking for flutter or dart tests if we are not running both
+      // we only care checking for flutter or
+      // dart tests if we are not running both
       if (isFlutterOnly ^ isDartOnly) {
         if (tool.isFlutter && isDartOnly && !isFlutterOnly) {
           continue;
@@ -202,7 +199,7 @@ class TestCommand extends Command<ExitCode> {
       }
 
       final optimizedPath = path.join(testable, optimizedTestFileName);
-      fs.file(optimizedPath)..createSync(recursive: true);
+      fs.file(optimizedPath).createSync(recursive: true);
 
       final testables = testFiles
           .map((e) => Testable(absolute: e, optimizedPath: optimizedPath));
@@ -235,8 +232,9 @@ class TestCommand extends Command<ExitCode> {
 
       final command = tool.tool();
 
-      final script =
-          '$command test ${path.relative(optimizedPath, from: projectRoot)} ${toolArgs.join(' ')}';
+      final testPath = path.relative(optimizedPath, from: projectRoot);
+
+      final script = '$command test $testPath ${toolArgs.join(' ')}';
 
       var label = darkGray.wrap('Running (')!;
       label += cyan.wrap(command)!;
@@ -248,7 +246,6 @@ class TestCommand extends Command<ExitCode> {
           command: script,
           workingDirectory: projectRoot,
           label: label,
-          runConcurrently: false,
           keys: null,
         ),
       );
@@ -284,16 +281,16 @@ class TestCommand extends Command<ExitCode> {
     ExitCode? exitCode;
 
     for (final command in commandsToRun) {
-      console.v('${command.command}');
+      console.v(command.command);
       final scriptRunner = RunOneScript(
         command: command,
         bindings: bindings,
       );
 
-      final _exitCode = await scriptRunner.run();
+      final exitCode0 = await scriptRunner.run();
 
-      if (_exitCode != ExitCode.success) {
-        exitCode = _exitCode;
+      if (exitCode0 != ExitCode.success) {
+        exitCode = exitCode0;
 
         if (bail) {
           return exitCode;

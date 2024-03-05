@@ -42,9 +42,7 @@ class _FakeCWD extends Fake implements CWD {
 }
 
 void main() {
-  setUp(() {
-    setupTestingDependencyInjection();
-  });
+  setUp(setupTestingDependencyInjection);
 
   group('$Variables', () {
     group('#populate', () {
@@ -105,9 +103,12 @@ void main() {
       test('should get defined variables', () {
         final variables = Variables(
           pubspecYaml: _FakePubspecYaml('/pubspec.yaml'),
-          scriptsYaml: _FakeScriptsYaml('/scripts.yaml', variables: {
-            'foo': 'bar',
-          }),
+          scriptsYaml: _FakeScriptsYaml(
+            '/scripts.yaml',
+            variables: {
+              'foo': 'bar',
+            },
+          ),
           cwd: _FakeCWD('/'),
         );
 
@@ -120,9 +121,12 @@ void main() {
       test('should not allow sip variables names', () {
         final variables = Variables(
           pubspecYaml: _FakePubspecYaml('/pubspec.yaml'),
-          scriptsYaml: _FakeScriptsYaml('/scripts.yaml', variables: {
-            'cwd': 'bar',
-          }),
+          scriptsYaml: _FakeScriptsYaml(
+            '/scripts.yaml',
+            variables: {
+              'cwd': 'bar',
+            },
+          ),
           cwd: _FakeCWD('/'),
         );
 
@@ -135,10 +139,13 @@ void main() {
         test('references other variables', () {
           final variables = Variables(
             pubspecYaml: _FakePubspecYaml('/pubspec.yaml'),
-            scriptsYaml: _FakeScriptsYaml('/scripts.yaml', variables: {
-              'foo': '{bar}',
-              'bar': 'baz',
-            }),
+            scriptsYaml: _FakeScriptsYaml(
+              '/scripts.yaml',
+              variables: {
+                'foo': '{bar}',
+                'bar': 'baz',
+              },
+            ),
             cwd: _FakeCWD('/'),
           );
 
@@ -150,11 +157,14 @@ void main() {
         test('contains multi-nested references', () {
           final variables = Variables(
             pubspecYaml: _FakePubspecYaml('/pubspec.yaml'),
-            scriptsYaml: _FakeScriptsYaml('/scripts.yaml', variables: {
-              'foo': '{bar}',
-              'bar': '{baz}',
-              'baz': 'loz',
-            }),
+            scriptsYaml: _FakeScriptsYaml(
+              '/scripts.yaml',
+              variables: {
+                'foo': '{bar}',
+                'bar': '{baz}',
+                'baz': 'loz',
+              },
+            ),
             cwd: _FakeCWD('/'),
           );
 
@@ -168,9 +178,12 @@ void main() {
         test('that are flags or options', () {
           final variables = Variables(
             pubspecYaml: _FakePubspecYaml('/pubspec.yaml'),
-            scriptsYaml: _FakeScriptsYaml('/scripts.yaml', variables: {
-              'foo': 'dart test {--coverage}',
-            }),
+            scriptsYaml: _FakeScriptsYaml(
+              '/scripts.yaml',
+              variables: {
+                'foo': 'dart test {--coverage}',
+              },
+            ),
             cwd: _FakeCWD('/'),
           );
 
@@ -184,10 +197,13 @@ void main() {
         test('circular reference is found', () {
           final variables = Variables(
             pubspecYaml: _FakePubspecYaml('/pubspec.yaml'),
-            scriptsYaml: _FakeScriptsYaml('/scripts.yaml', variables: {
-              'foo': '{bar}',
-              'bar': '{foo}',
-            }),
+            scriptsYaml: _FakeScriptsYaml(
+              '/scripts.yaml',
+              variables: {
+                'foo': '{bar}',
+                'bar': '{foo}',
+              },
+            ),
             cwd: _FakeCWD('/'),
           );
 
@@ -200,11 +216,14 @@ void main() {
         test('circular reference is found in nested', () {
           final variables = Variables(
             pubspecYaml: _FakePubspecYaml('/pubspec.yaml'),
-            scriptsYaml: _FakeScriptsYaml('/scripts.yaml', variables: {
-              'foo': '{bar}',
-              'bar': '{baz}',
-              'baz': '{bar}',
-            }),
+            scriptsYaml: _FakeScriptsYaml(
+              '/scripts.yaml',
+              variables: {
+                'foo': '{bar}',
+                'bar': '{baz}',
+                'baz': '{bar}',
+              },
+            ),
             cwd: _FakeCWD('/'),
           );
 
@@ -217,9 +236,12 @@ void main() {
         test('reference to script is found', () {
           final variables = Variables(
             pubspecYaml: _FakePubspecYaml('/pubspec.yaml'),
-            scriptsYaml: _FakeScriptsYaml('/scripts.yaml', variables: {
-              'foo': r'{$bar}',
-            }),
+            scriptsYaml: _FakeScriptsYaml(
+              '/scripts.yaml',
+              variables: {
+                'foo': r'{$bar}',
+              },
+            ),
             cwd: _FakeCWD('/'),
           );
 
@@ -243,7 +265,7 @@ void main() {
         });
 
         test('should be replaced', () {
-          final script = Script.defaults(
+          const script = Script.defaults(
             name: 'dirs',
             commands: [
               'echo {projectRoot}',
@@ -252,7 +274,7 @@ void main() {
             ],
           );
 
-          final config = ScriptsConfig(scripts: {'dirs': script});
+          final config = ScriptsConfig(scripts: const {'dirs': script});
 
           final replaced = variables.replace(script, config);
 
@@ -280,17 +302,19 @@ void main() {
         test('throws when not found', () {
           final script = Script.defaults(
             name: 'lint',
-            commands: [
+            commands: const [
               r'{$lint:dart}',
             ],
-            scripts: ScriptsConfig(scripts: {
-              '_dart': Script.defaults(
-                name: '_dart',
-                commands: [
-                  'dart analyze .',
-                ],
-              ),
-            }),
+            scripts: ScriptsConfig(
+              scripts: const {
+                '_dart': Script.defaults(
+                  name: '_dart',
+                  commands: [
+                    'dart analyze .',
+                  ],
+                ),
+              },
+            ),
           );
 
           final config = ScriptsConfig(scripts: {'lint': script});
@@ -302,29 +326,31 @@ void main() {
         });
 
         test('should replace when found', () {
-          final script = Script.defaults(
+          const script = Script.defaults(
             name: 'link',
             commands: [
               r'cd {projectRoot}/packages/application && {$build_runner:build}',
             ],
           );
 
-          final config = ScriptsConfig(scripts: {
-            'link': script,
-            'build_runner': Script.defaults(
-              name: 'build_runner',
-              scripts: ScriptsConfig(
-                scripts: {
-                  'build': Script.defaults(
-                    name: 'build',
-                    commands: [
-                      'dart run build_runner build --delete-conflicting-outputs',
-                    ],
-                  ),
-                },
+          final config = ScriptsConfig(
+            scripts: {
+              'link': script,
+              'build_runner': Script.defaults(
+                name: 'build_runner',
+                scripts: ScriptsConfig(
+                  scripts: const {
+                    'build': Script.defaults(
+                      name: 'build',
+                      commands: [
+                        'dart run build_runner build',
+                      ],
+                    ),
+                  },
+                ),
               ),
-            )
-          });
+            },
+          );
 
           final replaced = variables.replace(script, config);
 
@@ -333,35 +359,37 @@ void main() {
 
           expect(
             replaced[0],
-            'cd ./packages/application && dart run build_runner build --delete-conflicting-outputs',
+            'cd ./packages/application && dart run build_runner build',
           );
         });
 
         test('should duplicate commands when script has multiple commands', () {
-          final script = Script.defaults(
+          const script = Script.defaults(
             name: 'link',
             commands: [
               r'cd {projectRoot}/packages/application && {$build_runner:build}',
             ],
           );
 
-          final config = ScriptsConfig(scripts: {
-            'link': script,
-            'build_runner': Script.defaults(
-              name: 'build_runner',
-              scripts: ScriptsConfig(
-                scripts: {
-                  'build': Script.defaults(
-                    name: 'build',
-                    commands: [
-                      'dart run build_runner clean',
-                      'dart run build_runner build --delete-conflicting-outputs',
-                    ],
-                  ),
-                },
+          final config = ScriptsConfig(
+            scripts: {
+              'link': script,
+              'build_runner': Script.defaults(
+                name: 'build_runner',
+                scripts: ScriptsConfig(
+                  scripts: const {
+                    'build': Script.defaults(
+                      name: 'build',
+                      commands: [
+                        'dart run build_runner clean',
+                        'dart run build_runner build',
+                      ],
+                    ),
+                  },
+                ),
               ),
-            )
-          });
+            },
+          );
 
           final replaced = variables.replace(script, config);
 
@@ -370,41 +398,43 @@ void main() {
 
           expect(replaced, [
             'cd ./packages/application && dart run build_runner clean',
-            'cd ./packages/application && dart run build_runner build --delete-conflicting-outputs',
+            'cd ./packages/application && dart run build_runner build',
           ]);
         });
 
         test('should resolve script that references another script', () {
-          final script = Script.defaults(
+          const script = Script.defaults(
             name: 'link',
             commands: [
               r'cd {projectRoot}/packages/application && {$build_runner:watch}',
             ],
           );
 
-          final config = ScriptsConfig(scripts: {
-            'link': script,
-            'build_runner': Script.defaults(
-              name: 'build_runner',
-              scripts: ScriptsConfig(
-                scripts: {
-                  'clean': Script.defaults(
-                    name: 'clean',
-                    commands: [
-                      'dart run build_runner clean',
-                    ],
-                  ),
-                  'watch': Script.defaults(
-                    name: 'watch',
-                    commands: [
-                      r'{$build_runner:clean}',
-                      'dart run build_runner watch --delete-conflicting-outputs',
-                    ],
-                  ),
-                },
+          final config = ScriptsConfig(
+            scripts: {
+              'link': script,
+              'build_runner': Script.defaults(
+                name: 'build_runner',
+                scripts: ScriptsConfig(
+                  scripts: const {
+                    'clean': Script.defaults(
+                      name: 'clean',
+                      commands: [
+                        'dart run build_runner clean',
+                      ],
+                    ),
+                    'watch': Script.defaults(
+                      name: 'watch',
+                      commands: [
+                        r'{$build_runner:clean}',
+                        'dart run build_runner watch',
+                      ],
+                    ),
+                  },
+                ),
               ),
-            )
-          });
+            },
+          );
 
           final replaced = variables.replace(script, config);
 
@@ -413,7 +443,7 @@ void main() {
 
           expect(replaced, [
             'cd ./packages/application && dart run build_runner clean',
-            'cd ./packages/application && dart run build_runner watch --delete-conflicting-outputs',
+            'cd ./packages/application && dart run build_runner watch',
           ]);
         });
       });
@@ -431,8 +461,8 @@ void main() {
 
         group('should ignore flag', () {
           test('when not provided', () {
-            final flags = OptionalFlags(['--foo']);
-            final script = Script.defaults(
+            final flags = OptionalFlags(const ['--foo']);
+            const script = Script.defaults(
               name: 'foo',
               commands: [
                 'echo "hello!" {--bar}',
@@ -442,7 +472,7 @@ void main() {
             final commands = variables.replace(
               script,
               ScriptsConfig(
-                scripts: {
+                scripts: const {
                   'foo': script,
                 },
               ),
@@ -457,8 +487,9 @@ void main() {
 
         group('should add flag', () {
           test('when provided', () {
-            final flags = OptionalFlags(['--foo', '--fail-fast', '--bar_baz']);
-            final script = Script.defaults(
+            final flags =
+                OptionalFlags(const ['--foo', '--fail-fast', '--bar_baz']);
+            const script = Script.defaults(
               name: 'foo',
               commands: [
                 'echo "hello!" {--foo} {--bar_baz} {--fail-fast}',
@@ -468,7 +499,7 @@ void main() {
             final commands = variables.replace(
               script,
               ScriptsConfig(
-                scripts: {
+                scripts: const {
                   'foo': script,
                 },
               ),
@@ -481,8 +512,8 @@ void main() {
           });
 
           test('when script is reference and flag is provided', () {
-            final flags = OptionalFlags(['--foo']);
-            final script = Script.defaults(
+            final flags = OptionalFlags(const ['--foo']);
+            const script = Script.defaults(
               name: 'foo',
               commands: [r'{$bar}'],
             );
@@ -490,7 +521,7 @@ void main() {
             final commands = variables.replace(
               script,
               ScriptsConfig(
-                scripts: {
+                scripts: const {
                   'foo': script,
                   'bar': Script.defaults(
                     name: 'bar',
@@ -509,8 +540,8 @@ void main() {
           });
 
           test('with values when provided', () {
-            final flags = OptionalFlags(['--foo', 'bar']);
-            final script = Script.defaults(
+            final flags = OptionalFlags(const ['--foo', 'bar']);
+            const script = Script.defaults(
               name: 'foo',
               commands: [
                 'echo "hello!" {--foo}',
@@ -520,7 +551,7 @@ void main() {
             final commands = variables.replace(
               script,
               ScriptsConfig(
-                scripts: {
+                scripts: const {
                   'foo': script,
                 },
               ),

@@ -49,7 +49,7 @@ class Variables {
         continue;
       }
 
-      final matches = variablePattern.allMatches(variable);
+      final matches = variablePattern.allMatches('$variable');
 
       if (matches.isEmpty) {
         continue;
@@ -66,7 +66,7 @@ class Variables {
           return null;
         }
 
-        if (referencedVariable.startsWith('\$')) {
+        if (referencedVariable.startsWith(r'$')) {
           getIt<SipConsole>()
               .w('Variable $key is referencing a script, this is forbidden');
           return null;
@@ -111,9 +111,9 @@ class Variables {
       }
 
       for (final match in matches) {
-        final resolved = resolve(match, variable);
+        final resolved = resolve(match, '$variable');
 
-        variables[key] = resolved;
+        variables['$key'] = resolved;
       }
     }
 
@@ -130,7 +130,7 @@ class Variables {
   }) {
     final commands = <String>[];
 
-    late final Map<String, String?> sipVariables = populate();
+    late final sipVariables = populate();
 
     for (final command in script.commands) {
       final matches = variablePattern.allMatches(command);
@@ -149,7 +149,7 @@ class Variables {
           continue;
         }
 
-        if (variable.startsWith('\$')) {
+        if (variable.startsWith(r'$')) {
           final scriptPath = variable.substring(1).split(':');
 
           final found = config.find(scriptPath);

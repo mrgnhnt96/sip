@@ -5,8 +5,9 @@ import 'package:sip_console/utils/ansi.dart';
 class PrintSuccess extends Print {
   PrintSuccess()
       : super(
-            group: Group(
-          tag: '✔',
-          color: lightGreen,
-        ));
+          group: const Group(
+            tag: '✔',
+            color: lightGreen,
+          ),
+        );
 }

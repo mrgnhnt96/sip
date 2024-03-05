@@ -1,3 +1,5 @@
+// ignore_for_file: cascade_invocations
+
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:sip_cli/domain/any_arg_parser.dart';
@@ -54,10 +56,9 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
         'no-parallel',
         'no-c',
         'no-p',
-        'disable-concurrent'
+        'disable-concurrent',
       ],
       negatable: false,
-      defaultsTo: false,
       help: 'Disable all concurrent runs, even if set in the scripts.yaml',
     );
   }
@@ -65,7 +66,9 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
   @override
   final ArgParser argParser;
 
+  @override
   final ScriptsYaml scriptsYaml;
+  @override
   final Variables variables;
   final Bindings bindings;
 
@@ -128,7 +131,7 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
 
     ExitCode? failureExitCode;
 
-    ExitCode? _bail(List<ExitCode> exitCodes, List<CommandToRun> commands) {
+    ExitCode? tryBail(List<ExitCode> exitCodes, List<CommandToRun> commands) {
       getIt<SipConsole>().d('Checking for bail ($bail), bail: $exitCodes');
 
       if (exitCodes.exitCode == ExitCode.success) return null;
@@ -142,8 +145,8 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
       return exitCodes.exitCode;
     }
 
-    var concurrentRuns = <CommandToRun>[];
-    Future<ExitCode?> _runMany() async {
+    final concurrentRuns = <CommandToRun>[];
+    Future<ExitCode?> runMany() async {
       if (concurrentRuns.isEmpty) return null;
 
       getIt<SipConsole>()
@@ -156,7 +159,7 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
 
       exitCodes.printErrors(concurrentRuns);
 
-      final bailExitCode = _bail(exitCodes, concurrentRuns);
+      final bailExitCode = tryBail(exitCodes, concurrentRuns);
       concurrentRuns.clear();
 
       getIt<SipConsole>().emptyLine();
@@ -170,7 +173,7 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
           concurrentRuns.add(command);
           continue;
         } else if (concurrentRuns.isNotEmpty) {
-          if (await _runMany() case final ExitCode exitCode) {
+          if (await runMany() case final ExitCode exitCode) {
             return exitCode;
           }
         }
@@ -185,14 +188,14 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
 
       getIt<SipConsole>().v('Ran script, exiting with: $exitCode');
 
-      if (_bail([exitCode], [command]) case final ExitCode bailCode) {
+      if (tryBail([exitCode], [command]) case final ExitCode bailCode) {
         return bailCode;
       }
 
       getIt<SipConsole>().emptyLine();
     }
 
-    if (await _runMany() case final ExitCode exitCode) {
+    if (await runMany() case final ExitCode exitCode) {
       return exitCode;
     }
 

@@ -7,8 +7,8 @@ extension _FlutterX on TestCommand {
         'experimental-faster-testing',
         negatable: false,
         hide: true,
-        help:
-            'Run each test in a separate lightweight Flutter Engine to speed up testing.',
+        help: 'Run each test in a separate lightweight '
+            'Flutter Engine to speed up testing.',
       )
       ..addFlag(
         'start-paused',
@@ -46,8 +46,8 @@ extension _FlutterX on TestCommand {
       ..addFlag(
         'update-goldens',
         negatable: false,
-        help:
-            'Whether "matchesGoldenFile()" calls within your test methods should ' // flutter_ignore: golden_tag (see analyze.dart)
+        help: 'Whether "matchesGoldenFile()" calls within your '
+            'test methods should '
             'update the golden files rather than test for an existing match.',
       )
       ..addFlag(

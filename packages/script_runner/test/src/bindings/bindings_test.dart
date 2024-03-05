@@ -2,7 +2,7 @@ import 'package:sip_script_runner/src/bindings/bindings_impl.dart';
 import 'package:test/test.dart';
 
 void main() {
-  final bindings = const BindingsImpl();
+  const bindings = BindingsImpl();
 
   group('$BindingsImpl', () {
     test('blobFileName', () {

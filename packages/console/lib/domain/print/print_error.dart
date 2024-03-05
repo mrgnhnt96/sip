@@ -5,7 +5,7 @@ import 'package:sip_console/utils/ansi.dart';
 class PrintError extends Print {
   PrintError()
       : super(
-          group: Group(
+          group: const Group(
             tag: '✖',
             color: lightRed,
           ),

@@ -1,3 +1,5 @@
+// ignore_for_file: cascade_invocations
+
 import 'dart:math';
 
 import 'package:args/command_runner.dart';
@@ -30,7 +32,6 @@ abstract class APubCommand extends Command<ExitCode> {
     argParser.addFlag(
       'recursive',
       abbr: 'r',
-      defaultsTo: false,
       negatable: false,
       help: 'Run command recursively in all subdirectories.',
     );
@@ -40,14 +41,12 @@ abstract class APubCommand extends Command<ExitCode> {
       aliases: ['parallel'],
       abbr: 'c',
       defaultsTo: true,
-      negatable: true,
       help: 'Run command concurrently in all subdirectories.',
     );
 
     argParser.addFlag(
       'bail',
       abbr: 'b',
-      defaultsTo: false,
       negatable: false,
       help: 'Stop running commands if one fails.',
     );

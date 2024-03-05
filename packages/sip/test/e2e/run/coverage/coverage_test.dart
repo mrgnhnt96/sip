@@ -51,7 +51,7 @@ void main() {
 
       await command.run(['test']);
 
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
 
       expect(
         mockBindings.scripts,

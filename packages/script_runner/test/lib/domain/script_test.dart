@@ -5,14 +5,12 @@ import 'package:test/test.dart';
 import '../../utils/setup_testing_dependency_injection.dart';
 
 void main() {
-  setUp(() {
-    setupTestingDependencyInjection();
-  });
+  setUp(setupTestingDependencyInjection);
 
   group('$Script', () {
     group('#listOut', () {
       test('should list out the description', () {
-        final script = Script.defaults(
+        const script = Script.defaults(
           name: 'script',
           description: 'This is a description',
         );
@@ -20,14 +18,15 @@ void main() {
         expect(
           script.listOut(),
           equals(
-            '''(description): This is a description
+            '''
+(description): This is a description
 ''',
           ),
         );
       });
 
       test('should list out the aliases', () {
-        final script = Script.defaults(
+        const script = Script.defaults(
           name: 'script',
           aliases: {'alias1', 'alias2'},
         );
@@ -35,7 +34,8 @@ void main() {
         expect(
           script.listOut(),
           equals(
-            '''(aliases): alias1, alias2
+            '''
+(aliases): alias1, alias2
 ''',
           ),
         );
@@ -45,7 +45,7 @@ void main() {
         final script = Script.defaults(
           name: 'script',
           scripts: ScriptsConfig(
-            scripts: {
+            scripts: const {
               'script1': Script.defaults(
                 name: 'script1',
               ),
@@ -63,7 +63,7 @@ void main() {
         final script = Script.defaults(
           name: '_',
           scripts: ScriptsConfig(
-            scripts: {
+            scripts: const {
               'script1': Script.defaults(
                 name: 'script1',
               ),
@@ -83,19 +83,22 @@ void main() {
         test('passes parents to children', () {
           final script = Script.fromJson(
             'script',
-            {
-              'foo': {'bar': 'baz'}
+            const {
+              'foo': {'bar': 'baz'},
             },
           );
 
           expect(script.parents, null);
           expect(script.scripts?.parents, ['script']);
           expect(script.scripts?.scripts['foo']?.parents, ['script']);
-          expect(script.scripts?.scripts['foo']?.scripts?.parents,
-              ['script', 'foo']);
           expect(
-              script.scripts?.scripts['foo']?.scripts?.scripts['bar']?.parents,
-              ['script', 'foo']);
+            script.scripts?.scripts['foo']?.scripts?.parents,
+            ['script', 'foo'],
+          );
+          expect(
+            script.scripts?.scripts['foo']?.scripts?.scripts['bar']?.parents,
+            ['script', 'foo'],
+          );
         });
       });
 
@@ -104,23 +107,23 @@ void main() {
           final scripts = [
             Script.fromJson(
               'script',
-              {Keys.bail: true},
+              const {Keys.bail: true},
             ),
             Script.fromJson(
               'script',
-              {Keys.bail: 'true'},
+              const {Keys.bail: 'true'},
             ),
             Script.fromJson(
               'script',
-              {Keys.bail: 'yes'},
+              const {Keys.bail: 'yes'},
             ),
             Script.fromJson(
               'script',
-              {Keys.bail: 'y'},
+              const {Keys.bail: 'y'},
             ),
             Script.fromJson(
               'script',
-              {Keys.bail: null},
+              const {Keys.bail: null},
             ),
           ];
 
@@ -133,19 +136,19 @@ void main() {
           final scripts = [
             Script.fromJson(
               'script',
-              {Keys.bail: false},
+              const {Keys.bail: false},
             ),
             Script.fromJson(
               'script',
-              {Keys.bail: 'false'},
+              const {Keys.bail: 'false'},
             ),
             Script.fromJson(
               'script',
-              {Keys.bail: 'anything else'},
+              const {Keys.bail: 'anything else'},
             ),
             Script.fromJson(
               'script',
-              {},
+              const <String, dynamic>{},
             ),
           ];
 
@@ -159,7 +162,7 @@ void main() {
         test('can parse string', () {
           final script = Script.fromJson(
             'script',
-            {
+            const {
               Keys.aliases: 'alias1',
             },
           );
@@ -170,7 +173,7 @@ void main() {
         test('can parse list', () {
           final script = Script.fromJson(
             'script',
-            {
+            const {
               Keys.aliases: ['alias1', 'alias2'],
             },
           );
@@ -181,7 +184,7 @@ void main() {
         test('can parse null', () {
           final script = Script.fromJson(
             'script',
-            {
+            const {
               Keys.aliases: null,
             },
           );

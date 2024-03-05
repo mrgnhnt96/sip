@@ -4,14 +4,12 @@ import 'package:test/test.dart';
 void main() {
   group('$AnyArgParser', () {
     test('should add flag', () {
-      final argParser = AnyArgParser();
-      argParser.addFlag('flag');
+      final argParser = AnyArgParser()..addFlag('flag');
       expect(argParser.options, contains('flag'));
     });
 
     test('should parse flag', () {
-      final argParser = AnyArgParser();
-      argParser.addFlag('flag');
+      final argParser = AnyArgParser()..addFlag('flag');
       final result = argParser.parse(['--flag']);
       expect(result['flag'], isTrue);
     });
@@ -82,8 +80,7 @@ void main() {
 
     group('should parse actual flag after any flag', () {
       test('(1)', () {
-        final argParser = AnyArgParser();
-        argParser.addFlag('flag');
+        final argParser = AnyArgParser()..addFlag('flag');
         final result = argParser.parse(['--something', 'banana', '--flag']);
 
         expect(result['flag'], isTrue);
@@ -92,9 +89,9 @@ void main() {
       });
 
       test('(2)', () {
-        final argParser = AnyArgParser();
-        argParser.addFlag('list');
-        argParser.addFlag('bail');
+        final argParser = AnyArgParser()
+          ..addFlag('list')
+          ..addFlag('bail');
         final result =
             argParser.parse(['try', '--platform', 'banana', '--bail']);
 

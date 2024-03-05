@@ -5,15 +5,13 @@ import 'package:test/test.dart';
 import '../../utils/setup_testing_dependency_injection.dart';
 
 void main() {
-  setUp(() {
-    setupTestingDependencyInjection();
-  });
+  setUp(setupTestingDependencyInjection);
 
   group('$ScriptsConfig', () {
     group('#listOut', () {
       test('should not list out private scripts', () {
         final scriptsConfig = ScriptsConfig(
-          scripts: {
+          scripts: const {
             'public': Script.defaults(
               name: 'public',
             ),
@@ -26,7 +24,8 @@ void main() {
         expect(
           scriptsConfig.listOut(),
           equals(
-            '''scripts.yaml:
+            '''
+scripts.yaml:
    └──public
 ''',
           ),
@@ -38,11 +37,11 @@ void main() {
           scripts: {
             'legend-of-zelda': Script.defaults(
               name: 'legend-of-zelda',
-              aliases: {'loz', 'legend', 'zelda'},
+              aliases: const {'loz', 'legend', 'zelda'},
               description: 'The Legend of Zelda Games',
-              commands: ['echo "Pick a game..."'],
+              commands: const ['echo "Pick a game..."'],
               scripts: ScriptsConfig(
-                scripts: {
+                scripts: const {
                   'ocarina-of-time': Script.defaults(
                     name: 'ocarina-of-time',
                     description: 'Ocarina of Time',
@@ -60,11 +59,11 @@ void main() {
             ),
             'mario': Script.defaults(
               name: 'mario',
-              aliases: {'super-mario', 'super-mario-bros'},
+              aliases: const {'super-mario', 'super-mario-bros'},
               description: 'The Super Mario Bros Games',
-              commands: ['echo "Pick a game..."'],
+              commands: const ['echo "Pick a game..."'],
               scripts: ScriptsConfig(
-                scripts: {
+                scripts: const {
                   'super-mario-bros': Script.defaults(
                     name: 'super-mario-bros',
                     description: 'Super Mario Bros',
@@ -115,25 +114,24 @@ scripts.yaml:
     group('serialization', () {
       group('can parse', () {
         test('can parse empty config', () {
-          final config = ScriptsConfig.fromJson({});
+          final config = ScriptsConfig.fromJson(const {});
           expect(config.scripts, isEmpty);
         });
 
         test('can parse null config', () {
-          final config = ScriptsConfig.fromJson({
+          final config = ScriptsConfig.fromJson(const {
             'pub': null,
           });
 
           expect(config.scripts, {
             'pub': const Script.defaults(
-              commands: [],
               name: 'pub',
             ),
           });
         });
 
         test('can parse string command', () {
-          final config = ScriptsConfig.fromJson({
+          final config = ScriptsConfig.fromJson(const {
             'test': 'echo "test"',
           });
 
@@ -149,7 +147,7 @@ scripts.yaml:
         });
 
         test('can parse list string command', () {
-          final config = ScriptsConfig.fromJson({
+          final config = ScriptsConfig.fromJson(const {
             'test': [
               'echo "test"',
               'echo "test2"',
@@ -172,7 +170,7 @@ scripts.yaml:
 
         group('nested', () {
           test('can parse string', () {
-            final config = ScriptsConfig.fromJson({
+            final config = ScriptsConfig.fromJson(const {
               'test': {
                 'nested': 'echo "test"',
               },
@@ -184,9 +182,9 @@ scripts.yaml:
                 'test': Script.defaults(
                   name: 'test',
                   scripts: ScriptsConfig(
-                    parents: ['test'],
-                    scripts: {
-                      'nested': const Script.defaults(
+                    parents: const ['test'],
+                    scripts: const {
+                      'nested': Script.defaults(
                         commands: ['echo "test"'],
                         name: 'nested',
                         parents: ['test'],
@@ -199,7 +197,7 @@ scripts.yaml:
           });
 
           test('can parse string with other entries', () {
-            final config = ScriptsConfig.fromJson({
+            final config = ScriptsConfig.fromJson(const {
               'test': {
                 Keys.command: 'echo "test"',
                 Keys.description: 'this is a test',
@@ -216,13 +214,13 @@ scripts.yaml:
               first,
               Script.defaults(
                 name: 'test',
-                aliases: {'test'},
+                aliases: const {'test'},
                 description: 'this is a test',
-                commands: ['echo "test"'],
+                commands: const ['echo "test"'],
                 scripts: ScriptsConfig(
-                  parents: ['test'],
-                  scripts: {
-                    'test2': const Script.defaults(
+                  parents: const ['test'],
+                  scripts: const {
+                    'test2': Script.defaults(
                       name: 'test2',
                       commands: ['echo "test2"'],
                       parents: ['test'],
@@ -235,7 +233,7 @@ scripts.yaml:
         });
 
         test('private scripts', () {
-          final config = ScriptsConfig.fromJson({
+          final config = ScriptsConfig.fromJson(const {
             '_private': 'echo "hi"',
           });
 
@@ -252,7 +250,7 @@ scripts.yaml:
 
         group('using alternate key', () {
           test('can parse empty script', () {
-            final config = ScriptsConfig.fromJson({
+            final config = ScriptsConfig.fromJson(const {
               'test': {
                 Keys.command: null,
               },
@@ -263,14 +261,13 @@ scripts.yaml:
               {
                 'test': const Script.defaults(
                   name: 'test',
-                  commands: [],
                 ),
               },
             );
           });
 
           test('can parse string script', () {
-            final config = ScriptsConfig.fromJson({
+            final config = ScriptsConfig.fromJson(const {
               'test': {
                 Keys.command: 'echo "test"',
               },
@@ -288,7 +285,7 @@ scripts.yaml:
           });
 
           test('can parse list string script', () {
-            final config = ScriptsConfig.fromJson({
+            final config = ScriptsConfig.fromJson(const {
               'test': {
                 Keys.command: [
                   'echo "test"',
@@ -315,7 +312,7 @@ scripts.yaml:
 
       group('skips entry when', () {
         test('key contains spaces', () {
-          final config = ScriptsConfig.fromJson({
+          final config = ScriptsConfig.fromJson(const {
             'test test': 'echo "test"',
           });
 
@@ -323,7 +320,7 @@ scripts.yaml:
         });
 
         test('key that use parenthesis', () {
-          final config = ScriptsConfig.fromJson({
+          final config = ScriptsConfig.fromJson(const {
             '(test)': 'echo "test"',
             'test)': 'echo "test"',
             '(test': 'echo "test"',
@@ -333,11 +330,11 @@ scripts.yaml:
         });
 
         test('keys that use forbidden characters', () {
-          final config = ScriptsConfig.fromJson({
+          final config = ScriptsConfig.fromJson(const {
             'test!': 'echo "test"',
             'test@': 'echo "test"',
             'test#': 'echo "test"',
-            'test\$': 'echo "test"',
+            r'test$': 'echo "test"',
             'test%': 'echo "test"',
             'test^': 'echo "test"',
             'test&': 'echo "test"',
@@ -356,12 +353,14 @@ scripts.yaml:
 
     group('#find', () {
       test('can find private script', () {
-        final config = ScriptsConfig(scripts: {
-          '_private': Script.defaults(
-            name: '_private',
-            commands: ['echo "private"'],
-          ),
-        });
+        final config = ScriptsConfig(
+          scripts: const {
+            '_private': Script.defaults(
+              name: '_private',
+              commands: ['echo "private"'],
+            ),
+          },
+        );
 
         final script = config.find(['_private']);
         expect(script, isNotNull);
@@ -370,13 +369,15 @@ scripts.yaml:
 
       test('can find script by name or alias', () {
         final commands = ['echo "banana"'];
-        final config = ScriptsConfig(scripts: {
-          'banana': Script.defaults(
-            aliases: {'b', 'ban'},
-            name: 'banana',
-            commands: commands,
-          ),
-        });
+        final config = ScriptsConfig(
+          scripts: {
+            'banana': Script.defaults(
+              aliases: const {'b', 'ban'},
+              name: 'banana',
+              commands: commands,
+            ),
+          },
+        );
 
         final b = config.find(['b']);
         expect(b, isNotNull);
@@ -396,19 +397,21 @@ scripts.yaml:
 
       test('finds nested script', () {
         const commands = ['echo "patrick"'];
-        final config = ScriptsConfig(scripts: {
-          'bikini': Script.defaults(
-            name: 'bikini',
-            scripts: ScriptsConfig(
-              scripts: {
-                'bottom': const Script.defaults(
-                  name: 'bottom',
-                  commands: commands,
-                ),
-              },
+        final config = ScriptsConfig(
+          scripts: {
+            'bikini': Script.defaults(
+              name: 'bikini',
+              scripts: ScriptsConfig(
+                scripts: const {
+                  'bottom': Script.defaults(
+                    name: 'bottom',
+                    commands: commands,
+                  ),
+                },
+              ),
             ),
-          ),
-        });
+          },
+        );
 
         final script = config.find(['bikini', 'bottom']);
 
@@ -419,20 +422,22 @@ scripts.yaml:
       test('finds script when nested (1)', () {
         const commands = ['echo "patrick"'];
 
-        final config = ScriptsConfig(scripts: {
-          'bikini': Script.defaults(
-            name: 'bikini',
-            commands: commands,
-            scripts: ScriptsConfig(
-              scripts: {
-                'bottom': const Script.defaults(
-                  name: 'bottom',
-                  commands: ['echo "bottom"'],
-                ),
-              },
+        final config = ScriptsConfig(
+          scripts: {
+            'bikini': Script.defaults(
+              name: 'bikini',
+              commands: commands,
+              scripts: ScriptsConfig(
+                scripts: const {
+                  'bottom': Script.defaults(
+                    name: 'bottom',
+                    commands: ['echo "bottom"'],
+                  ),
+                },
+              ),
             ),
-          ),
-        });
+          },
+        );
 
         final script = config.find(['bikini']);
 
@@ -441,51 +446,61 @@ scripts.yaml:
       });
 
       test('finds script when nested (2)', () {
-        final config = ScriptsConfig(scripts: {
-          'build_runner': Script.defaults(
-            name: 'build_runner',
-            scripts: ScriptsConfig(
-              scripts: {
-                'build': Script.defaults(
-                  name: 'build',
-                  commands: ['build_runner build --delete-conflicting-outputs'],
-                ),
-              },
+        final config = ScriptsConfig(
+          scripts: {
+            'build_runner': Script.defaults(
+              name: 'build_runner',
+              scripts: ScriptsConfig(
+                scripts: const {
+                  'build': Script.defaults(
+                    name: 'build',
+                    commands: [
+                      'build_runner build --delete-conflicting-outputs',
+                    ],
+                  ),
+                },
+              ),
             ),
-          ),
-        });
+          },
+        );
 
         final script = config.find(['build_runner', 'build']);
 
         expect(script, isNotNull);
         expect(
           script!.commands,
-          [r'build_runner build --delete-conflicting-outputs'],
+          ['build_runner build --delete-conflicting-outputs'],
         );
       });
 
       test('finds script when nested (3)', () {
-        final config = ScriptsConfig(scripts: {
-          'build_runner': Script.defaults(
-            name: 'build_runner',
-            scripts: ScriptsConfig(
-              scripts: {
-                'build': Script.defaults(
-                  name: 'build',
-                  commands: ['build_runner build --delete-conflicting-outputs'],
-                  scripts: ScriptsConfig(
-                    scripts: {
-                      'ui': Script.defaults(
-                        name: 'ui',
-                        commands: [r'cd packages/ui && {$build_runner:build}'],
-                      ),
-                    },
+        final config = ScriptsConfig(
+          scripts: {
+            'build_runner': Script.defaults(
+              name: 'build_runner',
+              scripts: ScriptsConfig(
+                scripts: {
+                  'build': Script.defaults(
+                    name: 'build',
+                    commands: const [
+                      'build_runner build --delete-conflicting-outputs',
+                    ],
+                    scripts: ScriptsConfig(
+                      scripts: const {
+                        'ui': Script.defaults(
+                          name: 'ui',
+                          commands: [
+                            r'cd packages/ui && {$build_runner:build}',
+                          ],
+                        ),
+                      },
+                    ),
                   ),
-                ),
-              },
+                },
+              ),
             ),
-          ),
-        });
+          },
+        );
 
         final script = config.find(['build_runner', 'build', 'ui']);
 

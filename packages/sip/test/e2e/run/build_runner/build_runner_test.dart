@@ -54,8 +54,7 @@ void main() {
       expect(
         mockBindings.scripts,
         [
-          'cd /packages/sip && dart run build_runner clean;\n'
-              'dart run build_runner build --delete-conflicting-outputs',
+          'cd /packages/sip && dart run build_runner clean;\ndart run build_runner build --delete-conflicting-outputs',
         ],
       );
     });
