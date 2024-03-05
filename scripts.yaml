@@ -14,10 +14,13 @@ _packages:
 pana: "{$_packages} dart pub run pana"
 
 format: '{$_packages} dart format .'
+analyze: '{$_packages} dart analyze .'
 
 prep:
   (command):
     - "{$install}"
+    - (+) {$format} --set-exit-if-changed
+    - (+) {$analyze} --fatal-infos --fatal-warnings
     - "{$prep:_build}"
     - (+) {$prep:changelog}
     - (+) {$prep:license}
@@ -25,9 +28,9 @@ prep:
     - (+) {$prep:pubspecs}
     - (+) {$prep:assets}
     - sip pub get -r
-  build:
+  _build:
     clean: sip run build_runner clean
-    _build: sip run build_runner build only
+    build: sip run build_runner build only
     (command):
       - echo "Running build_runner clean in all packages"
       - (+) {$_packages} {$prep:_build:clean}
