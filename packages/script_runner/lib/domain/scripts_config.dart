@@ -31,7 +31,8 @@ class ScriptsConfig extends Equatable {
         );
 
   // ignore: strict_raw_type
-  factory ScriptsConfig.fromJson(Map json) {
+  factory ScriptsConfig.fromJson(Map json_) {
+    final json = {...json_};
     final scripts = <String, Script>{};
 
     final parents = (json.remove(Keys.parents) as List?)?.cast<String>();
