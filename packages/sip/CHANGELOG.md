@@ -1,3 +1,11 @@
+# 0.1.1 | 3/5/2024
+
+## Enhancements
+
+- Add very_good_analysis for linting
+- Fix lint warnings
+- Restructure Readme
+
 # 0.1.0 | 3/4/2024
 
 ## Breaking Changes
