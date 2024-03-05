@@ -1,3 +1,35 @@
+# 0.1.0 | 3/4/2024
+
+## Breaking Changes
+
+- Remove `run-many` command
+  - Use `run` with the `--concurrent` flag instead
+
+## Features
+
+- Add `--concurrent` flag to `run` command
+  - This will run all scripts in parallel, regardless of the concurrent symbol defined within the script
+- Add `--disable-concurrency` flag to `run` command
+  - This will run all scripts in serial, regardless of the concurrent symbol defined within the script
+- Add `sip test` command
+  - Runs projects tests
+    - Can recursively search for `test` directories
+    - Can run concurrent tests
+    - Passes most dart & flutter args to the `test` command
+
+## Enhancements
+
+- Speed up recursive search for sub-packages using [`glob`](https://pub.dev/packages/glob)
+- Update README
+  - To include new `test` command
+  - To remove `run-many` command
+  - Spelling and grammar updates
+- Better handle dependency injection
+
+## Fixes
+
+- Fix issue where `--help` was not printing for the `run` command
+
 # 0.0.17 | 2/13/2024
 
 ## Features

@@ -9,6 +9,10 @@ Sip is a command-line tool with the goal of making it easier to manage the many 
 - Define and run scripts from a `scripts.yaml` file
 - Run pub commands, such as `pub get` and `pub upgrade`, _recursively and concurrently_
 - Run commands concurrently
+- Run dart/flutter tests
+  - _Recursively and Concurrently_
+  - Pass most all dart/flutter test flags
+  - Only dart/flutter tests
 
 ## Installation
 
@@ -22,13 +26,13 @@ dart pub global activate sip_cli
 sip --help
 ```
 
-## Script Execution Commands
+## Run Scripts
 
 Regardless of your current working directory, the script will always be executed from the same directory as the `scripts.yaml` file.
 
-### RUN
-
 The `sip run` command will run a script defined within the `scripts.yaml` file.
+
+To view the flags that can be passed to `sip run`, you can run `sip run --help`.
 
 ```yaml
 build_runner:
@@ -42,26 +46,7 @@ $ sip run build_runner build
 ...
 ```
 
-### RUN-MANY
-
-The `sip run-many` command will run a script defined within the `scripts.yaml` file concurrently.
-
-```yaml
-pub:
-    get:
-        - cd packages/core && dart pub get
-        - cd packages/data && dart pub get
-        - cd packages/ui && flutter pub get
-```
-
-```bash
-$: sip run-many pub get
-⚠ Running 3 scripts concurrently
-
-- cd packages/core && dart pub get
-- cd packages/data && dart pub get
-- cd packages/ui && flutter pub get
-```
+For more information on the `scripts.yaml` file, see the [scripts.yaml configuration](#scriptsyaml-configuration) section.
 
 ## Pub Commands
 
@@ -142,6 +127,25 @@ sip list # or sip ls
 If you have many scripts, you can filter the list by using the `--list` flag.
 
 ![Sip](assets/list_build_runner.png)
+
+## Running Tests
+
+Sip can run dart/flutter tests, and pass most all dart/flutter test flags. To view all the flags that can be passed to `sip run test`, you can run `sip test --help`.
+
+```bash
+# Run all tests
+$ sip run test --recursive --concurrent
+```
+
+### Bail
+
+Bailing on tests means that the moment a test fails, the script will stop running, even if there are other tests to run.
+
+You can bail a test if you pass the `--bail` flag when running the test.
+
+```bash
+sip run test --bail
+```
 
 ## `Scripts.yaml` configuration
 
