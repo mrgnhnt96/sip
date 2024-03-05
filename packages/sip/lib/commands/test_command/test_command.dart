@@ -99,9 +99,6 @@ class TestCommand extends Command<ExitCode> {
   @override
   String get name => 'test';
 
-  @override
-  ArgResults? argResults;
-
   Future<List<String>> pubspecs({
     required bool isRecursive,
   }) async {
@@ -309,7 +306,7 @@ class TestCommand extends Command<ExitCode> {
 
   @override
   Future<ExitCode> run([List<String>? args]) async {
-    final argResults = args != null ? argParser.parse(args) : this.argResults!;
+    final argResults = args != null ? argParser.parse(args) : super.argResults!;
 
     final isDartOnly =
         argResults.wasParsed('dart-only') && argResults['dart-only'] as bool;
