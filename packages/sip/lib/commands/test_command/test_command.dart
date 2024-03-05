@@ -111,7 +111,7 @@ class TestCommand extends Command<ExitCode> {
   }) async {
     final pubspecs = <String>{};
 
-    final pubspec = await pubspecYaml.nearest();
+    final pubspec = pubspecYaml.nearest();
 
     if (pubspec != null) {
       pubspecs.add(pubspec);

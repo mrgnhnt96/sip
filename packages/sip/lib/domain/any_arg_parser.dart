@@ -113,7 +113,7 @@ class AnyArgParser implements ArgParser {
   Option? findByNameOrAlias(String name) => _argParser.findByNameOrAlias(name);
 
   @override
-  @deprecated
+  @Deprecated('Use defaultFor instead.')
   getDefault(String option) => _argParser.getDefault(option);
 
   @override

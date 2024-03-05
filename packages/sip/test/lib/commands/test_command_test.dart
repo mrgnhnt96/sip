@@ -4,7 +4,6 @@ import 'package:sip_cli/commands/test_command/test_command.dart';
 import 'package:sip_cli/setup/setup.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/exit_code.dart';
-import 'package:sip_script_runner/domain/bindings.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 import 'package:test/test.dart';
 
