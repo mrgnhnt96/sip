@@ -88,6 +88,8 @@ class TestCommand extends Command<ExitCode> {
     console = getIt();
   }
 
+  static const String optimizedTestFileName = '.optimized_test.dart';
+
   final PubspecYaml pubspecYaml;
   late final FileSystem fs;
   late final SipConsole console;
@@ -102,24 +104,11 @@ class TestCommand extends Command<ExitCode> {
   String get name => 'test';
 
   @override
-  Future<ExitCode> run([List<String>? args]) async {
-    final argResults = this.argResults!;
+  ArgResults? argResults;
 
-    final dartOnly =
-        argResults.wasParsed('dart-only') && argResults['dart-only'] as bool;
-    final flutterOnly = argResults.wasParsed('flutter-only') &&
-        argResults['flutter-only'] as bool;
-
-    if (dartOnly || flutterOnly) {
-      if (dartOnly && !flutterOnly) {
-        console.l('Running only dart tests');
-      } else if (flutterOnly && !dartOnly) {
-        console.l('Running only flutter tests');
-      } else {
-        console.l('Running both dart and flutter tests');
-      }
-    }
-
+  Future<List<String>> pubspecs({
+    required bool isRecursive,
+  }) async {
     final pubspecs = <String>[];
 
     final pubspec = await pubspecYaml.nearest();
@@ -128,16 +117,22 @@ class TestCommand extends Command<ExitCode> {
       pubspecs.add(pubspec);
     }
 
-    if (argResults['recursive'] as bool) {
+    if (isRecursive) {
       console.v('Running tests recursively');
       pubspecs.addAll(await pubspecYaml.children());
     }
 
-    if (pubspecs.isEmpty) {
-      console.e('No pubspec.yaml files found');
-      return ExitCode.unavailable;
-    }
+    return pubspecs;
+  }
 
+  (
+    List<String> testables,
+    Map<String, DetermineFlutterOrDart> testableTool,
+  ) getTestables(
+    List<String> pubspecs, {
+    required bool isFlutterOnly,
+    required bool isDartOnly,
+  }) {
     final testables = <String>[];
     final testableTool = <String, DetermineFlutterOrDart>{};
 
@@ -159,12 +154,12 @@ class TestCommand extends Command<ExitCode> {
       );
 
       // we only care checking for flutter or dart tests if we are not running both
-      if (flutterOnly ^ dartOnly) {
-        if (tool.isFlutter && dartOnly && !flutterOnly) {
+      if (isFlutterOnly ^ isDartOnly) {
+        if (tool.isFlutter && isDartOnly && !isFlutterOnly) {
           continue;
         }
 
-        if (tool.isDart && flutterOnly) {
+        if (tool.isDart && isFlutterOnly) {
           continue;
         }
       }
@@ -173,22 +168,17 @@ class TestCommand extends Command<ExitCode> {
       testableTool[testDirectory] = tool;
     }
 
-    if (testables.isEmpty) {
-      var forTool = '';
+    return (testables, testableTool);
+  }
 
-      if (flutterOnly ^ dartOnly) {
-        forTool = ' ';
-        forTool += dartOnly ? 'dart' : 'flutter';
-      }
-      console.e('No$forTool tests found');
-      return ExitCode.unavailable;
-    }
-
+  List<CommandToRun> getCommandsToRun(
+    List<String> testables,
+    Map<String, DetermineFlutterOrDart> testableTool,
+    List<String> optimizedFiles,
+    List<String> flutterArgs,
+    List<String> dartArgs,
+  ) {
     final commandsToRun = <CommandToRun>[];
-    final optimizedFiles = <String>[];
-    final bothArgs = _getBothArgs();
-    final flutterArgs = [..._getFlutterArgs(), ...bothArgs];
-    final dartArgs = [..._getDartArgs(), ...bothArgs];
 
     for (final testable in testables) {
       final allFiles =
@@ -202,7 +192,7 @@ class TestCommand extends Command<ExitCode> {
           continue;
         }
 
-        if (fileName == '.optimized_test.dart') {
+        if (fileName == optimizedTestFileName) {
           continue;
         }
 
@@ -213,7 +203,7 @@ class TestCommand extends Command<ExitCode> {
         continue;
       }
 
-      final optimizedPath = path.join(testable, '.optimized_test.dart');
+      final optimizedPath = path.join(testable, optimizedTestFileName);
       fs.file(optimizedPath)..createSync(recursive: true);
       optimizedFiles.add(optimizedPath);
 
@@ -251,9 +241,15 @@ class TestCommand extends Command<ExitCode> {
       );
     }
 
-    ExitCode? exitCode;
+    return commandsToRun;
+  }
 
-    if (argResults['concurrent'] as bool) {
+  Future<ExitCode> runCommands(
+    List<CommandToRun> commandsToRun, {
+    required bool runConcurrently,
+    required bool bail,
+  }) async {
+    if (runConcurrently) {
       console.w('Running (${commandsToRun.length}) tests concurrently');
 
       for (final command in commandsToRun) {
@@ -269,34 +265,108 @@ class TestCommand extends Command<ExitCode> {
 
       exitCodes.printErrors(commandsToRun);
 
-      exitCode = exitCodes.exitCode;
-    } else {
-      for (final command in commandsToRun) {
-        console.v('${command.command}');
-        final scriptRunner = RunOneScript(
-          command: command,
-          bindings: bindings,
-        );
+      return exitCodes.exitCode;
+    }
 
-        final _exitCode = await scriptRunner.run();
+    ExitCode? exitCode;
 
-        if (_exitCode != ExitCode.success) {
-          exitCode = _exitCode;
+    for (final command in commandsToRun) {
+      console.v('${command.command}');
+      final scriptRunner = RunOneScript(
+        command: command,
+        bindings: bindings,
+      );
 
-          if (argResults['bail'] == true) {
-            break;
-          }
+      final _exitCode = await scriptRunner.run();
+
+      if (_exitCode != ExitCode.success) {
+        exitCode = _exitCode;
+
+        if (bail) {
+          return exitCode;
         }
       }
     }
 
-    if (argResults['clean'] as bool) {
-      for (final optimizedFile in optimizedFiles) {
-        fs.file(optimizedFile).deleteSync();
+    return exitCode ?? ExitCode.success;
+  }
+
+  void cleanUp(List<String> optimizedFiles) {
+    for (final optimizedFile in optimizedFiles) {
+      fs.file(optimizedFile).deleteSync();
+    }
+  }
+
+  @override
+  Future<ExitCode> run([List<String>? args]) async {
+    final argResults = args != null ? argParser.parse(args) : this.argResults!;
+
+    final isDartOnly =
+        argResults.wasParsed('dart-only') && argResults['dart-only'] as bool;
+
+    final isFlutterOnly = argResults.wasParsed('flutter-only') &&
+        argResults['flutter-only'] as bool;
+
+    final isRecursive = argResults['recursive'] as bool? ?? false;
+
+    if (isDartOnly || isFlutterOnly) {
+      if (isDartOnly && !isFlutterOnly) {
+        console.l('Running only dart tests');
+      } else if (isFlutterOnly && !isDartOnly) {
+        console.l('Running only flutter tests');
+      } else {
+        console.l('Running both dart and flutter tests');
       }
     }
 
-    if (exitCode != null && exitCode != ExitCode.success) {
+    final pubspecs = await this.pubspecs(isRecursive: isRecursive);
+
+    if (pubspecs.isEmpty) {
+      console.e('No pubspec.yaml files found');
+      return ExitCode.unavailable;
+    }
+
+    final optimizedFiles = <String>[];
+    final bothArgs = _getBothArgs();
+    final flutterArgs = [..._getFlutterArgs(), ...bothArgs];
+    final dartArgs = [..._getDartArgs(), ...bothArgs];
+
+    final (testables, testableTool) = getTestables(
+      pubspecs,
+      isFlutterOnly: isFlutterOnly,
+      isDartOnly: isDartOnly,
+    );
+
+    if (testables.isEmpty) {
+      var forTool = '';
+
+      if (isFlutterOnly ^ isDartOnly) {
+        forTool = ' ';
+        forTool += isDartOnly ? 'dart' : 'flutter';
+      }
+      console.e('No$forTool tests found');
+      return ExitCode.unavailable;
+    }
+
+    final commandsToRun = getCommandsToRun(
+      testables,
+      testableTool,
+      optimizedFiles,
+      flutterArgs,
+      dartArgs,
+    );
+
+    final exitCode = await runCommands(
+      commandsToRun,
+      runConcurrently: argResults['concurrent'] as bool,
+      bail: argResults['bail'] as bool,
+    );
+
+    if (argResults['clean'] as bool) {
+      cleanUp(optimizedFiles);
+    }
+
+    if (exitCode != ExitCode.success) {
       console.e('Tests failed');
     } else {
       console.s('Tests passed');
@@ -304,6 +374,6 @@ class TestCommand extends Command<ExitCode> {
 
     console.emptyLine();
 
-    return exitCode ?? ExitCode.success;
+    return exitCode;
   }
 }
