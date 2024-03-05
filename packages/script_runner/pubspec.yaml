@@ -32,3 +32,4 @@ dev_dependencies:
   mocktail: ^1.0.3
   pana: ^0.22.2
   test: ^1.25.1
+  very_good_analysis: ^5.1.0
