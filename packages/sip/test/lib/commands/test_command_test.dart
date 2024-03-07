@@ -11,7 +11,14 @@ import 'package:test/test.dart';
 
 class _MockBindings extends Mock implements Bindings {}
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger {
+  @override
+  Progress progress(String message, {ProgressOptions? options}) {
+    return _MockProgress();
+  }
+}
+
+class _MockProgress extends Mock implements Progress {}
 
 class _FakeDetermineFlutterOrDart extends Fake
     implements DetermineFlutterOrDart {
