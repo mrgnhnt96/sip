@@ -1,5 +1,5 @@
 install:
-  (command): cd packages/sip && sip run install
+  (command): cd packages/sip && dart pub global activate --source path . --overwrite
   (description): Install `sip` globally
   (aliases):
     - i
