@@ -42,10 +42,9 @@ extension ExitCodeX on ExitCode {
   }) {
     if (this == ExitCode.success) return;
 
-    final indexString = index == null ? '' : '(${index + 1}) ';
-    logger.err(
-      'Script $indexString${lightCyan.wrap(label)} '
-      'failed with exit code ${lightRed.wrap(toString())}',
+    logger.write(
+      '${red.wrap('✗')}  Script ${lightCyan.wrap(label)} '
+      'failed with exit code ${lightRed.wrap(toString())}\n',
     );
   }
 
