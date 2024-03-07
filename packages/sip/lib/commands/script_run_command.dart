@@ -154,7 +154,10 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
         commands: commands,
         bindings: bindings,
         logger: logger,
-      ).run(label: 'Running ${commands.length} scripts concurrently');
+      ).run(
+        label: 'Running ${commands.length} scripts concurrently',
+        bail: bail,
+      );
 
       exitCodes.printErrors(commands, logger);
 
@@ -184,24 +187,8 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     }
 
     final concurrentRuns = <CommandToRun>[];
-    var step = 0;
     Future<ExitCode?> runMany() async {
       if (concurrentRuns.isEmpty) return null;
-
-      String stepString;
-      if (concurrentRuns.length == 1) {
-        stepString = 'step $step';
-      } else {
-        final firstStep = step - concurrentRuns.length + 1;
-        stepString = 'steps $firstStep-$step';
-      }
-
-      stepString = yellow.wrap(stepString)!;
-
-      var label = '';
-      label += 'Running ';
-      label += '($stepString)';
-      label += darkGray.wrap(' concurrently')!;
 
       logger.write(darkGray.wrap('---'));
 
@@ -209,7 +196,7 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
         commands: concurrentRuns,
         bindings: bindings,
         logger: logger,
-      ).run(label: label);
+      ).run(bail: bail);
 
       exitCodes.printErrors(concurrentRuns, logger);
 
@@ -221,43 +208,59 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
       return bailExitCode;
     }
 
-    for (final command in commands) {
-      step++;
-      if (!disableConcurrency) {
-        if (command.runConcurrently) {
-          concurrentRuns.add(command);
-          continue;
-        } else if (concurrentRuns.isNotEmpty) {
-          if (await runMany() case final ExitCode exitCode) {
-            return exitCode;
+    Future<ExitCode> runScripts() async {
+      for (final command in commands) {
+        if (!disableConcurrency) {
+          if (command.runConcurrently) {
+            concurrentRuns.add(command);
+            continue;
+          } else if (concurrentRuns.isNotEmpty) {
+            if (await runMany() case final ExitCode exitCode) {
+              return exitCode;
+            }
           }
         }
+
+        final exitCode = await RunOneScript(
+          command: command,
+          bindings: bindings,
+          logger: logger,
+          showOutput: true,
+        ).run();
+
+        exitCode.printError(command, logger);
+
+        logger.detail('Ran script, exiting with: $exitCode');
+
+        if (tryBail([exitCode], [command]) case final ExitCode bailCode) {
+          return bailCode;
+        }
+
+        logger.write('\n');
       }
 
-      final exitCode = await RunOneScript(
-        command: command,
-        bindings: bindings,
-        logger: logger,
-        showOutput: true,
-      ).run();
-
-      exitCode.printError(command, logger);
-
-      logger.detail('Ran script, exiting with: $exitCode');
-
-      if (tryBail([exitCode], [command]) case final ExitCode bailCode) {
-        return bailCode;
+      if (await runMany() case final ExitCode exitCode) {
+        return exitCode;
       }
 
-      logger.write('\n');
+      return failureExitCode ?? ExitCode.success;
     }
 
-    if (await runMany() case final ExitCode exitCode) {
-      return exitCode;
+    final stopwatch = Stopwatch()..start();
+
+    final exitCode = await runScripts();
+
+    stopwatch.stop();
+    final seconds = (stopwatch.elapsedMilliseconds / 1000).toStringAsFixed(1);
+
+    logger.info(darkGray.wrap('Finished in ${seconds}s'));
+
+    if (exitCode != ExitCode.success) {
+      logger.err('Finished running scripts with errors');
+    } else {
+      logger.detail('Success! Finished running scripts');
     }
 
-    logger.detail('Success! Finished running scripts');
-
-    return failureExitCode ?? ExitCode.success;
+    return exitCode;
   }
 }

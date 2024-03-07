@@ -125,6 +125,7 @@ abstract class APubCommand extends Command<ExitCode> {
 
       final exitCodes = await runMany.run(
         label: 'Running ${lightCyan.wrap('pub $name ${pubFlags.join(' ')}')}',
+        bail: false,
       );
 
       exitCodes.printErrors(commands, logger);

@@ -264,7 +264,10 @@ class TestCommand extends Command<ExitCode> {
         logger: logger,
       );
 
-      final exitCodes = await runMany.run(label: 'Running tests');
+      final exitCodes = await runMany.run(
+        label: 'Running tests',
+        bail: bail,
+      );
 
       exitCodes.printErrors(commandsToRun, logger);
 
@@ -389,7 +392,7 @@ class TestCommand extends Command<ExitCode> {
     }
 
     if (exitCode != ExitCode.success) {
-      logger.err('❌ Some tests failed');
+      logger.err('${red.wrap('✗')} Some tests failed');
     } else {
       logger.write('${green.wrap('✔')} Tests passed');
     }
