@@ -3,11 +3,8 @@
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:sip_cli/domain/any_arg_parser.dart';
-import 'package:sip_cli/domain/cwd_impl.dart';
-import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
 import 'package:sip_cli/domain/run_many_scripts.dart';
 import 'package:sip_cli/domain/run_one_script.dart';
-import 'package:sip_cli/domain/scripts_yaml_impl.dart';
 import 'package:sip_cli/setup/setup.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/exit_code_extensions.dart';
@@ -19,13 +16,9 @@ import 'package:sip_script_runner/sip_script_runner.dart';
 /// The command to run a script
 class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
   ScriptRunCommand({
-    this.scriptsYaml = const ScriptsYamlImpl(),
-    this.variables = const Variables(
-      pubspecYaml: PubspecYamlImpl(),
-      scriptsYaml: ScriptsYamlImpl(),
-      cwd: CWDImpl(),
-    ),
-    this.bindings = const BindingsImpl(),
+    required this.scriptsYaml,
+    required this.variables,
+    required this.bindings,
   }) : argParser = AnyArgParser() {
     addFlags();
 

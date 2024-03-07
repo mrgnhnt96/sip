@@ -9,7 +9,7 @@ import 'package:sip_script_runner/sip_script_runner.dart';
 /// The command to list all available scripts
 class ListCommand extends Command<ExitCode> {
   ListCommand({
-    this.scriptsYaml = const ScriptsYamlImpl(),
+    required this.scriptsYaml,
   });
 
   final ScriptsYaml scriptsYaml;

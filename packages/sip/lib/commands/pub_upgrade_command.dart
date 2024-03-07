@@ -1,14 +1,12 @@
 // ignore_for_file: cascade_invocations
 
 import 'package:sip_cli/commands/a_pub_command.dart';
-import 'package:sip_cli/domain/pubspec_lock_impl.dart';
-import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
 
 /// The `pub upgrade` command.
 class PubUpgradeCommand extends APubCommand {
   PubUpgradeCommand({
-    super.pubspecLock = const PubspecLockImpl(),
-    super.pubspecYaml = const PubspecYamlImpl(),
+    required super.pubspecLock,
+    required super.pubspecYaml,
   }) {
     argParser.addFlag(
       'offline',

@@ -26,10 +26,10 @@ part '__flutter_args.dart';
 
 class TestCommand extends Command<ExitCode> {
   TestCommand({
-    this.pubspecYaml = const PubspecYamlImpl(),
-    this.bindings = const BindingsImpl(),
-    this.pubspecLock = const PubspecLockImpl(),
-    this.findFile = const FindFile(),
+    required this.pubspecYaml,
+    required this.bindings,
+    required this.pubspecLock,
+    required this.findFile,
   }) {
     argParser.addFlag(
       'recursive',
