@@ -7,6 +7,10 @@ class PubGetCommand extends APubCommand {
   PubGetCommand({
     required super.pubspecLock,
     required super.pubspecYaml,
+    required super.fs,
+    required super.logger,
+    required super.bindings,
+    required super.findFile,
   }) {
     argParser.addFlag(
       'offline',

@@ -1,12 +1,7 @@
 import 'package:sip_script_runner/sip_script_runner.dart';
-import 'package:sip_script_runner/utils/constants.dart';
 import 'package:test/test.dart';
 
-import '../../utils/setup_testing_dependency_injection.dart';
-
 void main() {
-  setUp(setupTestingDependencyInjection);
-
   group('$Script', () {
     group('#listOut', () {
       test('should list out the description', () {

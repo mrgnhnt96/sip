@@ -4,31 +4,26 @@ import 'dart:math';
 
 import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
+import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/domain/find_file.dart';
-import 'package:sip_cli/domain/pubspec_lock_impl.dart';
-import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
 import 'package:sip_cli/domain/run_many_scripts.dart';
 import 'package:sip_cli/domain/run_one_script.dart';
-import 'package:sip_cli/setup/setup.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/exit_code_extensions.dart';
-import 'package:sip_console/sip_console.dart';
-import 'package:sip_console/utils/ansi.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
 /// A command that runs `pub *`.
 abstract class APubCommand extends Command<ExitCode> {
   APubCommand({
-    PubspecLock pubspecLock = const PubspecLockImpl(),
-    PubspecYaml pubspecYaml = const PubspecYamlImpl(),
-    Bindings bindings = const BindingsImpl(),
-    FindFile findFile = const FindFile(),
-  })  : _pubspecLock = pubspecLock,
-        _pubspecYaml = pubspecYaml,
-        _bindings = bindings,
-        _findFile = findFile {
+    required this.pubspecLock,
+    required this.pubspecYaml,
+    required this.bindings,
+    required this.findFile,
+    required this.logger,
+    required this.fs,
+  }) {
     argParser.addFlag(
       'recursive',
       abbr: 'r',
@@ -54,10 +49,12 @@ abstract class APubCommand extends Command<ExitCode> {
 
   List<String> get pubFlags => [];
 
-  final PubspecLock _pubspecLock;
-  final PubspecYaml _pubspecYaml;
-  final Bindings _bindings;
-  final FindFile _findFile;
+  final PubspecLock pubspecLock;
+  final PubspecYaml pubspecYaml;
+  final Bindings bindings;
+  final FindFile findFile;
+  final Logger logger;
+  final FileSystem fs;
 
   @override
   String get description => '$name dependencies for pubspec.yaml files';
@@ -68,19 +65,19 @@ abstract class APubCommand extends Command<ExitCode> {
 
     final allPubspecs = <String>{};
 
-    final pubspecPath = _pubspecYaml.nearest();
+    final pubspecPath = pubspecYaml.nearest();
     if (pubspecPath != null) {
       allPubspecs.add(pubspecPath);
     }
 
     if (recursive) {
-      final children = await _pubspecYaml.children();
+      final children = await pubspecYaml.children();
 
       allPubspecs.addAll(children);
     }
 
     if (allPubspecs.isEmpty) {
-      getIt<SipConsole>().e('No pubspec.yaml files found.');
+      logger.err('No pubspec.yaml files found.');
       return ExitCode.unavailable;
     }
 
@@ -88,15 +85,15 @@ abstract class APubCommand extends Command<ExitCode> {
     for (final pubspec in allPubspecs) {
       final tool = DetermineFlutterOrDart(
         pubspecYaml: pubspec,
-        pubspecLock: _pubspecLock,
-        findFile: _findFile,
+        pubspecLock: pubspecLock,
+        findFile: findFile,
       ).tool();
 
       final project = path.dirname(pubspec);
 
       final relativeDir = path.relative(
         project,
-        from: getIt<FileSystem>().currentDirectory.path,
+        from: fs.currentDirectory.path,
       );
 
       final padding = max('flutter'.length, tool.length) - tool.length;
@@ -122,28 +119,31 @@ abstract class APubCommand extends Command<ExitCode> {
     if (argResults!['concurrent'] == true) {
       final runMany = RunManyScripts(
         commands: commands,
-        bindings: _bindings,
+        bindings: bindings,
+        logger: logger,
       );
 
-      getIt<SipConsole>()
-          .l('Running ${lightCyan.wrap('pub $name ${pubFlags.join(' ')}')}');
+      logger
+          .info('Running ${lightCyan.wrap('pub $name ${pubFlags.join(' ')}')}');
 
       final exitCodes = await runMany.run();
 
-      exitCodes.printErrors(commands);
+      exitCodes.printErrors(commands, logger);
 
-      return exitCodes.exitCode;
+      return exitCodes.exitCode(logger);
     } else {
       for (final command in commands) {
-        getIt<SipConsole>().l('\nRunning ${lightCyan.wrap(command.command)}');
+        logger.info('\nRunning ${lightCyan.wrap(command.command)}');
 
         final exitCode = await RunOneScript(
           command: command,
-          bindings: _bindings,
+          bindings: bindings,
+          logger: logger,
+          showOutput: true,
         ).run();
 
         if (exitCode != ExitCode.success && argResults!['bail'] == true) {
-          exitCode.printError(command);
+          exitCode.printError(command, logger);
           return exitCode;
         }
       }

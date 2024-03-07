@@ -16,6 +16,8 @@ pana: "{$_packages} dart pub run pana"
 format: "{$_packages} dart format ."
 analyze: "{$_packages} dart analyze ."
 
+barrel: cd packages/sip && dart run barreler build
+
 prep:
   (command):
     - "{$install}"

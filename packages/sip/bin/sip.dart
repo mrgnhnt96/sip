@@ -2,46 +2,66 @@
 
 import 'dart:io';
 
-import 'package:file/file.dart';
 import 'package:file/local.dart';
-import 'package:get_it/get_it.dart';
-import 'package:sip_cli/setup/setup.dart' as sip;
+import 'package:mason_logger/mason_logger.dart';
 import 'package:sip_cli/domain/cwd_impl.dart';
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/pubspec_lock_impl.dart';
 import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
 import 'package:sip_cli/domain/scripts_yaml_impl.dart';
 import 'package:sip_cli/sip_runner.dart';
-import 'package:sip_console/sip_console.dart';
-import 'package:sip_console/sip_console_setup.dart' as console;
 import 'package:sip_script_runner/sip_script_runner.dart';
+import 'package:sip_script_runner/utils/logger.dart' as script_runner;
 
 void main(List<String> _) async {
   final args = List<String>.from(_);
 
-  final getIt = GetIt.asNewInstance();
+  var loud = false;
+  var quiet = false;
 
-  getIt.registerLazySingleton<FileSystem>(LocalFileSystem.new);
+  if (args.contains('--quiet')) {
+    quiet = true;
+  } else if (args.contains('--loud')) {
+    loud = true;
+  }
 
-  console.setup(getIt);
+  final logger = Logger(
+    level: quiet
+        ? Level.error
+        : loud
+            ? Level.verbose
+            : Level.info,
+  );
 
-  const scriptsYaml = ScriptsYamlImpl();
-  const pubspecYaml = PubspecYamlImpl();
+  const fs = LocalFileSystem();
+
+  const scriptsYaml = ScriptsYamlImpl(fs: fs);
+  const pubspecYaml = PubspecYamlImpl(fs: fs);
+  const cwd = CWDImpl(fs: fs);
+
+  script_runner.Logger.setup(
+    detail: logger.detail,
+    err: logger.err,
+    warn: logger.warn,
+  );
 
   final exitCode = await SipRunner(
     bindings: const BindingsImpl(),
     scriptsYaml: scriptsYaml,
-    findFile: const FindFile(),
-    pubspecLock: const PubspecLockImpl(),
+    findFile: const FindFile(fs: fs),
+    pubspecLock: const PubspecLockImpl(fs: fs),
     pubspecYaml: pubspecYaml,
     variables: const Variables(
-      cwd: CWDImpl(),
+      cwd: cwd,
       pubspecYaml: pubspecYaml,
       scriptsYaml: scriptsYaml,
     ),
+    fs: fs,
+    logger: logger,
+    cwd: cwd,
   ).run(args);
 
-  sip.getIt<SipConsole>().v('[$args] Finishing with: $exitCode');
+  logger.detail('[$args] Finishing with: $exitCode');
 
   exit(exitCode.code);
 }

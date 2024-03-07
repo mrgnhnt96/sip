@@ -1,37 +1,35 @@
-import 'package:sip_cli/setup/setup.dart';
+import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:sip_cli/utils/exit_code.dart';
-import 'package:sip_console/domain/sip_console.dart';
-import 'package:sip_console/utils/ansi.dart';
-import 'package:sip_script_runner/domain/domain.dart';
+import 'package:sip_script_runner/sip_script_runner.dart';
 
 extension ListExitCodeX on List<ExitCode> {
-  void printErrors(Iterable<CommandToRun> commands_) {
+  void printErrors(Iterable<CommandToRun> commands_, Logger logger) {
     final commands = commands_.toList();
 
     for (var i = 0; i < length; i++) {
       this[i]._printError(
         index: i,
         label: commands[i].label,
+        logger: logger,
       );
     }
   }
 
-  ExitCode get exitCode {
+  ExitCode exitCode(Logger logger) {
     final mapped = asMap().map((key, value) => MapEntry(value.code, value))
       ..remove(ExitCode.success.code);
 
     if (mapped.isEmpty) {
-      getIt<SipConsole>().v('Many exit codes: $this, returning success');
+      logger.detail('Many exit codes: $this, returning success');
       return ExitCode.success;
     }
 
     if (mapped.length == 1) {
-      getIt<SipConsole>()
-          .v('Many exit codes: $this, returning ${mapped.values.first}');
+      logger.detail('Many exit codes: $this, returning ${mapped.values.first}');
       return mapped.values.first;
     }
 
-    getIt<SipConsole>().v('Many exit codes: $this, returning unavailable');
+    logger.detail('Many exit codes: $this, returning unavailable');
     return ExitCode.unavailable;
   }
 }
@@ -40,19 +38,24 @@ extension ExitCodeX on ExitCode {
   void _printError({
     required int? index,
     required String label,
+    required Logger logger,
   }) {
     if (this == ExitCode.success) return;
 
     final indexString = index == null ? '' : '(${index + 1}) ';
-    getIt<SipConsole>().e(
+    logger.err(
       'Script $indexString${lightCyan.wrap(label)} '
       'failed with exit code ${lightRed.wrap(toString())}',
     );
   }
 
-  void printError(CommandToRun command) {
+  void printError(CommandToRun command, Logger logger) {
     if (this == ExitCode.success) return;
 
-    _printError(index: null, label: command.label);
+    _printError(
+      index: null,
+      label: command.label,
+      logger: logger,
+    );
   }
 }

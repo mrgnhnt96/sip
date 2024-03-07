@@ -2,16 +2,15 @@
 
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
+import 'package:file/file.dart';
+import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:sip_cli/commands/list_command.dart';
 import 'package:sip_cli/commands/pub_command.dart';
 import 'package:sip_cli/commands/script_run_command.dart';
 import 'package:sip_cli/commands/test_command/test_command.dart';
 import 'package:sip_cli/domain/find_file.dart';
-import 'package:sip_cli/setup/setup.dart';
 import 'package:sip_cli/src/version.dart';
 import 'package:sip_cli/utils/exit_code.dart';
-import 'package:sip_console/sip_console.dart';
-import 'package:sip_script_runner/domain/domain.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
 /// The command runner for the sip command line application
@@ -23,6 +22,9 @@ class SipRunner extends CommandRunner<ExitCode> {
     required Variables variables,
     required Bindings bindings,
     required FindFile findFile,
+    required FileSystem fs,
+    required CWD cwd,
+    required this.logger,
   }) : super(
           'sip',
           'A command line application to handle mono-repos in dart',
@@ -45,17 +47,24 @@ class SipRunner extends CommandRunner<ExitCode> {
         scriptsYaml: scriptsYaml,
         variables: variables,
         bindings: bindings,
+        logger: logger,
+        cwd: cwd,
       ),
     );
     addCommand(
       PubCommand(
         pubspecLock: pubspecLock,
         pubspecYaml: pubspecYaml,
+        findFile: findFile,
+        fs: fs,
+        logger: logger,
+        bindings: bindings,
       ),
     );
     addCommand(
       ListCommand(
         scriptsYaml: scriptsYaml,
+        logger: logger,
       ),
     );
     addCommand(
@@ -64,24 +73,24 @@ class SipRunner extends CommandRunner<ExitCode> {
         pubspecLock: pubspecLock,
         findFile: findFile,
         bindings: bindings,
+        fs: fs,
+        logger: logger,
       ),
     );
   }
+
+  final Logger logger;
 
   @override
   Future<ExitCode> run(Iterable<String> args) async {
     try {
       final argResults = parse(args);
 
-      if (argResults['loud'] == true) {
-        getIt<SipConsole>().enableVerbose();
-      }
-
       final exitCode = await runCommand(argResults);
 
       return exitCode;
     } catch (error) {
-      getIt<SipConsole>().e('$error');
+      logger.err('$error');
       return ExitCode.software;
     }
   }
@@ -89,14 +98,14 @@ class SipRunner extends CommandRunner<ExitCode> {
   @override
   Future<ExitCode> runCommand(ArgResults topLevelResults) async {
     if (topLevelResults.wasParsed('version')) {
-      getIt<SipConsole>().l(packageVersion);
+      logger.info(packageVersion);
 
       return ExitCode.success;
     }
 
     final result = await super.runCommand(topLevelResults);
 
-    getIt<SipConsole>().d('Ran sip command, exit code: $result');
+    logger.detail('Ran sip command, exit code: $result');
 
     return result ?? ExitCode.success;
   }

@@ -530,7 +530,7 @@ packages:
     source: hosted
     version: "1.0.4"
   sip_console:
-    dependency: "direct main"
+    dependency: "direct overridden"
     description:
       path: "../console"
       relative: true

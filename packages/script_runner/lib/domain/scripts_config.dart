@@ -1,11 +1,10 @@
 import 'package:autoequal/autoequal.dart';
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
-import 'package:sip_console/domain/domain.dart';
 // ignore_for_file: must_be_immutable
 import 'package:sip_script_runner/domain/script.dart';
-import 'package:sip_script_runner/setup.dart';
 import 'package:sip_script_runner/utils/constants.dart';
+import 'package:sip_script_runner/utils/logger.dart';
 
 part 'scripts_config.g.dart';
 
@@ -45,7 +44,7 @@ class ScriptsConfig extends Equatable {
     for (final entry in json.entries) {
       final key = '${entry.key}'.trim();
       if (key.contains(' ')) {
-        getIt<SipConsole>().e(
+        Logger.err(
           'The script name "$key" contains spaces, '
           'which is not allowed.',
         );
@@ -53,7 +52,7 @@ class ScriptsConfig extends Equatable {
       }
 
       if (!allowedKeys.hasMatch(key) && !Keys.values.contains(key)) {
-        getIt<SipConsole>().e(
+        Logger.err(
           'The script name "$key" uses forbidden characters, allowed: '
           '${allowedKeys.pattern} (case insensitive)',
         );
@@ -120,7 +119,7 @@ class ScriptsConfig extends Equatable {
       }
 
       if (_deactivatedAliases.containsKey(key)) {
-        getIt<SipConsole>().e(
+        Logger.err(
           'The alias "$key" is deactivated '
           'because duplicates have been found in:'
           '\n${_deactivatedAliases[key]!.map((e) => e).join('\n')}',

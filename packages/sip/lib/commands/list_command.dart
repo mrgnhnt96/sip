@@ -1,18 +1,17 @@
 import 'package:args/command_runner.dart';
-import 'package:sip_cli/domain/scripts_yaml_impl.dart';
-import 'package:sip_cli/setup/setup.dart';
+import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:sip_cli/utils/exit_code.dart';
-import 'package:sip_console/domain/sip_console.dart';
-import 'package:sip_console/utils/ansi.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
 /// The command to list all available scripts
 class ListCommand extends Command<ExitCode> {
   ListCommand({
     required this.scriptsYaml,
+    required this.logger,
   });
 
   final ScriptsYaml scriptsYaml;
+  final Logger logger;
 
   @override
   String get description => 'List all scripts defined in scripts.yaml';
@@ -27,15 +26,15 @@ class ListCommand extends Command<ExitCode> {
   Future<ExitCode> run() async {
     final content = scriptsYaml.scripts();
     if (content == null) {
-      getIt<SipConsole>().e('No ${ScriptsYaml.fileName} file found');
+      logger.err('No ${ScriptsYaml.fileName} file found');
       return ExitCode.noInput;
     }
 
     final scriptConfig = ScriptsConfig.fromJson(content);
 
-    getIt<SipConsole>()
-      ..emptyLine()
-      ..l(
+    logger
+      ..write('\n')
+      ..info(
         scriptConfig.listOut(
           wrapCallableKey: (s) => lightGreen.wrap(s) ?? s,
           wrapNonCallableKey: (s) => cyan.wrap(s) ?? s,

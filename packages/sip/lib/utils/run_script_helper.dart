@@ -2,26 +2,23 @@ import 'dart:async';
 
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
-import 'package:file/file.dart';
+import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/commands/list_command.dart';
-import 'package:sip_cli/setup/setup.dart';
 import 'package:sip_cli/utils/exit_code.dart';
-import 'package:sip_console/sip_console.dart';
-import 'package:sip_console/utils/ansi.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
-import 'package:sip_script_runner/utils/constants.dart';
 
 mixin RunScriptHelper on Command<ExitCode> {
   ScriptsYaml get scriptsYaml;
   Variables get variables;
+  CWD get cwd;
+
+  Logger get logger;
 
   String? _directory;
   String _findDirectory() {
     final nearest = scriptsYaml.nearest();
-    final directory = nearest == null
-        ? getIt<FileSystem>().currentDirectory.path
-        : path.dirname(nearest);
+    final directory = nearest == null ? cwd.path : path.dirname(nearest);
 
     return directory;
   }
@@ -41,17 +38,18 @@ mixin RunScriptHelper on Command<ExitCode> {
   FutureOr<ExitCode?> validate(List<String>? keys) async {
     if (keys == null || keys.isEmpty) {
       const warning = 'No script specified, choose from:';
-      getIt<SipConsole>()
-        ..w(lightYellow.wrap(warning) ?? warning)
-        ..emptyLine();
+      logger
+        ..warn(lightYellow.wrap(warning) ?? warning)
+        ..write('\n');
 
       return ListCommand(
         scriptsYaml: scriptsYaml,
+        logger: logger,
       ).run();
     }
 
     if (keys.any((e) => e.startsWith('_'))) {
-      getIt<SipConsole>().e(
+      logger.err(
         r'''
 Private scripts are not intended to be invoked, only to be used as a references in other scripts.
 
@@ -78,16 +76,16 @@ $ sip format ui
   }
 
   void _listOutScript(Script script) {
-    getIt<SipConsole>()
-      ..emptyLine()
-      ..l(script.name)
-      ..print(
+    logger
+      ..write('\n')
+      ..info(script.name)
+      ..write(
         script.listOut(
           wrapCallableKey: (s) => lightGreen.wrap(s) ?? s,
           wrapMeta: (s) => lightBlue.wrap(s) ?? s,
         ),
       )
-      ..emptyLine();
+      ..write('\n');
   }
 
   (ExitCode?, List<String>? commands, Script?) getCommands(
@@ -99,7 +97,7 @@ $ sip format ui
 
     final content = scriptsYaml.scripts();
     if (content == null) {
-      getIt<SipConsole>().e('No ${ScriptsYaml.fileName} file found');
+      logger.err('No ${ScriptsYaml.fileName} file found');
       return (ExitCode.noInput, null, null);
     }
 
@@ -108,7 +106,7 @@ $ sip format ui
     final script = scriptConfig.find(scriptKeys);
 
     if (script == null) {
-      getIt<SipConsole>().e('No script found for ${scriptKeys.join(' ')}');
+      logger.err('No script found for ${scriptKeys.join(' ')}');
       return (ExitCode.config, null, null);
     }
 
@@ -119,9 +117,9 @@ $ sip format ui
     }
 
     if (script.commands.isEmpty) {
-      getIt<SipConsole>()
-        ..w('There are no commands to run for "${scriptKeys.join(' ')}"')
-        ..w('Here are the available scripts:');
+      logger
+        ..warn('There are no commands to run for "${scriptKeys.join(' ')}"')
+        ..warn('Here are the available scripts:');
 
       _listOutScript(script);
 
@@ -146,7 +144,7 @@ $ sip format ui
       var runConcurrently = false;
 
       if (command.startsWith(Identifiers.concurrent)) {
-        getIt<SipConsole>().d(
+        logger.detail(
           'Running concurrently: "${darkGray.wrap(command)}"',
         );
         runConcurrently = true;

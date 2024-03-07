@@ -1,15 +1,17 @@
 import 'package:file/file.dart';
+import 'package:file/memory.dart';
+import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:mocktail/mocktail.dart';
 import 'package:sip_cli/commands/test_command/test_command.dart';
-import 'package:sip_cli/setup/setup.dart';
+import 'package:sip_cli/domain/domain.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 import 'package:test/test.dart';
 
-import '../../utils/setup_testing_dependency_injection.dart';
-
 class _MockBindings extends Mock implements Bindings {}
+
+class _MockLogger extends Mock implements Logger {}
 
 class _FakeDetermineFlutterOrDart extends Fake
     implements DetermineFlutterOrDart {
@@ -46,15 +48,21 @@ void main() {
     late TestCommand testCommand;
     late FileSystem fs;
     late Bindings mockBindings;
+    late Logger mockLogger;
 
     setUp(() {
       mockBindings = _MockBindings();
-      setupTestingDependencyInjection();
+      mockLogger = _MockLogger();
 
-      fs = getIt<FileSystem>();
+      fs = MemoryFileSystem.test();
 
       testCommand = TestCommand(
         bindings: mockBindings,
+        pubspecYaml: PubspecYamlImpl(fs: fs),
+        pubspecLock: PubspecLockImpl(fs: fs),
+        findFile: FindFile(fs: fs),
+        fs: fs,
+        logger: mockLogger,
       );
     });
 

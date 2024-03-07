@@ -1,16 +1,18 @@
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
+import 'package:mason_logger/src/mason_logger.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/run_script_helper.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 import 'package:test/test.dart';
 
-import '../../utils/setup_testing_dependency_injection.dart';
-
 class _FakeCommand extends Command<ExitCode> with RunScriptHelper {
   _FakeCommand({
     required this.scriptsYaml,
     required this.variables,
+    required this.cwd,
+    required this.logger,
   }) {
     addFlags();
   }
@@ -29,6 +31,12 @@ class _FakeCommand extends Command<ExitCode> with RunScriptHelper {
 
   @override
   String get name => '';
+
+  @override
+  final CWD cwd;
+
+  @override
+  final Logger logger;
 }
 
 class _FakeScriptsYaml implements ScriptsYaml {
@@ -55,18 +63,7 @@ class _FakeScriptsYaml implements ScriptsYaml {
   Map<String, dynamic>? variables() => {};
 }
 
-class _FakeVariables implements Variables {
-  @override
-  CWD get cwd => throw UnimplementedError();
-
-  @override
-  Map<String, String?> populate() {
-    throw UnimplementedError();
-  }
-
-  @override
-  PubspecYaml get pubspecYaml => throw UnimplementedError();
-
+class _FakeVariables extends Fake implements Variables {
   @override
   List<String> replace(
     Script script,
@@ -75,9 +72,13 @@ class _FakeVariables implements Variables {
   }) {
     return script.commands;
   }
+}
 
+class _MockLogger extends Mock implements Logger {}
+
+class _FakeCWD extends Fake implements CWD {
   @override
-  ScriptsYaml get scriptsYaml => throw UnimplementedError();
+  String get path => '/';
 }
 
 void main() {
@@ -87,11 +88,11 @@ void main() {
   setUp(() {
     argParser = ArgParser()..addFlag('list');
 
-    setupTestingDependencyInjection();
-
     command = _FakeCommand(
       scriptsYaml: _FakeScriptsYaml(),
       variables: _FakeVariables(),
+      cwd: _FakeCWD(),
+      logger: _MockLogger(),
     );
   });
 

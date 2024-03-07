@@ -1,30 +1,30 @@
-import 'package:sip_cli/setup/setup.dart';
+import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:sip_cli/utils/exit_code.dart';
-import 'package:sip_console/domain/sip_console.dart';
-import 'package:sip_console/utils/ansi.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
 class RunOneScript {
   const RunOneScript({
     required this.command,
     required this.bindings,
-    this.showOutput = true,
+    required this.logger,
+    required this.showOutput,
   });
 
   final CommandToRun command;
   final Bindings bindings;
   final bool showOutput;
+  final Logger logger;
 
   Future<ExitCode> run() async {
-    getIt<SipConsole>().l(darkGray.wrap(command.label) ?? command.label);
-
-    getIt<SipConsole>().v('Setting directory to ${command.workingDirectory}');
+    logger
+      ..info(darkGray.wrap(command.label) ?? command.label)
+      ..detail('Setting directory to ${command.workingDirectory}');
 
     final cmd = 'cd ${command.workingDirectory} && ${command.command}';
 
     final result = await bindings.runScript(cmd, showOutput: showOutput);
 
-    getIt<SipConsole>().v('Native exited with $result');
+    logger.detail('Native exited with $result');
 
     final codes = {
       ExitCode.success.code: ExitCode.success,

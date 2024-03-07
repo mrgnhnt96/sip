@@ -1,11 +1,7 @@
 import 'package:sip_script_runner/domain/optional_flags.dart';
 import 'package:test/test.dart';
 
-import '../../utils/setup_testing_dependency_injection.dart';
-
 void main() {
-  setUp(setupTestingDependencyInjection);
-
   group('$OptionalFlags', () {
     test('can parse single flag without values', () {
       final flags = OptionalFlags(const ['-f']);

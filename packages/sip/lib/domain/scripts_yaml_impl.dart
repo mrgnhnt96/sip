@@ -1,9 +1,10 @@
 import 'package:sip_cli/domain/find_yaml.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
-import 'package:sip_script_runner/utils/constants.dart';
 
 class ScriptsYamlImpl extends FindYaml implements ScriptsYaml {
-  const ScriptsYamlImpl();
+  const ScriptsYamlImpl({
+    required super.fs,
+  });
 
   @override
   Map<String, dynamic>? parse([String? fileName]) {

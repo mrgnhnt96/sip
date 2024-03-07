@@ -1,12 +1,14 @@
 import 'package:file/file.dart';
 import 'package:glob/glob.dart';
-import 'package:sip_cli/setup/setup.dart';
 
 class FindFile {
-  const FindFile();
+  const FindFile({
+    required this.fs,
+  });
+  final FileSystem fs;
 
   String? nearest(String fileName) {
-    Directory? directory = getIt<FileSystem>().currentDirectory;
+    Directory? directory = fs.currentDirectory;
 
     // traverse up the directory tree until we find a scripts.yaml file
     File? file;
@@ -39,7 +41,7 @@ class FindFile {
   }
 
   String? retrieveContent(String path) {
-    final file = getIt<FileSystem>().file(path);
+    final file = fs.file(path);
 
     if (!file.existsSync()) {
       return null;
@@ -49,7 +51,7 @@ class FindFile {
   }
 
   String? fileWithin(String fileName, String directoryPath) {
-    final directory = getIt<FileSystem>().directory(directoryPath);
+    final directory = fs.directory(directoryPath);
 
     final file = directory.childFile(fileName);
 
@@ -67,12 +69,12 @@ class FindFile {
   ) async {
     final children = <String>[];
 
-    final directory = getIt<FileSystem>().currentDirectory;
+    final directory = fs.currentDirectory;
 
     final glob = Glob('**/$fileName', recursive: true);
 
     final entities = glob.listFileSystemSync(
-      getIt(),
+      fs,
       followLinks: false,
       root: directory.path,
     );

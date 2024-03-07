@@ -2,15 +2,13 @@
 
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
+import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:sip_cli/domain/any_arg_parser.dart';
 import 'package:sip_cli/domain/run_many_scripts.dart';
 import 'package:sip_cli/domain/run_one_script.dart';
-import 'package:sip_cli/setup/setup.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/exit_code_extensions.dart';
 import 'package:sip_cli/utils/run_script_helper.dart';
-import 'package:sip_console/sip_console.dart';
-import 'package:sip_console/utils/ansi.dart' as pen;
 import 'package:sip_script_runner/sip_script_runner.dart';
 
 /// The command to run a script
@@ -19,6 +17,8 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     required this.scriptsYaml,
     required this.variables,
     required this.bindings,
+    required this.logger,
+    required this.cwd,
   }) : argParser = AnyArgParser() {
     addFlags();
 
@@ -38,7 +38,7 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     argParser.addFlag(
       'never-exit',
       negatable: false,
-      help: '!!${pen.red.wrap('USE WITH CAUTION')}!!!\n'
+      help: '!!${red.wrap('USE WITH CAUTION')}!!!\n'
           'After the script is done, the command will '
           'restart after a 1 second delay.\n'
           'This is useful for long running scripts that '
@@ -75,6 +75,10 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
   @override
   final Variables variables;
   final Bindings bindings;
+  @override
+  final Logger logger;
+  @override
+  final CWD cwd;
 
   @override
   String get description => 'Runs a script';
@@ -101,7 +105,7 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
         argResults['disable-concurrency'] as bool? ?? false;
 
     if (disableConcurrency) {
-      getIt<SipConsole>().w('Disabling all concurrent runs');
+      logger.warn('Disabling all concurrent runs');
     }
 
     final validateResult = await validate(keys);
@@ -129,20 +133,20 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
         );
 
     if (neverQuit) {
-      getIt<SipConsole>()
-        ..emptyLine()
-        ..w('Never exit is set, restarting after each run.')
-        ..w('To exit, press Ctrl+C or close the terminal.')
-        ..emptyLine();
+      logger
+        ..write('\n')
+        ..warn('Never exit is set, restarting after each run.')
+        ..warn('To exit, press Ctrl+C or close the terminal.')
+        ..write('\n');
 
       await Future<void>.delayed(const Duration(seconds: 3));
 
       while (true) {
         await runCommands();
 
-        getIt<SipConsole>()
-          ..w('Restarting in 1 second')
-          ..emptyLine();
+        logger
+          ..warn('Restarting in 1 second')
+          ..write('\n');
 
         await Future<void>.delayed(const Duration(seconds: 1));
       }
@@ -159,54 +163,59 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     required Iterable<CommandToRun> commands,
   }) async {
     if (!disableConcurrency && concurrent) {
-      getIt<SipConsole>().w('Running ${commands.length} scripts concurrently');
+      logger.warn('Running ${commands.length} scripts concurrently');
 
-      final exitCodes =
-          await RunManyScripts(commands: commands, bindings: bindings).run();
+      final exitCodes = await RunManyScripts(
+        commands: commands,
+        bindings: bindings,
+        logger: logger,
+      ).run();
 
-      exitCodes.printErrors(commands);
+      exitCodes.printErrors(commands, logger);
 
-      return exitCodes.exitCode;
+      return exitCodes.exitCode(logger);
     }
 
     if (bail) {
-      getIt<SipConsole>().w('Bail is set, stopping on first error');
+      logger.warn('Bail is set, stopping on first error');
     }
 
     ExitCode? failureExitCode;
 
     ExitCode? tryBail(List<ExitCode> exitCodes, List<CommandToRun> commands) {
-      getIt<SipConsole>().d('Checking for bail ($bail), bail: $exitCodes');
+      logger.detail('Checking for bail ($bail), bail: $exitCodes');
 
-      if (exitCodes.exitCode == ExitCode.success) return null;
-      failureExitCode ??= exitCodes.exitCode;
+      final exitCode = exitCodes.exitCode(logger);
+
+      if (exitCode == ExitCode.success) return null;
+      failureExitCode ??= exitCode;
 
       if (!bail) return null;
 
-      getIt<SipConsole>().e('Bailing...');
-      getIt<SipConsole>().emptyLine();
+      logger.err('Bailing...');
+      logger.write('\n');
 
-      return exitCodes.exitCode;
+      return exitCode;
     }
 
     final concurrentRuns = <CommandToRun>[];
     Future<ExitCode?> runMany() async {
       if (concurrentRuns.isEmpty) return null;
 
-      getIt<SipConsole>()
-          .w('Running ${concurrentRuns.length} scripts concurrently');
+      logger.warn('Running ${concurrentRuns.length} scripts concurrently');
 
       final exitCodes = await RunManyScripts(
         commands: concurrentRuns,
         bindings: bindings,
+        logger: logger,
       ).run();
 
-      exitCodes.printErrors(concurrentRuns);
+      exitCodes.printErrors(concurrentRuns, logger);
 
       final bailExitCode = tryBail(exitCodes, concurrentRuns);
       concurrentRuns.clear();
 
-      getIt<SipConsole>().emptyLine();
+      logger.write('\n');
 
       return bailExitCode;
     }
@@ -226,24 +235,26 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
       final exitCode = await RunOneScript(
         command: command,
         bindings: bindings,
+        logger: logger,
+        showOutput: true,
       ).run();
 
-      exitCode.printError(command);
+      exitCode.printError(command, logger);
 
-      getIt<SipConsole>().v('Ran script, exiting with: $exitCode');
+      logger.detail('Ran script, exiting with: $exitCode');
 
       if (tryBail([exitCode], [command]) case final ExitCode bailCode) {
         return bailCode;
       }
 
-      getIt<SipConsole>().emptyLine();
+      logger.write('\n');
     }
 
     if (await runMany() case final ExitCode exitCode) {
       return exitCode;
     }
 
-    getIt<SipConsole>().d('Success! Finished running scripts');
+    logger.detail('Success! Finished running scripts');
 
     return failureExitCode ?? ExitCode.success;
   }

@@ -1,8 +1,12 @@
 import 'package:path/path.dart' as path;
-import 'package:sip_console/domain/domain.dart';
-import 'package:sip_script_runner/setup.dart';
-import 'package:sip_script_runner/sip_script_runner.dart';
+import 'package:sip_script_runner/domain/cwd.dart';
+import 'package:sip_script_runner/domain/optional_flags.dart';
+import 'package:sip_script_runner/domain/pubspec_yaml.dart';
+import 'package:sip_script_runner/domain/script.dart';
+import 'package:sip_script_runner/domain/scripts_config.dart';
+import 'package:sip_script_runner/domain/scripts_yaml.dart';
 import 'package:sip_script_runner/utils/constants.dart';
+import 'package:sip_script_runner/utils/logger.dart';
 
 /// The variables that can be used in the scripts
 class Variables {
@@ -32,12 +36,12 @@ class Variables {
     final definedVariables = scriptsYaml.variables();
     for (final MapEntry(:key, :value) in (definedVariables ?? {}).entries) {
       if (value is! String) {
-        getIt<SipConsole>().w('Variable $key is not a string');
+        Logger.warn('Variable $key is not a string');
         continue;
       }
 
       if (Vars.values.contains(key)) {
-        getIt<SipConsole>().w('Variable $key is a reserved keyword');
+        Logger.warn('Variable $key is a reserved keyword');
         continue;
       }
 
@@ -62,13 +66,14 @@ class Variables {
         final wholeMatch = match.group(0)!;
 
         if (referencedVariable == null) {
-          getIt<SipConsole>().w('Variable $referencedVariable is not defined');
+          Logger.warn('Variable $referencedVariable is not defined');
           return null;
         }
 
         if (referencedVariable.startsWith(r'$')) {
-          getIt<SipConsole>()
-              .w('Variable $key is referencing a script, this is forbidden');
+          Logger.warn(
+            'Variable $key is referencing a script, this is forbidden',
+          );
           return null;
         }
 
@@ -81,7 +86,7 @@ class Variables {
         final referencedValue = variables[referencedVariable];
 
         if (referencedValue == null) {
-          getIt<SipConsole>().w('Variable $referencedVariable is not defined');
+          Logger.warn('Variable $referencedVariable is not defined');
           return null;
         }
 
@@ -91,8 +96,7 @@ class Variables {
           for (final match in variablePattern.allMatches(almostResolved)) {
             // check for circular references
             if (keyToCheckForCircular.contains(match.group(1))) {
-              getIt<SipConsole>()
-                  .w('Circular reference detected for variable $key');
+              Logger.warn('Circular reference detected for variable $key');
               return null;
             }
 

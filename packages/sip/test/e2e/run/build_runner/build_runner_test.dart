@@ -1,25 +1,26 @@
 import 'dart:io' as io;
 
 import 'package:file/file.dart';
+import 'package:file/memory.dart';
+import 'package:mason_logger/mason_logger.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/commands/script_run_command.dart';
-import 'package:sip_cli/setup/setup.dart';
+import 'package:sip_cli/domain/domain.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 import 'package:test/test.dart';
-
-import '../../../utils/setup_testing_dependency_injection.dart';
 
 void main() {
   group('build runner e2e', () {
     late FileSystem fs;
-    late MockBindings mockBindings;
+    late _MockBindings mockBindings;
+    late Logger mockLogger;
 
     setUp(() {
-      setupTestingDependencyInjection();
+      mockBindings = _MockBindings();
+      mockLogger = _MockLogger();
 
-      mockBindings = MockBindings();
-
-      fs = getIt<FileSystem>();
+      fs = MemoryFileSystem.test();
 
       final cwd = fs.directory(path.join('packages', 'sip'))
         ..createSync(recursive: true);
@@ -47,6 +48,14 @@ void main() {
 
       final command = ScriptRunCommand(
         bindings: mockBindings,
+        cwd: CWDImpl(fs: fs),
+        logger: mockLogger,
+        scriptsYaml: ScriptsYamlImpl(fs: fs),
+        variables: Variables(
+          cwd: CWDImpl(fs: fs),
+          pubspecYaml: PubspecYamlImpl(fs: fs),
+          scriptsYaml: ScriptsYamlImpl(fs: fs),
+        ),
       );
 
       await command.run(['build_runner', 'b']);
@@ -61,7 +70,7 @@ void main() {
   });
 }
 
-class MockBindings implements Bindings {
+class _MockBindings implements Bindings {
   final List<String> scripts = [];
 
   @override
@@ -70,3 +79,5 @@ class MockBindings implements Bindings {
     return Future.value(0);
   }
 }
+
+class _MockLogger extends Mock implements Logger {}

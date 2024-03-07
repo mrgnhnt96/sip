@@ -1,8 +1,10 @@
 import 'package:sip_cli/domain/find_yaml.dart';
-import 'package:sip_script_runner/domain/domain.dart';
+import 'package:sip_script_runner/sip_script_runner.dart';
 
 class PubspecYamlImpl extends FindYaml implements PubspecYaml {
-  const PubspecYamlImpl();
+  const PubspecYamlImpl({
+    required super.fs,
+  });
 
   @override
   Map<String, dynamic>? parse([String? fileName]) {

@@ -1,10 +1,8 @@
 import 'package:file/file.dart';
+import 'package:file/memory.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/domain/find_file.dart';
-import 'package:sip_cli/setup/setup.dart';
 import 'package:test/test.dart';
-
-import '../../utils/setup_testing_dependency_injection.dart';
 
 void main() {
   group('$FindFile', () {
@@ -12,11 +10,9 @@ void main() {
     late FileSystem fs;
 
     setUp(() {
-      setupTestingDependencyInjection();
+      fs = MemoryFileSystem.test();
 
-      fs = getIt<FileSystem>();
-
-      findFile = const FindFile();
+      findFile = FindFile(fs: fs);
     });
 
     group('#nearest', () {

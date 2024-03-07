@@ -3,21 +3,17 @@
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
+import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/domain/any_arg_parser.dart';
 import 'package:sip_cli/domain/find_file.dart';
-import 'package:sip_cli/domain/pubspec_lock_impl.dart';
-import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
 import 'package:sip_cli/domain/run_many_scripts.dart';
 import 'package:sip_cli/domain/run_one_script.dart';
 import 'package:sip_cli/domain/testable.dart';
-import 'package:sip_cli/setup/setup.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/exit_code_extensions.dart';
 import 'package:sip_cli/utils/write_optimized_test_file.dart';
-import 'package:sip_console/sip_console.dart';
-import 'package:sip_console/utils/ansi.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
 part '__both_args.dart';
@@ -30,6 +26,8 @@ class TestCommand extends Command<ExitCode> {
     required this.bindings,
     required this.pubspecLock,
     required this.findFile,
+    required this.fs,
+    required this.logger,
   }) {
     argParser.addFlag(
       'recursive',
@@ -79,16 +77,13 @@ class TestCommand extends Command<ExitCode> {
 
     argParser.addSeparator('Overlapping Flags:');
     _addBothArgs();
-
-    fs = getIt();
-    console = getIt();
   }
 
   static const String optimizedTestFileName = '.optimized_test.dart';
 
   final PubspecYaml pubspecYaml;
   late final FileSystem fs;
-  late final SipConsole console;
+  late final Logger logger;
   final Bindings bindings;
   final PubspecLock pubspecLock;
   final FindFile findFile;
@@ -111,7 +106,7 @@ class TestCommand extends Command<ExitCode> {
     }
 
     if (isRecursive) {
-      console.v('Running tests recursively');
+      logger.detail('Running tests recursively');
       final children = await pubspecYaml.children();
       pubspecs.addAll(children.map((e) => path.join(path.separator, e)));
     }
@@ -130,14 +125,16 @@ class TestCommand extends Command<ExitCode> {
     final testables = <String>[];
     final testableTool = <String, DetermineFlutterOrDart>{};
 
-    console
-        .v('Found ${pubspecs.length} pubspecs, checking for test directories');
+    logger.detail(
+      'Found ${pubspecs.length} pubspecs, checking for test directories',
+    );
     for (final pubspec in pubspecs) {
       final projectRoot = path.dirname(pubspec);
       final testDirectory = path.join(path.dirname(pubspec), 'test');
 
       if (!fs.directory(testDirectory).existsSync()) {
-        console.v('No test directory found in ${path.relative(projectRoot)}');
+        logger
+            .detail('No test directory found in ${path.relative(projectRoot)}');
         continue;
       }
 
@@ -257,31 +254,34 @@ class TestCommand extends Command<ExitCode> {
     required bool bail,
   }) async {
     if (runConcurrently) {
-      console.w('Running (${commandsToRun.length}) tests concurrently');
+      logger.warn('Running (${commandsToRun.length}) tests concurrently');
 
       for (final command in commandsToRun) {
-        console.v('Script: ${darkGray.wrap(command.command)}');
+        logger.detail('Script: ${darkGray.wrap(command.command)}');
       }
 
       final runMany = RunManyScripts(
         commands: commandsToRun,
         bindings: bindings,
+        logger: logger,
       );
 
       final exitCodes = await runMany.run();
 
-      exitCodes.printErrors(commandsToRun);
+      exitCodes.printErrors(commandsToRun, logger);
 
-      return exitCodes.exitCode;
+      return exitCodes.exitCode(logger);
     }
 
     ExitCode? exitCode;
 
     for (final command in commandsToRun) {
-      console.v(command.command);
+      logger.detail(command.command);
       final scriptRunner = RunOneScript(
         command: command,
         bindings: bindings,
+        logger: logger,
+        showOutput: true,
       );
 
       final exitCode0 = await scriptRunner.run();
@@ -318,18 +318,18 @@ class TestCommand extends Command<ExitCode> {
 
     if (isDartOnly || isFlutterOnly) {
       if (isDartOnly && !isFlutterOnly) {
-        console.l('Running only dart tests');
+        logger.info('Running only dart tests');
       } else if (isFlutterOnly && !isDartOnly) {
-        console.l('Running only flutter tests');
+        logger.info('Running only flutter tests');
       } else {
-        console.l('Running both dart and flutter tests');
+        logger.info('Running both dart and flutter tests');
       }
     }
 
     final pubspecs = await this.pubspecs(isRecursive: isRecursive);
 
     if (pubspecs.isEmpty) {
-      console.e('No pubspec.yaml files found');
+      logger.err('No pubspec.yaml files found');
       return ExitCode.unavailable;
     }
 
@@ -346,7 +346,7 @@ class TestCommand extends Command<ExitCode> {
         forTool = ' ';
         forTool += isDartOnly ? 'dart' : 'flutter';
       }
-      console.e('No$forTool tests found');
+      logger.err('No$forTool tests found');
       return ExitCode.unavailable;
     }
 
@@ -372,12 +372,12 @@ class TestCommand extends Command<ExitCode> {
     }
 
     if (exitCode != ExitCode.success) {
-      console.e('Tests failed');
+      logger.err('Tests failed');
     } else {
-      console.s('Tests passed');
+      logger.success('Tests passed');
     }
 
-    console.emptyLine();
+    logger.write('\n');
 
     return exitCode;
   }
