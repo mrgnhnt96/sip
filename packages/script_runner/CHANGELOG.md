@@ -1,3 +1,9 @@
+# 0.2.1 | 3/7/2024
+
+## Enhancements
+
+- Print first line of command before executing when running scripts non-concurrently
+
 # 0.2.0+1 | 3/7/2024
 
 ## Breaking Change
