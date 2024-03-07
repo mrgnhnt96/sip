@@ -41,11 +41,10 @@ class RunManyScripts {
 
     final done = logger.progress(getLabel());
 
-    await for (final exitCode in runner.asBroadcastStream()) {
+    await for (final exitCode in runner) {
       exitCodes.add(exitCode);
       if (exitCode != ExitCode.success && bail) {
-        done.fail();
-        return exitCodes;
+        break;
       }
 
       if (exitCodes.length < commands.length) {
