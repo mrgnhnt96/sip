@@ -9,7 +9,6 @@ compile-blob: sh packages/script_runner/scripts/compile_blob.sh {--platform} {--
 _packages:
   - cd packages/sip &&
   - cd packages/script_runner &&
-  - cd packages/console &&
 
 pana: "{$_packages} dart pub run pana"
 
