@@ -180,7 +180,12 @@ List<String>? _tryReadListOrString(dynamic json) {
   } else if (json is List) {
     final list = <String>[];
     for (final e in json) {
-      if (e is! String) continue;
+      if (e == null) continue;
+
+      if (e is! String) {
+        list.add('$e');
+        continue;
+      }
 
       final trimmed = e.trim();
       if (trimmed.isEmpty) continue;
