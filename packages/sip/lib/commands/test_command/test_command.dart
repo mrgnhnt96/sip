@@ -254,8 +254,6 @@ class TestCommand extends Command<ExitCode> {
     required bool bail,
   }) async {
     if (runConcurrently) {
-      logger.warn('Running (${commandsToRun.length}) tests concurrently');
-
       for (final command in commandsToRun) {
         logger.detail('Script: ${darkGray.wrap(command.command)}');
       }
