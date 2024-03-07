@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:sip_script_runner/domain/scripts_config.dart';
 import 'package:sip_script_runner/utils/constants.dart';
+import 'package:sip_script_runner/utils/logger.dart';
 
 part 'script.g.dart';
 
@@ -181,6 +182,12 @@ List<String>? _tryReadListOrString(dynamic json) {
     final list = <String>[];
     for (final e in json) {
       if (e == null) continue;
+      if (e is Map) {
+        Logger.err(
+          'The script "$e" is not a string or a list of strings',
+        );
+        continue;
+      }
 
       if (e is! String) {
         list.add('$e');

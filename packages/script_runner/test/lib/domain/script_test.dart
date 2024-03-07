@@ -186,6 +186,30 @@ void main() {
 
           expect(script.aliases, equals([]));
         });
+
+        test('can parse non-strings', () {
+          final script = Script.fromJson(
+            'script',
+            const {
+              Keys.aliases: [1, true],
+            },
+          );
+
+          expect(script.aliases, equals(['1', 'true']));
+        });
+
+        test('does not parse maps', () {
+          final script = Script.fromJson(
+            'script',
+            const {
+              Keys.aliases: [
+                {'key': 'value'},
+              ],
+            },
+          );
+
+          expect(script.aliases, equals([]));
+        });
       });
     });
   });
