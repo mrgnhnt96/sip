@@ -1,5 +1,5 @@
 name: sip_script_runner
-version: 0.1.2
+version: 0.1.2+1
 description: The core package for sip, used to parse and run project commands/scripts
 homepage: https://github.com/mrgnhnt96/sip
 repository: https://github.com/mrgnhnt96/sip/tree/main/packages/script_runner

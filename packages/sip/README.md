@@ -49,6 +49,20 @@ $ sip run build_runner build
 
 For more information on the `scripts.yaml` file, see the [scripts.yaml configuration](#scriptsyaml-configuration) section.
 
+### Continuous Commands
+
+Sometimes, you may want to run a command continuously, even if the command fails.
+
+For example: The `build_runner` package will always stop running whenever the project's dependencies change. To prevent this, you can use the `--never-exit` flag.
+
+```bash
+sip run build_runner watch --never-exit
+```
+
+This should be used with caution, as this will cause the script to run indefinitely. You can stop the script by pressing `Ctrl + C`.
+
+There is a 1 second delay between each run of the command, to prevent any runaway scripts.
+
 ## Pub Commands
 
 ### PUB GET
@@ -327,20 +341,6 @@ format:
     _hidden: dart format .
     (command): cd packages/ui && {$format:_hidden}
 ```
-
-### Continuous Commands
-
-Sometimes, you may want to run a command continuously, even if the command fails.
-
-For example: The `build_runner` package will always stop running whenever the project's dependencies change. To prevent this, you can use the `--never-exit` flag.
-
-```bash
-$ sip run build_runner watch --never-exit
-```
-
-This should be used with caution, as this will cause the script to run indefinitely. You can stop the script by pressing `Ctrl + C`.
-
-There is a 1 second delay between each run of the command, to prevent any runaway scripts.
 
 ### Bail
 
