@@ -1,5 +1,5 @@
 name: sip_cli
-version: 0.2.0
+version: 0.2.0+1
 description: Manage mono-repos with `sip`, run scripts and get dependencies concurrently.
 homepage: https://github.com/mrgnhnt96/sip
 repository: https://github.com/mrgnhnt96/sip/tree/main/packages/sip
@@ -20,7 +20,7 @@ dependencies:
   glob: ">=2.0.0 <3.0.0"
   mason_logger: ^0.2.8
   path: ">=1.8.0 <2.0.0"
-  sip_script_runner: ">=0.0.1 <0.2.0"
+  sip_script_runner: ">=0.0.1 <1.0.0"
   yaml: ">=3.0.0 <4.0.0"
 
 dev_dependencies:

@@ -1,5 +1,5 @@
 name: sip_script_runner
-version: 0.2.0
+version: 0.2.0+1
 description: The core package for sip, used to parse and run project commands/scripts
 homepage: https://github.com/mrgnhnt96/sip
 repository: https://github.com/mrgnhnt96/sip/tree/main/packages/script_runner
@@ -18,7 +18,6 @@ dependencies:
   autoequal: ">=0.9.0 <1.0.0"
   equatable: ">=2.0.0 <3.0.0"
   ffi: ">=2.0.0 <3.0.0"
-  get_it: ">=7.0.0 <8.0.0"
   json_annotation: ">=4.0.0 <5.0.0"
   path: ">=1.8.0 <2.0.0"
   yaml: ">=3.0.0 <4.0.0"

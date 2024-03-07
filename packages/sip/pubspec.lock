@@ -241,14 +241,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.2.0"
-  get_it:
-    dependency: transitive
-    description:
-      name: get_it
-      sha256: e6017ce7fdeaf218dc51a100344d8cb70134b80e28b760f8bb23c242437bafd7
-      url: "https://pub.dev"
-    source: hosted
-    version: "7.6.7"
   glob:
     dependency: "direct main"
     description:
@@ -503,7 +495,7 @@ packages:
       path: "../script_runner"
       relative: true
     source: path
-    version: "0.2.0"
+    version: "0.2.0+1"
   source_map_stack_trace:
     dependency: transitive
     description:
