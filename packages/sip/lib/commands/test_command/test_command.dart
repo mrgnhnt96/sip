@@ -239,8 +239,8 @@ class TestCommand extends Command<ExitCode> {
         CommandToRun(
           command: script,
           workingDirectory: projectRoot,
-          label: label,
           keys: null,
+          label: label,
         ),
       );
     }
@@ -266,7 +266,7 @@ class TestCommand extends Command<ExitCode> {
         logger: logger,
       );
 
-      final exitCodes = await runMany.run();
+      final exitCodes = await runMany.run(label: 'Running tests');
 
       exitCodes.printErrors(commandsToRun, logger);
 
@@ -284,10 +284,23 @@ class TestCommand extends Command<ExitCode> {
         showOutput: true,
       );
 
-      final exitCode0 = await scriptRunner.run();
+      final stopwatch = Stopwatch()..start();
 
-      if (exitCode0 != ExitCode.success) {
-        exitCode = exitCode0;
+      logger.info(darkGray.wrap(command.label));
+
+      final result = await scriptRunner.run();
+
+      stopwatch.stop();
+
+      final seconds = stopwatch.elapsed.inMilliseconds / 1000;
+      final time = '${seconds.toStringAsPrecision(1)}s';
+
+      logger
+        ..info('Finished in ${cyan.wrap(time)}')
+        ..write('\n');
+
+      if (result != ExitCode.success) {
+        exitCode = result;
 
         if (bail) {
           return exitCode;
@@ -367,14 +380,20 @@ class TestCommand extends Command<ExitCode> {
       bail: argResults['bail'] as bool,
     );
 
+    logger.write('\n');
+
     if (argResults['clean'] as bool) {
+      final done = logger.progress('Cleaning up optimized test files');
+
       cleanUp(optimizedFiles.keys);
+
+      done.complete();
     }
 
     if (exitCode != ExitCode.success) {
-      logger.err('Tests failed');
+      logger.err('❌ Some tests failed');
     } else {
-      logger.success('Tests passed');
+      logger.write('${green.wrap('✔')} Tests passed');
     }
 
     logger.write('\n');

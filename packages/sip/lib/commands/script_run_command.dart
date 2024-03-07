@@ -47,23 +47,10 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
 
     argParser.addFlag(
       'concurrent',
-      aliases: ['parallel'],
+      aliases: ['parallel', 'c', 'p'],
       abbr: 'c',
-      negatable: false,
-      help: 'Runs all scripts concurrently',
-    );
-
-    argParser.addFlag(
-      'disable-concurrency',
-      aliases: [
-        'no-concurrent',
-        'no-parallel',
-        'no-c',
-        'no-p',
-        'disable-concurrent',
-      ],
-      negatable: false,
-      help: 'Disable all concurrent runs, even if set in the scripts.yaml',
+      help: 'Runs all scripts concurrently. --no-concurrent will turn off '
+          'concurrency even if set in the scripts.yaml',
     );
   }
 
@@ -101,8 +88,9 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
 
     final keys = args ?? argResults.rest;
 
+    final concurrent = argResults['concurrent'] == true;
     final disableConcurrency =
-        argResults['disable-concurrency'] as bool? ?? false;
+        argResults.wasParsed('concurrent') && !concurrent;
 
     if (disableConcurrency) {
       logger.warn('Disabling all concurrent runs');
@@ -122,7 +110,6 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     commands!;
 
     bail ^= argResults['bail'] as bool? ?? false;
-    final concurrent = argResults['concurrent'] == true;
 
     Future<ExitCode> runCommands() => _run(
           argResults: argResults,
@@ -163,13 +150,11 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     required Iterable<CommandToRun> commands,
   }) async {
     if (!disableConcurrency && concurrent) {
-      logger.warn('Running ${commands.length} scripts concurrently');
-
       final exitCodes = await RunManyScripts(
         commands: commands,
         bindings: bindings,
         logger: logger,
-      ).run();
+      ).run(label: 'Running ${commands.length} scripts concurrently');
 
       exitCodes.printErrors(commands, logger);
 
@@ -199,16 +184,32 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     }
 
     final concurrentRuns = <CommandToRun>[];
+    var step = 0;
     Future<ExitCode?> runMany() async {
       if (concurrentRuns.isEmpty) return null;
 
-      logger.warn('Running ${concurrentRuns.length} scripts concurrently');
+      String stepString;
+      if (concurrentRuns.length == 1) {
+        stepString = 'step $step';
+      } else {
+        final firstStep = step - concurrentRuns.length + 1;
+        stepString = 'steps $firstStep-$step';
+      }
+
+      stepString = yellow.wrap(stepString)!;
+
+      var label = '';
+      label += 'Running ';
+      label += '($stepString)';
+      label += darkGray.wrap(' concurrently')!;
+
+      logger.write(darkGray.wrap('---'));
 
       final exitCodes = await RunManyScripts(
         commands: concurrentRuns,
         bindings: bindings,
         logger: logger,
-      ).run();
+      ).run(label: label);
 
       exitCodes.printErrors(concurrentRuns, logger);
 
@@ -221,6 +222,7 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     }
 
     for (final command in commands) {
+      step++;
       if (!disableConcurrency) {
         if (command.runConcurrently) {
           concurrentRuns.add(command);

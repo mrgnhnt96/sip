@@ -97,7 +97,7 @@ abstract class APubCommand extends Command<ExitCode> {
       );
 
       final padding = max('flutter'.length, tool.length) - tool.length;
-      var toolString = '($tool)';
+      var toolString = '(${cyan.wrap(tool)})';
       toolString = darkGray.wrap(toolString) ?? toolString;
       toolString = toolString.padRight(padding + toolString.length);
 
@@ -123,10 +123,9 @@ abstract class APubCommand extends Command<ExitCode> {
         logger: logger,
       );
 
-      logger
-          .info('Running ${lightCyan.wrap('pub $name ${pubFlags.join(' ')}')}');
-
-      final exitCodes = await runMany.run();
+      final exitCodes = await runMany.run(
+        label: 'Running ${lightCyan.wrap('pub $name ${pubFlags.join(' ')}')}',
+      );
 
       exitCodes.printErrors(commands, logger);
 

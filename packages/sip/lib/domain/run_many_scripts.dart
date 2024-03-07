@@ -14,25 +14,50 @@ class RunManyScripts {
   final Iterable<CommandToRun> commands;
   final Logger logger;
 
-  Future<List<ExitCode>> run() async {
-    final result = await _run(commands);
+  Future<List<ExitCode>> run({String? label}) async {
+    final result = await _run(commands, label: label ?? 'Running scripts');
 
     return result;
   }
 
-  Future<List<ExitCode>> _run(Iterable<CommandToRun> commands) async {
+  Future<List<ExitCode>> _run(
+    Iterable<CommandToRun> commands, {
+    required String label,
+  }) async {
     logger.write('\n');
 
-    final exitCodes = await Future.wait(
-      commands.map(
-        (e) => RunOneScript(
-          command: e,
+    final toRun = <Future<ExitCode>>[];
+    for (final command in commands) {
+      toRun.add(
+        RunOneScript(
+          command: command,
           bindings: bindings,
-          showOutput: false,
           logger: logger,
+          showOutput: false,
         ).run(),
-      ),
-    );
+      );
+
+      String label;
+      final lines = command.label.split('\n');
+      if (lines.length > 2) {
+        label = [lines.first, '...'].join('\n');
+      } else {
+        label = command.label;
+      }
+      logger.info(darkGray.wrap(label));
+    }
+
+    logger.write('\n');
+
+    final done = logger.progress(label);
+
+    final exitCodes = await Future.wait(toRun);
+
+    if (exitCodes.any((code) => code != ExitCode.success)) {
+      done.fail();
+    } else {
+      done.complete();
+    }
 
     return exitCodes;
   }

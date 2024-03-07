@@ -16,9 +16,7 @@ class RunOneScript {
   final Logger logger;
 
   Future<ExitCode> run() async {
-    logger
-      ..info(darkGray.wrap(command.label) ?? command.label)
-      ..detail('Setting directory to ${command.workingDirectory}');
+    logger.detail('Setting directory to ${command.workingDirectory}');
 
     final cmd = 'cd ${command.workingDirectory} && ${command.command}';
 
