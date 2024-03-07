@@ -221,6 +221,18 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
           }
         }
 
+        logger.write(darkGray.wrap('---\n'));
+        final lines = command.label.split('\n');
+        String label;
+
+        if (lines.length > 1) {
+          label = [lines.first, '...'].join('\n');
+        } else {
+          label = command.label;
+        }
+
+        logger.info(darkGray.wrap(label));
+
         final exitCode = await RunOneScript(
           command: command,
           bindings: bindings,
