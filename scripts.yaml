@@ -13,8 +13,8 @@ _packages:
 
 pana: "{$_packages} dart pub run pana"
 
-format: '{$_packages} dart format .'
-analyze: '{$_packages} dart analyze .'
+format: "{$_packages} dart format ."
+analyze: "{$_packages} dart analyze ."
 
 prep:
   (command):

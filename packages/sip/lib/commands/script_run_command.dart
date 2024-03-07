@@ -13,6 +13,7 @@ import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/exit_code_extensions.dart';
 import 'package:sip_cli/utils/run_script_helper.dart';
 import 'package:sip_console/sip_console.dart';
+import 'package:sip_console/utils/ansi.dart' as pen;
 import 'package:sip_script_runner/sip_script_runner.dart';
 
 /// The command to run a script
@@ -39,6 +40,16 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
       'bail',
       negatable: false,
       help: 'Stop on first error',
+    );
+
+    argParser.addFlag(
+      'never-exit',
+      negatable: false,
+      help: '!!${pen.red.wrap('USE WITH CAUTION')}!!!\n'
+          'After the script is done, the command will '
+          'restart after a 1 second delay.\n'
+          'This is useful for long running scripts that '
+          'should always be running.',
     );
 
     argParser.addFlag(
@@ -83,6 +94,31 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
 
   @override
   Future<ExitCode> run([List<String>? args]) async {
+    final argResults = argParser.parse(args ?? this.argResults?.rest ?? []);
+    final neverQuit = argResults['never-exit'] as bool? ?? false;
+
+    if (neverQuit) {
+      getIt<SipConsole>()
+        ..emptyLine()
+        ..w('Never exit is set, restarting after each run.')
+        ..w('To exit, press Ctrl+C or close the terminal.')
+        ..emptyLine();
+
+      while (true) {
+        await _run(args);
+
+        getIt<SipConsole>()
+          ..w('Restarting in 1 second')
+          ..emptyLine();
+
+        await Future<void>.delayed(const Duration(seconds: 1));
+      }
+    }
+
+    return _run(args);
+  }
+
+  Future<ExitCode> _run([List<String>? args]) async {
     final argResults = argParser.parse(args ?? this.argResults?.rest ?? []);
 
     if (argResults['help'] as bool? ?? false) {

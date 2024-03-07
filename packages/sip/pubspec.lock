@@ -511,14 +511,14 @@ packages:
       path: "../console"
       relative: true
     source: path
-    version: "0.1.1"
+    version: "0.1.2"
   sip_script_runner:
     dependency: "direct main"
     description:
       path: "../script_runner"
       relative: true
     source: path
-    version: "0.1.1"
+    version: "0.1.2"
   source_map_stack_trace:
     dependency: transitive
     description:

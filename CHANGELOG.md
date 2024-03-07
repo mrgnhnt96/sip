@@ -1,3 +1,14 @@
+# 0.1.2 | 3/6/2024
+
+## Features
+
+- Add `--never-exit` flag to `sip run` command
+  - This will prevent the command from ever exiting, even if a command fails
+  - This is useful for running a command that will be restarted by another process
+    - For example, build_runner will stop running whenever the project's dependencies change
+  - Please use with Caution! There is a second delay between each command run to prevent a runaway process
+  - The process can be stopped by pressing `ctrl+c`
+
 # 0.1.1 | 3/5/2024
 
 ## Enhancements
