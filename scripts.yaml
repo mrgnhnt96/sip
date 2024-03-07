@@ -17,27 +17,27 @@ analyze: "{$_packages} dart analyze ."
 
 barrel: cd packages/sip && dart run barreler build
 
+clean: find . -name ".dart_tool" -type d -exec rm -rf {} +
+
 prep:
   (command):
-    - "{$install}"
     - (+) {$format} --set-exit-if-changed
     - (+) {$analyze} --fatal-infos --fatal-warnings
-    - "{$prep:_build}"
+    - (+) {$prep:pubspecs}
+    - "{$_packages} dart run build_runner build --delete-conflicting-outputs"
+    - |
+      # make sure we are on the same version
+      version=$(grep -m 1 "# " CHANGELOG.md | awk '{print $2}')
+      SIP_VERSION=$(sip --version)
+      if [ "$version" != "$SIP_VERSION" ]; then
+        echo "Version mismatch: CHANGELOG.md: $version, sip: $SIP_VERSION"
+        exit 1
+      fi
     - (+) {$prep:changelog}
     - (+) {$prep:license}
     - (+) {$prep:readme}
-    - (+) {$prep:pubspecs}
     - (+) {$prep:assets}
     - sip pub get -r
-  _build:
-    clean: sip run build_runner clean
-    build: sip run build_runner build only
-    (command):
-      - echo "Running build_runner clean in all packages"
-      - (+) {$_packages} {$prep:_build:clean}
-      - echo "Running build_runner build in all packages"
-      - (+) {$_packages} {$prep:_build:build}
-      - echo "build_runner complete"
   changelog: |
     echo "Copying CHANGELOG.md to all packages"
     for dir in $(ls -d packages/*); do

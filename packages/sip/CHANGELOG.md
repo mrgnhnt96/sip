@@ -1,3 +1,29 @@
+# 0.2.0 | 3/7/2024
+
+## Breaking Change
+
+- Remove `--disable-concurrency` in the sip run command
+  - in favor of `--no-concurrent` flag
+  - This is in efforts to keep the flag names consistent
+- Dropping use of `sip_console` in favor of `mason_logger`
+
+## Features
+
+- Update logging to be more consistent
+- Add stopwatch to print statements
+- Handle non-null non-string values in script definitions
+  - ints & bools for example
+  - Maps are not supported however
+
+## Enhancements
+
+- Use stream controller instead of `Future.wait` to run concurrent commands
+  - Better control over commands
+  - The ability to bail faster on failure
+- Drop use of get_it for dependency injection
+  - This was overkill 😅
+- Ensure that script exists before running with `--never-exit` flag
+
 # 0.1.2+1 | 3/6/2024
 
 ## Features
