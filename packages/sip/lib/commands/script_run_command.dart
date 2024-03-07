@@ -97,30 +97,6 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     final argResults = argParser.parse(args ?? this.argResults?.rest ?? []);
     final neverQuit = argResults['never-exit'] as bool? ?? false;
 
-    if (neverQuit) {
-      getIt<SipConsole>()
-        ..emptyLine()
-        ..w('Never exit is set, restarting after each run.')
-        ..w('To exit, press Ctrl+C or close the terminal.')
-        ..emptyLine();
-
-      while (true) {
-        await _run(args);
-
-        getIt<SipConsole>()
-          ..w('Restarting in 1 second')
-          ..emptyLine();
-
-        await Future<void>.delayed(const Duration(seconds: 1));
-      }
-    }
-
-    return _run(args);
-  }
-
-  Future<ExitCode> _run([List<String>? args]) async {
-    final argResults = argParser.parse(args ?? this.argResults?.rest ?? []);
-
     if (argResults['help'] as bool? ?? false) {
       printUsage();
       return ExitCode.success;
@@ -148,7 +124,48 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     assert(commands != null, 'commands should not be null');
     commands!;
 
-    if (!disableConcurrency && argResults['concurrent'] == true) {
+    bail ^= argResults['bail'] as bool? ?? false;
+    final concurrent = argResults['concurrent'] == true;
+
+    Future<ExitCode> runCommands() => _run(
+          argResults: argResults,
+          bail: bail,
+          concurrent: concurrent,
+          disableConcurrency: disableConcurrency,
+          commands: commands,
+        );
+
+    if (neverQuit) {
+      getIt<SipConsole>()
+        ..emptyLine()
+        ..w('Never exit is set, restarting after each run.')
+        ..w('To exit, press Ctrl+C or close the terminal.')
+        ..emptyLine();
+
+      await Future<void>.delayed(const Duration(seconds: 3));
+
+      while (true) {
+        await runCommands();
+
+        getIt<SipConsole>()
+          ..w('Restarting in 1 second')
+          ..emptyLine();
+
+        await Future<void>.delayed(const Duration(seconds: 1));
+      }
+    }
+
+    return runCommands();
+  }
+
+  Future<ExitCode> _run({
+    required ArgResults argResults,
+    required bool bail,
+    required bool concurrent,
+    required bool disableConcurrency,
+    required Iterable<CommandToRun> commands,
+  }) async {
+    if (!disableConcurrency && concurrent) {
       getIt<SipConsole>().w('Running ${commands.length} scripts concurrently');
 
       final exitCodes =
@@ -158,8 +175,6 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
 
       return exitCodes.exitCode;
     }
-
-    bail ^= argResults['bail'] as bool? ?? false;
 
     if (bail) {
       getIt<SipConsole>().w('Bail is set, stopping on first error');
