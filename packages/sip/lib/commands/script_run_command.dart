@@ -9,6 +9,7 @@ import 'package:sip_cli/domain/run_one_script.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/exit_code_extensions.dart';
 import 'package:sip_cli/utils/run_script_helper.dart';
+import 'package:sip_cli/utils/stopwatch_extensions.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
 /// The command to run a script
@@ -262,10 +263,9 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
 
     final exitCode = await runScripts();
 
-    stopwatch.stop();
-    final seconds = (stopwatch.elapsedMilliseconds / 1000).toStringAsFixed(1);
+    final time = (stopwatch..stop()).format();
 
-    logger.info(darkGray.wrap('Finished in ${seconds}s'));
+    logger.info(darkGray.wrap('Finished in $time'));
 
     if (exitCode != ExitCode.success) {
       logger.err('Finished running scripts with errors');

@@ -13,6 +13,7 @@ import 'package:sip_cli/domain/testable.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/exit_code_extensions.dart';
+import 'package:sip_cli/utils/stopwatch_extensions.dart';
 import 'package:sip_cli/utils/write_optimized_test_file.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
@@ -301,10 +302,7 @@ class TestCommand extends Command<ExitCode> {
 
       final result = await scriptRunner.run();
 
-      stopwatch.stop();
-
-      final seconds = stopwatch.elapsed.inMilliseconds / 1000;
-      final time = '${seconds.toStringAsPrecision(1)}s';
+      final time = (stopwatch..stop()).format();
 
       logger
         ..info('Finished in ${cyan.wrap(time)}')
