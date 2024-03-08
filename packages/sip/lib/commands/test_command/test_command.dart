@@ -444,8 +444,6 @@ class TestCommand extends Command<ExitCode> {
       dartArgs: dartArgs,
     );
 
-    logger.write('\n');
-
     final exitCode = await runCommands(
       commandsToRun,
       runConcurrently: argResults['concurrent'] as bool,
@@ -459,7 +457,7 @@ class TestCommand extends Command<ExitCode> {
 
       cleanUp(tests.keys);
 
-      done.complete();
+      done.complete('Optimized test files cleaned!');
     }
 
     if (exitCode != ExitCode.success) {
