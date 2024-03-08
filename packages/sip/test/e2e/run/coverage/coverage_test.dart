@@ -108,4 +108,7 @@ class _MockBindings implements Bindings {
   }
 }
 
-class _MockLogger extends Mock implements Logger {}
+class _MockLogger extends Mock implements Logger {
+  @override
+  Level get level => Level.quiet;
+}

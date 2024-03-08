@@ -39,7 +39,7 @@ mixin RunScriptHelper on Command<ExitCode> {
     if (keys == null || keys.isEmpty) {
       const warning = 'No script specified, choose from:';
       logger
-        ..warn(lightYellow.wrap(warning) ?? warning)
+        ..warn(lightYellow.wrap(warning))
         ..write('\n');
 
       return ListCommand(
@@ -94,6 +94,11 @@ $ sip format ui
   ) {
     final flagStartAt = keys.indexWhere((e) => e.startsWith('-'));
     final scriptKeys = keys.sublist(0, flagStartAt == -1 ? null : flagStartAt);
+
+    if (scriptKeys.isEmpty) {
+      logger.err('No script specified');
+      return (ExitCode.config, null, null);
+    }
 
     final content = scriptsYaml.scripts();
     if (content == null) {

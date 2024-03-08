@@ -16,6 +16,9 @@ class _MockLogger extends Mock implements Logger {
   Progress progress(String message, {ProgressOptions? options}) {
     return _MockProgress();
   }
+
+  @override
+  Level get level => Level.quiet;
 }
 
 class _MockProgress extends Mock implements Progress {}

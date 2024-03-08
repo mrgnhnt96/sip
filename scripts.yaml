@@ -19,20 +19,26 @@ barrel: cd packages/sip && dart run barreler build
 
 clean: find . -name ".dart_tool" -type d -exec rm -rf {} +
 
+build: (+) {$_packages} dart run build_runner build --delete-conflicting-outputs
+
 prep:
   (command):
     - (+) {$format} --set-exit-if-changed
     - (+) {$analyze} --fatal-infos --fatal-warnings
     - (+) {$prep:pubspecs}
-    - "{$_packages} dart run build_runner build --delete-conflicting-outputs"
     - |
-      # make sure we are on the same version
-      version=$(grep -m 1 "# " CHANGELOG.md | awk '{print $2}')
-      SIP_VERSION=$(sip --version)
-      if [ "$version" != "$SIP_VERSION" ]; then
-        echo "Version mismatch: CHANGELOG.md: $version, sip: $SIP_VERSION"
+      # make sure that the changelog version is the same as packages/sip/lib/src/version.dart
+      version=$(grep -m 1 "const packageVersion" packages/sip/lib/src/version.dart | awk -F "'" '{print $2}')
+      changelogVersion=$(grep -m 1 "# " CHANGELOG.md | awk '{print $2}')
+
+      if [ "$version" != "$changelogVersion" ]; then
+        echo "Version in lib/src/version.dart ($version) does not match the version in CHANGELOG.md ($changelogVersion)"
+        echo "Please run sip run build to update the version in CHANGELOG.md and lib/src/version.dart"
         exit 1
       fi
+
+      echo "ChangeLog and version.dart are in sync ($version)"
+    - echo
     - (+) {$prep:changelog}
     - (+) {$prep:license}
     - (+) {$prep:readme}

@@ -1,14 +1,14 @@
-// ignore_for_file: cascade_invocations
-
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
+import 'package:pub_updater/pub_updater.dart';
 import 'package:sip_cli/commands/list_command.dart';
 import 'package:sip_cli/commands/pub_command.dart';
 import 'package:sip_cli/commands/script_run_command.dart';
 import 'package:sip_cli/commands/test_command/test_command.dart';
-import 'package:sip_cli/domain/find_file.dart';
+import 'package:sip_cli/commands/update_command.dart';
+import 'package:sip_cli/domain/domain.dart';
 import 'package:sip_cli/src/version.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
@@ -24,23 +24,35 @@ class SipRunner extends CommandRunner<ExitCode> {
     required FindFile findFile,
     required FileSystem fs,
     required CWD cwd,
+    required PubUpdater pubUpdater,
     required this.logger,
   }) : super(
           'sip',
           'A command line application to handle mono-repos in dart',
         ) {
-    argParser.addFlag(
-      'version',
-      negatable: false,
-      help: 'Print the current version',
-    );
-
-    argParser.addFlag(
-      'loud',
-      negatable: false,
-      hide: true,
-      help: 'Prints verbose output',
-    );
+    argParser
+      ..addFlag(
+        'version',
+        negatable: false,
+        help: 'Print the current version',
+      )
+      ..addFlag(
+        'loud',
+        negatable: false,
+        hide: true,
+        help: 'Prints verbose output',
+      )
+      ..addFlag(
+        'quiet',
+        negatable: false,
+        hide: true,
+        help: 'Prints no output',
+      )
+      ..addFlag(
+        'version-check',
+        defaultsTo: true,
+        help: 'Do not check for new versions of sip_cli',
+      );
 
     addCommand(
       ScriptRunCommand(
@@ -68,6 +80,12 @@ class SipRunner extends CommandRunner<ExitCode> {
       ),
     );
     addCommand(
+      updateCommand = UpdateCommand(
+        pubUpdater: pubUpdater,
+        logger: logger,
+      ),
+    );
+    addCommand(
       TestCommand(
         pubspecYaml: pubspecYaml,
         pubspecLock: pubspecLock,
@@ -80,18 +98,65 @@ class SipRunner extends CommandRunner<ExitCode> {
   }
 
   final Logger logger;
+  late final UpdateCommand updateCommand;
 
   @override
   Future<ExitCode> run(Iterable<String> args) async {
+    ExitCode exitCode;
+
     try {
       final argResults = parse(args);
 
-      final exitCode = await runCommand(argResults);
+      logger.detail('VERSION CHECK: ${argResults['version-check']}');
 
-      return exitCode;
-    } catch (error) {
-      logger.err('$error');
-      return ExitCode.software;
+      exitCode = await runCommand(argResults);
+    } catch (error, stack) {
+      logger
+        ..err('$error')
+        ..detail('$stack');
+      exitCode = ExitCode.software;
+    } finally {
+      final anyResult = (AnyArgParser()
+            ..addFlag(
+              'version-check',
+              defaultsTo: true,
+            ))
+          .parse(args);
+
+      if (anyResult['version-check'] as bool) {
+        logger.detail('Checking for updates');
+        await checkForUpdate();
+      } else {
+        logger.detail('Skipping version check');
+      }
+    }
+
+    return exitCode;
+  }
+
+  Future<void> checkForUpdate() async {
+    final (needsUpdate, latestVersion) = await updateCommand.needsUpdate();
+
+    if (needsUpdate) {
+      const changelog =
+          'https://github.com/mrgnhnt96/sip/blob/main/packages/sip/CHANGELOG.md';
+
+      final package = cyan.wrap('sip_cli');
+      final currentVersion = red.wrap(packageVersion);
+      final updateToVersion = green.wrap(latestVersion);
+      final updateCommand = yellow.wrap('sip update');
+      final changelogLink = darkGray.wrap('Changelog: $changelog');
+
+      final message = '''
+ ┌─────────────────────────────────────────────────────────────────────────────────┐ 
+ │ New update for $package is available!                                            │ 
+ │ You are using $currentVersion, the latest is $updateToVersion.                                       │ 
+ │ Run `$updateCommand` to update to the latest version.                               │ 
+ │ $changelogLink │ 
+ └─────────────────────────────────────────────────────────────────────────────────┘ 
+''';
+
+      logger.write(message);
     }
   }
 

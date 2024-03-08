@@ -20,7 +20,12 @@ class RunOneScript {
 
     final cmd = 'cd ${command.workingDirectory} && ${command.command}';
 
-    final result = await bindings.runScript(cmd, showOutput: showOutput);
+    var printOutput = showOutput;
+    if (logger.level == Level.quiet) {
+      printOutput = false;
+    }
+
+    final result = await bindings.runScript(cmd, showOutput: printOutput);
 
     logger.detail('Native exited with $result');
 

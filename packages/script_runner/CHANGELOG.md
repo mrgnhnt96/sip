@@ -1,3 +1,15 @@
+# 0.2.2 | 3/8/2024
+
+## Features
+
+- Support `--no-optimize` flag in `sip test` command
+- Add `--quiet` flag to silence output from `sip` commands
+  - This will even silence the output from the commands being run
+- Add `sip update` command
+  - This will update the `sip_cli` package to the latest version
+
+## Fix
+
 # 0.2.1 | 3/7/2024
 
 ## Enhancements

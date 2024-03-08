@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:file/local.dart';
 import 'package:mason_logger/mason_logger.dart';
+import 'package:pub_updater/pub_updater.dart';
 import 'package:sip_cli/domain/domain.dart';
 import 'package:sip_cli/sip_runner.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
@@ -56,9 +57,10 @@ void main(List<String> _) async {
     fs: fs,
     logger: logger,
     cwd: cwd,
+    pubUpdater: PubUpdater(),
   ).run(args);
 
-  logger.detail('[$args] Finishing with: $exitCode');
+  logger.detail('$args Finishing with: $exitCode');
 
   exit(exitCode.code);
 }
