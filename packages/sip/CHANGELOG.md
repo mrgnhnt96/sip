@@ -1,3 +1,11 @@
+# 0.2.4 | 3/8/2024
+
+## Enhancements
+
+- Update logging for test directory
+- Better handle test directories that do not contain tests
+- Speed up recursive search for test directories using [`glob`](https://pub.dev/packages/glob)
+
 # 0.2.3+1 | 3/8/2024
 
 ## Fix
