@@ -1,3 +1,10 @@
+# 0.2.3 | 3/8/2024
+
+## Fix
+
+- Fix issue where `--no-optimize` ran each test file individually
+- Fix stopwatch stamp formatting
+
 # 0.2.2 | 3/8/2024
 
 ## Features
