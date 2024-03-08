@@ -447,6 +447,46 @@ void main() {
       );
     });
 
+    group('#getTests', () {
+      test('should return optimized tests when optimizing', () {
+        fs.file('test/some_test.dart').createSync(recursive: true);
+
+        final tests = testCommand.getTests(
+          ['test'],
+          {'test': _FakeDetermineFlutterOrDart.dart()},
+          optimize: true,
+        );
+
+        expect(tests.length, 1);
+        expect(tests.keys.first, 'test/.optimized_test.dart');
+      });
+
+      test('should return all tests when not optimizing', () {
+        fs.file('test/some_test.dart').createSync(recursive: true);
+
+        final tests = testCommand.getTests(
+          ['test'],
+          {'test': _FakeDetermineFlutterOrDart.dart()},
+          optimize: false,
+        );
+
+        expect(tests.length, 1);
+        expect(tests.keys.first, 'test');
+      });
+
+      test(
+          'should not return tests when no '
+          'tests are found and not optimizing', () {
+        final tests = testCommand.getTests(
+          ['test'],
+          {'test': _FakeDetermineFlutterOrDart.dart()},
+          optimize: false,
+        );
+
+        expect(tests.length, 0);
+      });
+    });
+
     group('#runCommands', () {
       test('should run commands', () async {
         when(

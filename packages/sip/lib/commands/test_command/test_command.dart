@@ -3,6 +3,7 @@
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
+import 'package:glob/glob.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/domain/any_arg_parser.dart';
@@ -166,22 +167,21 @@ class TestCommand extends Command<ExitCode> {
   }
 
   Map<String, DetermineFlutterOrDart> writeOptimizedFiles(
-    List<String> testables,
-    Map<String, DetermineFlutterOrDart> testableTool,
+    List<String> testDirs,
+    Map<String, DetermineFlutterOrDart> dirTools,
   ) {
     final optimizedFiles = <String, DetermineFlutterOrDart>{};
 
-    for (final testable in testables) {
-      final allFiles =
-          fs.directory(testable).listSync(recursive: true, followLinks: false);
+    for (final testDir in testDirs) {
+      final allFiles = Glob(path.join('**_test.dart'))
+          .listFileSystemSync(fs, followLinks: false, root: testDir);
 
       final testFiles = <String>[];
 
       for (final file in allFiles) {
+        if (file is! File) continue;
+
         final fileName = path.basename(file.path);
-        if (!fileName.endsWith('_test.dart')) {
-          continue;
-        }
 
         if (fileName == optimizedTestFileName) {
           continue;
@@ -194,16 +194,16 @@ class TestCommand extends Command<ExitCode> {
         continue;
       }
 
-      final optimizedPath = path.join(testable, optimizedTestFileName);
+      final optimizedPath = path.join(testDir, optimizedTestFileName);
       fs.file(optimizedPath).createSync(recursive: true);
 
-      final testables = testFiles
+      final testDirs = testFiles
           .map((e) => Testable(absolute: e, optimizedPath: optimizedPath));
 
-      final tool = testableTool[testable]!;
+      final tool = dirTools[testDir]!;
 
       final content =
-          writeOptimizedTestFile(testables, isFlutterPackage: tool.isFlutter);
+          writeOptimizedTestFile(testDirs, isFlutterPackage: tool.isFlutter);
 
       fs.file(optimizedPath).writeAsStringSync(content);
 
@@ -241,9 +241,10 @@ class TestCommand extends Command<ExitCode> {
       label += cyan.wrap(command)!;
       label += darkGray.wrap(') tests in ')!;
       if (test.endsWith(optimizedTestFileName)) {
-        label += yellow.wrap(path.relative(projectRoot))!;
+        label +=
+            darkGray.wrap(path.dirname(path.dirname(path.relative(test))))!;
       } else {
-        label += darkGray.wrap(path.relative(test, from: projectRoot))!;
+        label += darkGray.wrap(path.relative(test))!;
       }
 
       commandsToRun.add(
@@ -329,13 +330,17 @@ class TestCommand extends Command<ExitCode> {
   }
 
   Map<String, DetermineFlutterOrDart> getTests(
-    List<String> testables,
-    Map<String, DetermineFlutterOrDart> testableTool, {
+    List<String> testDirs,
+    Map<String, DetermineFlutterOrDart> dirTools, {
     required bool optimize,
   }) {
+    logger.detail(
+      '${optimize ? '' : 'NOT '}Optimizing ${testDirs.length} test files',
+    );
+
     if (optimize) {
       final done = logger.progress('Optimizing test files');
-      final result = writeOptimizedFiles(testables, testableTool);
+      final result = writeOptimizedFiles(testDirs, dirTools);
 
       done.complete();
 
@@ -344,7 +349,30 @@ class TestCommand extends Command<ExitCode> {
 
     logger.warn('Running tests without optimization');
 
-    return testableTool;
+    final dirsWithTests = <String>[];
+
+    for (final MapEntry(key: dir, value: _) in dirTools.entries) {
+      final allFiles = Glob('**_test.dart')
+          .listFileSystemSync(fs, followLinks: false, root: dir);
+
+      var hasTests = false;
+
+      for (final file in allFiles) {
+        if (file is! File) continue;
+
+        hasTests = true;
+
+        break;
+      }
+
+      if (hasTests) {
+        dirsWithTests.add(dir);
+      }
+    }
+
+    return {
+      for (final dir in dirsWithTests) dir: dirTools[dir]!,
+    };
   }
 
   @override
@@ -400,6 +428,11 @@ class TestCommand extends Command<ExitCode> {
       dirTools,
       optimize: optimize,
     );
+
+    if (tests.isEmpty) {
+      logger.err('No tests found');
+      return ExitCode.unavailable;
+    }
 
     final bothArgs = _getBothArgs();
     final flutterArgs = [..._getFlutterArgs(), ...bothArgs];
