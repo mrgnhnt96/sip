@@ -3,6 +3,7 @@
         "debuggability",
         "dylib",
         "goldens",
+        "malloc",
         "Pubspecs",
         "sharded",
         "testables",

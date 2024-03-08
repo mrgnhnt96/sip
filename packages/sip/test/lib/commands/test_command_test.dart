@@ -132,7 +132,7 @@ void main() {
           fs.file('pubspec.yaml').createSync();
           fs.directory('test').createSync();
 
-          final (testables, testableTool) = testCommand.getTestables(
+          final (testables, testableTool) = testCommand.getTestDirs(
             ['pubspec.yaml'],
             isFlutterOnly: false,
             isDartOnly: false,
@@ -148,7 +148,7 @@ void main() {
           fs.file('pubspec.lock').createSync();
           fs.directory('test').createSync();
 
-          final (testables, testableTool) = testCommand.getTestables(
+          final (testables, testableTool) = testCommand.getTestDirs(
             ['pubspec.yaml'],
             isFlutterOnly: false,
             isDartOnly: true,
@@ -168,7 +168,7 @@ void main() {
             ..writeAsString('flutter');
           fs.directory('test').createSync();
 
-          final (testables, testableTool) = testCommand.getTestables(
+          final (testables, testableTool) = testCommand.getTestDirs(
             ['pubspec.yaml'],
             isFlutterOnly: true,
             isDartOnly: false,
@@ -186,7 +186,7 @@ void main() {
         test('test dir does not exists', () async {
           fs.file('pubspec.yaml').createSync();
 
-          final (testables, testableTool) = testCommand.getTestables(
+          final (testables, testableTool) = testCommand.getTestDirs(
             ['pubspec.yaml'],
             isFlutterOnly: false,
             isDartOnly: false,
@@ -203,7 +203,7 @@ void main() {
             ..createSync()
             ..writeAsString('flutter');
 
-          final (testables, testableTool) = testCommand.getTestables(
+          final (testables, testableTool) = testCommand.getTestDirs(
             ['pubspec.yaml'],
             isFlutterOnly: false,
             isDartOnly: true,
@@ -218,7 +218,7 @@ void main() {
           fs.file('pubspec.yaml').createSync();
           fs.file('pubspec.lock').createSync();
 
-          final (testables, testableTool) = testCommand.getTestables(
+          final (testables, testableTool) = testCommand.getTestDirs(
             ['pubspec.yaml'],
             isFlutterOnly: true,
             isDartOnly: false,
@@ -529,11 +529,20 @@ void main() {
 
     group('#cleanUp', () {
       test('should delete optimized files', () {
-        fs.file('test/.optimized_file.dart').createSync(recursive: true);
+        const path = 'test/${TestCommand.optimizedTestFileName}';
+        fs.file(path).createSync(recursive: true);
 
-        testCommand.cleanUp(['test/.optimized_file.dart']);
+        testCommand.cleanUp([path]);
 
-        expect(fs.file('test/.optimized_file.dart').existsSync(), isFalse);
+        expect(fs.file(path).existsSync(), isFalse);
+      });
+
+      test('should not delete non optimized file', () {
+        fs.file('test/other.dart').createSync(recursive: true);
+
+        testCommand.cleanUp(['test/other.dart']);
+
+        expect(fs.file('test/other.dart').existsSync(), isTrue);
       });
     });
   });

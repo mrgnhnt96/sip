@@ -29,45 +29,46 @@ class TestCommand extends Command<ExitCode> {
     required this.fs,
     required this.logger,
   }) {
-    argParser.addFlag(
-      'recursive',
-      abbr: 'r',
-      help: 'Run tests in subdirectories',
-      negatable: false,
-    );
-
-    argParser.addFlag(
-      'concurrent',
-      abbr: 'c',
-      aliases: ['parallel'],
-      help: 'Run tests concurrently',
-      negatable: false,
-    );
-
-    argParser.addFlag(
-      'bail',
-      abbr: 'b',
-      help: 'Bail after first test failure',
-      negatable: false,
-    );
-
-    argParser.addFlag(
-      'clean',
-      help: 'Whether to remove the optimized test files after running tests',
-      defaultsTo: true,
-    );
-
-    argParser.addFlag(
-      'dart-only',
-      help: 'Run only dart tests',
-      negatable: false,
-    );
-
-    argParser.addFlag(
-      'flutter-only',
-      help: 'Run only flutter tests',
-      negatable: false,
-    );
+    argParser
+      ..addFlag(
+        'recursive',
+        abbr: 'r',
+        help: 'Run tests in subdirectories',
+        negatable: false,
+      )
+      ..addFlag(
+        'concurrent',
+        abbr: 'c',
+        aliases: ['parallel'],
+        help: 'Run tests concurrently',
+        negatable: false,
+      )
+      ..addFlag(
+        'bail',
+        abbr: 'b',
+        help: 'Bail after first test failure',
+        negatable: false,
+      )
+      ..addFlag(
+        'clean',
+        help: 'Whether to remove the optimized test files after running tests',
+        defaultsTo: true,
+      )
+      ..addFlag(
+        'dart-only',
+        help: 'Run only dart tests',
+        negatable: false,
+      )
+      ..addFlag(
+        'flutter-only',
+        help: 'Run only flutter tests',
+        negatable: false,
+      )
+      ..addFlag(
+        'optimize',
+        help: 'Whether to create optimized test files',
+        defaultsTo: true,
+      );
 
     argParser.addSeparator('Dart Flags:');
     _addDartArgs();
@@ -115,15 +116,15 @@ class TestCommand extends Command<ExitCode> {
   }
 
   (
-    List<String> testables,
-    Map<String, DetermineFlutterOrDart> testableTool,
-  ) getTestables(
+    List<String> testDirs,
+    Map<String, DetermineFlutterOrDart> dirTools,
+  ) getTestDirs(
     List<String> pubspecs, {
     required bool isFlutterOnly,
     required bool isDartOnly,
   }) {
-    final testables = <String>[];
-    final testableTool = <String, DetermineFlutterOrDart>{};
+    final testDirs = <String>[];
+    final dirTools = <String, DetermineFlutterOrDart>{};
 
     logger.detail(
       'Found ${pubspecs.length} pubspecs, checking for test directories',
@@ -156,11 +157,11 @@ class TestCommand extends Command<ExitCode> {
         }
       }
 
-      testables.add(testDirectory);
-      testableTool[testDirectory] = tool;
+      testDirs.add(testDirectory);
+      dirTools[testDirectory] = tool;
     }
 
-    return (testables, testableTool);
+    return (testDirs, dirTools);
   }
 
   Map<String, DetermineFlutterOrDart> writeOptimizedFiles(
@@ -211,29 +212,61 @@ class TestCommand extends Command<ExitCode> {
     return optimizedFiles;
   }
 
+  Map<String, DetermineFlutterOrDart> getTestFiles(
+    List<String> testables,
+    Map<String, DetermineFlutterOrDart> testableTool,
+  ) {
+    final testFiles = <String, DetermineFlutterOrDart>{};
+
+    for (final testable in testables) {
+      final allFiles =
+          fs.directory(testable).listSync(recursive: true, followLinks: false);
+
+      for (final file in allFiles) {
+        final fileName = path.basename(file.path);
+        if (!fileName.endsWith('_test.dart')) {
+          continue;
+        }
+
+        if (fileName == optimizedTestFileName) {
+          continue;
+        }
+
+        final tool = testableTool[testable]!;
+
+        testFiles[file.path] = tool;
+      }
+    }
+
+    return testFiles;
+  }
+
   List<CommandToRun> getCommandsToRun(
-    Map<String, DetermineFlutterOrDart> optimizedFiles, {
+    Map<String, DetermineFlutterOrDart> testFiles, {
     required List<String> flutterArgs,
     required List<String> dartArgs,
   }) {
     final commandsToRun = <CommandToRun>[];
 
-    for (final MapEntry(key: optimizedPath, value: tool)
-        in optimizedFiles.entries) {
-      final projectRoot = path.dirname(path.dirname(optimizedPath));
+    for (final MapEntry(key: testFile, value: tool) in testFiles.entries) {
+      final projectRoot = path.dirname(path.dirname(testFile));
 
       final toolArgs = tool.isFlutter ? flutterArgs : dartArgs;
 
       final command = tool.tool();
 
-      final testPath = path.relative(optimizedPath, from: projectRoot);
+      final testPath = path.relative(testFile, from: projectRoot);
 
       final script = '$command test $testPath ${toolArgs.join(' ')}';
 
       var label = darkGray.wrap('Running (')!;
       label += cyan.wrap(command)!;
       label += darkGray.wrap(') tests in ')!;
-      label += yellow.wrap(path.relative(projectRoot))!;
+      if (testFile.endsWith(optimizedTestFileName)) {
+        label += yellow.wrap(path.relative(projectRoot))!;
+      } else {
+        label += darkGray.wrap(path.relative(testFile, from: projectRoot))!;
+      }
 
       commandsToRun.add(
         CommandToRun(
@@ -314,8 +347,29 @@ class TestCommand extends Command<ExitCode> {
 
   void cleanUp(Iterable<String> optimizedFiles) {
     for (final optimizedFile in optimizedFiles) {
+      if (!optimizedFile.endsWith(optimizedTestFileName)) continue;
+
       fs.file(optimizedFile).deleteSync();
     }
+  }
+
+  Map<String, DetermineFlutterOrDart> getTests(
+    List<String> testables,
+    Map<String, DetermineFlutterOrDart> testableTool, {
+    required bool optimize,
+  }) {
+    if (optimize) {
+      final done = logger.progress('Optimizing test files');
+      final result = writeOptimizedFiles(testables, testableTool);
+
+      done.complete();
+
+      return result;
+    }
+
+    logger.warn('Running tests without optimization');
+
+    return getTestFiles(testables, testableTool);
   }
 
   @override
@@ -347,13 +401,13 @@ class TestCommand extends Command<ExitCode> {
       return ExitCode.unavailable;
     }
 
-    final (testables, testableTool) = getTestables(
+    final (testDirs, dirTools) = getTestDirs(
       pubspecs,
       isFlutterOnly: isFlutterOnly,
       isDartOnly: isDartOnly,
     );
 
-    if (testables.isEmpty) {
+    if (testDirs.isEmpty) {
       var forTool = '';
 
       if (isFlutterOnly ^ isDartOnly) {
@@ -364,16 +418,24 @@ class TestCommand extends Command<ExitCode> {
       return ExitCode.unavailable;
     }
 
-    final optimizedFiles = writeOptimizedFiles(testables, testableTool);
+    final optimize = argResults['optimize'] as bool;
+
+    final tests = getTests(
+      testDirs,
+      dirTools,
+      optimize: optimize,
+    );
 
     final bothArgs = _getBothArgs();
     final flutterArgs = [..._getFlutterArgs(), ...bothArgs];
     final dartArgs = [..._getDartArgs(), ...bothArgs];
     final commandsToRun = getCommandsToRun(
-      optimizedFiles,
+      tests,
       flutterArgs: flutterArgs,
       dartArgs: dartArgs,
     );
+
+    logger.write('\n');
 
     final exitCode = await runCommands(
       commandsToRun,
@@ -383,10 +445,10 @@ class TestCommand extends Command<ExitCode> {
 
     logger.write('\n');
 
-    if (argResults['clean'] as bool) {
+    if (optimize && argResults['clean'] as bool) {
       final done = logger.progress('Cleaning up optimized test files');
 
-      cleanUp(optimizedFiles.keys);
+      cleanUp(tests.keys);
 
       done.complete();
     }

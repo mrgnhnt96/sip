@@ -4,11 +4,7 @@ import 'dart:io';
 
 import 'package:file/local.dart';
 import 'package:mason_logger/mason_logger.dart';
-import 'package:sip_cli/domain/cwd_impl.dart';
-import 'package:sip_cli/domain/find_file.dart';
-import 'package:sip_cli/domain/pubspec_lock_impl.dart';
-import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
-import 'package:sip_cli/domain/scripts_yaml_impl.dart';
+import 'package:sip_cli/domain/domain.dart';
 import 'package:sip_cli/sip_runner.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 import 'package:sip_script_runner/utils/logger.dart' as script_runner;
@@ -43,6 +39,7 @@ void main(List<String> _) async {
     detail: logger.detail,
     err: logger.err,
     warn: logger.warn,
+    write: logger.write,
   );
 
   final exitCode = await SipRunner(
