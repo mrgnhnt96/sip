@@ -212,35 +212,6 @@ class TestCommand extends Command<ExitCode> {
     return optimizedFiles;
   }
 
-  Map<String, DetermineFlutterOrDart> getTestFiles(
-    List<String> testables,
-    Map<String, DetermineFlutterOrDart> testableTool,
-  ) {
-    final testFiles = <String, DetermineFlutterOrDart>{};
-
-    for (final testable in testables) {
-      final allFiles =
-          fs.directory(testable).listSync(recursive: true, followLinks: false);
-
-      for (final file in allFiles) {
-        final fileName = path.basename(file.path);
-        if (!fileName.endsWith('_test.dart')) {
-          continue;
-        }
-
-        if (fileName == optimizedTestFileName) {
-          continue;
-        }
-
-        final tool = testableTool[testable]!;
-
-        testFiles[file.path] = tool;
-      }
-    }
-
-    return testFiles;
-  }
-
   List<CommandToRun> getCommandsToRun(
     Map<String, DetermineFlutterOrDart> testFiles, {
     required List<String> flutterArgs,
@@ -369,7 +340,7 @@ class TestCommand extends Command<ExitCode> {
 
     logger.warn('Running tests without optimization');
 
-    return getTestFiles(testables, testableTool);
+    return testableTool;
   }
 
   @override
