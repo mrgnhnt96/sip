@@ -320,13 +320,55 @@ void main() {
     });
 
     group('#getCommandsToRun', () {
-      test('should return dart commands to run', () {
+      test('should set cwd to project root when not optimizing', () {
+        fs.file('test/some_test.dart').createSync(recursive: true);
+
+        final testableTools = {
+          'test': _FakeDetermineFlutterOrDart.dart(),
+        };
+
+        final commands = testCommand.getCommandsToRun(
+          testableTools,
+          flutterArgs: [],
+          dartArgs: [],
+          optimize: false,
+        );
+
+        expect(commands.length, 1);
+        expect(commands.first.workingDirectory, '.');
+      });
+
+      test('should set cwd to project root when optimizing', () {
+        fs.file('test/.optimized_test.dart').createSync(recursive: true);
+
         final testableTools = {
           'test/.optimized_test.dart': _FakeDetermineFlutterOrDart.dart(),
         };
 
-        final commands = testCommand
-            .getCommandsToRun(testableTools, flutterArgs: [], dartArgs: []);
+        final commands = testCommand.getCommandsToRun(
+          testableTools,
+          flutterArgs: [],
+          dartArgs: [],
+          optimize: true,
+        );
+
+        expect(commands.length, 1);
+        expect(commands.first.workingDirectory, '.');
+      });
+
+      test('should return dart commands to run', () {
+        fs.file('test/.optimized_test.dart').createSync(recursive: true);
+
+        final testableTools = {
+          'test/.optimized_test.dart': _FakeDetermineFlutterOrDart.dart(),
+        };
+
+        final commands = testCommand.getCommandsToRun(
+          testableTools,
+          flutterArgs: [],
+          dartArgs: [],
+          optimize: true,
+        );
 
         expect(commands.length, 1);
         expect(
@@ -336,12 +378,18 @@ void main() {
       });
 
       test('should return flutter commands to run', () {
+        fs.file('test/.optimized_test.dart').createSync(recursive: true);
+
         final testableTools = {
           'test/.optimized_test.dart': _FakeDetermineFlutterOrDart.flutter(),
         };
 
-        final commands = testCommand
-            .getCommandsToRun(testableTools, flutterArgs: [], dartArgs: []);
+        final commands = testCommand.getCommandsToRun(
+          testableTools,
+          flutterArgs: [],
+          dartArgs: [],
+          optimize: true,
+        );
 
         expect(commands.length, 1);
         expect(
@@ -353,6 +401,8 @@ void main() {
       test(
         'should add flutter args to flutter command and ignore dart args',
         () {
+          fs.file('test/.optimized_test.dart').createSync(recursive: true);
+
           final testableTools = {
             'test/.optimized_test.dart': _FakeDetermineFlutterOrDart.flutter(),
           };
@@ -361,6 +411,7 @@ void main() {
             testableTools,
             flutterArgs: ['--flutter'],
             dartArgs: ['--dart'],
+            optimize: true,
           );
 
           expect(commands.length, 1);
@@ -374,6 +425,8 @@ void main() {
       test(
         'should add dart args to dart command and ignore flutter args',
         () {
+          fs.file('test/.optimized_test.dart').createSync(recursive: true);
+
           final testableTools = {
             'test/.optimized_test.dart': _FakeDetermineFlutterOrDart.dart(),
           };
@@ -382,6 +435,7 @@ void main() {
             testableTools,
             flutterArgs: ['--flutter'],
             dartArgs: ['--dart'],
+            optimize: true,
           );
 
           expect(commands.length, 1);

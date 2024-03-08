@@ -214,29 +214,35 @@ class TestCommand extends Command<ExitCode> {
 
   List<CommandToRun> getCommandsToRun(
     Map<String, DetermineFlutterOrDart> testFiles, {
+    required bool optimize,
     required List<String> flutterArgs,
     required List<String> dartArgs,
   }) {
     final commandsToRun = <CommandToRun>[];
 
-    for (final MapEntry(key: testFile, value: tool) in testFiles.entries) {
-      final projectRoot = path.dirname(path.dirname(testFile));
+    for (final MapEntry(key: test, value: tool) in testFiles.entries) {
+      String projectRoot;
+      if (fs.isFileSync(test)) {
+        projectRoot = path.dirname(path.dirname(test));
+      } else {
+        projectRoot = path.dirname(test);
+      }
 
       final toolArgs = tool.isFlutter ? flutterArgs : dartArgs;
 
       final command = tool.tool();
 
-      final testPath = path.relative(testFile, from: projectRoot);
+      final testPath = path.relative(test, from: projectRoot);
 
       final script = '$command test $testPath ${toolArgs.join(' ')}';
 
       var label = darkGray.wrap('Running (')!;
       label += cyan.wrap(command)!;
       label += darkGray.wrap(') tests in ')!;
-      if (testFile.endsWith(optimizedTestFileName)) {
+      if (test.endsWith(optimizedTestFileName)) {
         label += yellow.wrap(path.relative(projectRoot))!;
       } else {
-        label += darkGray.wrap(path.relative(testFile, from: projectRoot))!;
+        label += darkGray.wrap(path.relative(test, from: projectRoot))!;
       }
 
       commandsToRun.add(
@@ -402,6 +408,7 @@ class TestCommand extends Command<ExitCode> {
     final dartArgs = [..._getDartArgs(), ...bothArgs];
     final commandsToRun = getCommandsToRun(
       tests,
+      optimize: optimize,
       flutterArgs: flutterArgs,
       dartArgs: dartArgs,
     );
