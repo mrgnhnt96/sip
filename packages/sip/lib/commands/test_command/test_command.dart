@@ -24,7 +24,16 @@ class TestCommand extends Command<ExitCode> with TesterMixin {
     required this.fs,
     required this.logger,
   }) : argParser = ArgParser(usageLineLength: 120) {
-    addSubcommand(TestWatchCommand());
+    addSubcommand(
+      TestWatchCommand(
+        bindings: bindings,
+        findFile: findFile,
+        fs: fs,
+        logger: logger,
+        pubspecLock: pubspecLock,
+        pubspecYaml: pubspecYaml,
+      ),
+    );
 
     argParser.addSeparator(cyan.wrap('Dart Flags:')!);
     _addDartArgs();
@@ -83,14 +92,19 @@ class TestCommand extends Command<ExitCode> with TesterMixin {
 
   @override
   final PubspecYaml pubspecYaml;
+
   @override
   late final FileSystem fs;
+
   @override
   late final Logger logger;
+
   @override
   final Bindings bindings;
+
   @override
   final PubspecLock pubspecLock;
+
   @override
   final FindFile findFile;
 
