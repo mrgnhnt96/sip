@@ -6,6 +6,7 @@ import 'package:file/file.dart';
 import 'package:glob/glob.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:path/path.dart' as path;
+import 'package:sip_cli/commands/test_watch_command.dart';
 import 'package:sip_cli/domain/any_arg_parser.dart';
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/run_many_scripts.dart';
@@ -31,6 +32,8 @@ class TestCommand extends Command<ExitCode> {
     required this.fs,
     required this.logger,
   }) : argParser = ArgParser(usageLineLength: 120) {
+    addSubcommand(TestWatchCommand());
+
     argParser.addSeparator(cyan.wrap('Dart Flags:')!);
     _addDartArgs();
 
