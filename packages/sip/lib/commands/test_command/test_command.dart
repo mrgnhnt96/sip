@@ -31,6 +31,15 @@ class TestCommand extends Command<ExitCode> {
     required this.fs,
     required this.logger,
   }) : argParser = ArgParser(usageLineLength: 120) {
+    argParser.addSeparator(cyan.wrap('Dart Flags:')!);
+    _addDartArgs();
+
+    argParser.addSeparator(cyan.wrap('Flutter Flags:')!);
+    _addFlutterArgs();
+
+    argParser.addSeparator(cyan.wrap('Overlapping Flags:')!);
+    _addBothArgs();
+
     argParser.addSeparator(cyan.wrap('SIP Flags:')!);
     argParser
       ..addFlag(
@@ -72,15 +81,6 @@ class TestCommand extends Command<ExitCode> {
         help: 'Whether to create optimized test files',
         defaultsTo: true,
       );
-
-    argParser.addSeparator(cyan.wrap('Dart Flags:')!);
-    _addDartArgs();
-
-    argParser.addSeparator(cyan.wrap('Flutter Flags:')!);
-    _addFlutterArgs();
-
-    argParser.addSeparator(cyan.wrap('Overlapping Flags:')!);
-    _addBothArgs();
   }
 
   static const String optimizedTestFileName = '.optimized_test.dart';
