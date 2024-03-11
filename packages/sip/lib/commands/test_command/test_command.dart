@@ -30,7 +30,8 @@ class TestCommand extends Command<ExitCode> {
     required this.findFile,
     required this.fs,
     required this.logger,
-  }) {
+  }) : argParser = ArgParser(usageLineLength: 120) {
+    argParser.addSeparator(cyan.wrap('SIP Flags:')!);
     argParser
       ..addFlag(
         'recursive',
@@ -72,17 +73,20 @@ class TestCommand extends Command<ExitCode> {
         defaultsTo: true,
       );
 
-    argParser.addSeparator('Dart Flags:');
+    argParser.addSeparator(cyan.wrap('Dart Flags:')!);
     _addDartArgs();
 
-    argParser.addSeparator('Flutter Flags:');
+    argParser.addSeparator(cyan.wrap('Flutter Flags:')!);
     _addFlutterArgs();
 
-    argParser.addSeparator('Overlapping Flags:');
+    argParser.addSeparator(cyan.wrap('Overlapping Flags:')!);
     _addBothArgs();
   }
 
   static const String optimizedTestFileName = '.optimized_test.dart';
+
+  @override
+  final ArgParser argParser;
 
   final PubspecYaml pubspecYaml;
   late final FileSystem fs;
