@@ -1,13 +1,42 @@
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
+import 'package:file/src/interface/file_system.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:mocktail/mocktail.dart';
-import 'package:sip_cli/commands/test_command/test_command.dart';
+import 'package:sip_cli/commands/test_command/tester_mixin.dart';
 import 'package:sip_cli/domain/domain.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 import 'package:test/test.dart';
+
+class _Tester extends TesterMixin {
+  const _Tester({
+    required this.bindings,
+    required this.findFile,
+    required this.fs,
+    required this.logger,
+    required this.pubspecLock,
+    required this.pubspecYaml,
+  });
+  @override
+  final Bindings bindings;
+
+  @override
+  final FindFile findFile;
+
+  @override
+  final FileSystem fs;
+
+  @override
+  final Logger logger;
+
+  @override
+  final PubspecLock pubspecLock;
+
+  @override
+  final PubspecYaml pubspecYaml;
+}
 
 class _MockBindings extends Mock implements Bindings {}
 
@@ -54,8 +83,8 @@ class _FakeDetermineFlutterOrDart extends Fake
 }
 
 void main() {
-  group('$TestCommand', () {
-    late TestCommand testCommand;
+  group('$TesterMixin', () {
+    late _Tester tester;
     late FileSystem fs;
     late Bindings mockBindings;
     late Logger mockLogger;
@@ -66,7 +95,7 @@ void main() {
 
       fs = MemoryFileSystem.test();
 
-      testCommand = TestCommand(
+      tester = _Tester(
         bindings: mockBindings,
         pubspecYaml: PubspecYamlImpl(fs: fs),
         pubspecLock: PubspecLockImpl(fs: fs),
@@ -81,7 +110,7 @@ void main() {
         test('should return the root pubspec.yaml', () async {
           fs.file('pubspec.yaml').createSync();
 
-          final pubspecs = await testCommand.pubspecs(isRecursive: false);
+          final pubspecs = await tester.pubspecs(isRecursive: false);
 
           expect(pubspecs, isNotNull);
           expect(pubspecs.length, 1);
@@ -91,7 +120,7 @@ void main() {
           fs.file('pubspec.yaml').createSync();
           fs.file('sub/pubspec.yaml').createSync(recursive: true);
 
-          final pubspecs = await testCommand.pubspecs(isRecursive: false);
+          final pubspecs = await tester.pubspecs(isRecursive: false);
 
           expect(pubspecs, isNotNull);
           expect(pubspecs.length, 1);
@@ -102,7 +131,7 @@ void main() {
         test('should return the root pubspec.yaml', () async {
           fs.file('pubspec.yaml').createSync();
 
-          final pubspecs = await testCommand.pubspecs(isRecursive: true);
+          final pubspecs = await tester.pubspecs(isRecursive: true);
 
           expect(pubspecs, isNotNull);
           expect(pubspecs.length, 1);
@@ -112,7 +141,7 @@ void main() {
           fs.file('pubspec.yaml').createSync();
           fs.file('sub/pubspec.yaml').createSync(recursive: true);
 
-          final pubspecs = await testCommand.pubspecs(isRecursive: true);
+          final pubspecs = await tester.pubspecs(isRecursive: true);
 
           expect(pubspecs, isNotNull);
           expect(pubspecs.length, 2);
@@ -122,7 +151,7 @@ void main() {
             () async {
           fs.file('sub/pubspec.yaml').createSync(recursive: true);
 
-          final pubspecs = await testCommand.pubspecs(isRecursive: true);
+          final pubspecs = await tester.pubspecs(isRecursive: true);
 
           expect(pubspecs.length, 1);
         });
@@ -135,7 +164,7 @@ void main() {
           fs.file('pubspec.yaml').createSync();
           fs.directory('test').createSync();
 
-          final (testables, testableTool) = testCommand.getTestDirs(
+          final (testables, testableTool) = tester.getTestDirs(
             ['pubspec.yaml'],
             isFlutterOnly: false,
             isDartOnly: false,
@@ -151,7 +180,7 @@ void main() {
           fs.file('pubspec.lock').createSync();
           fs.directory('test').createSync();
 
-          final (testables, testableTool) = testCommand.getTestDirs(
+          final (testables, testableTool) = tester.getTestDirs(
             ['pubspec.yaml'],
             isFlutterOnly: false,
             isDartOnly: true,
@@ -171,7 +200,7 @@ void main() {
             ..writeAsString('flutter');
           fs.directory('test').createSync();
 
-          final (testables, testableTool) = testCommand.getTestDirs(
+          final (testables, testableTool) = tester.getTestDirs(
             ['pubspec.yaml'],
             isFlutterOnly: true,
             isDartOnly: false,
@@ -189,7 +218,7 @@ void main() {
         test('test dir does not exists', () async {
           fs.file('pubspec.yaml').createSync();
 
-          final (testables, testableTool) = testCommand.getTestDirs(
+          final (testables, testableTool) = tester.getTestDirs(
             ['pubspec.yaml'],
             isFlutterOnly: false,
             isDartOnly: false,
@@ -206,7 +235,7 @@ void main() {
             ..createSync()
             ..writeAsString('flutter');
 
-          final (testables, testableTool) = testCommand.getTestDirs(
+          final (testables, testableTool) = tester.getTestDirs(
             ['pubspec.yaml'],
             isFlutterOnly: false,
             isDartOnly: true,
@@ -221,7 +250,7 @@ void main() {
           fs.file('pubspec.yaml').createSync();
           fs.file('pubspec.lock').createSync();
 
-          final (testables, testableTool) = testCommand.getTestDirs(
+          final (testables, testableTool) = tester.getTestDirs(
             ['pubspec.yaml'],
             isFlutterOnly: true,
             isDartOnly: false,
@@ -245,13 +274,13 @@ void main() {
           };
 
           final optimizedFiles =
-              testCommand.writeOptimizedFiles(testables, testableTools);
+              tester.writeOptimizedFiles(testables, testableTools);
 
           expect(optimizedFiles.length, 1);
           expect(optimizedFiles.entries.first.value.isDart, isTrue);
 
           expect(
-            fs.file('test/${TestCommand.optimizedTestFileName}').existsSync(),
+            fs.file('test/${TesterMixin.optimizedTestFileName}').existsSync(),
             isTrue,
           );
         });
@@ -263,17 +292,17 @@ void main() {
 
         test('should not include optimized file import', () {
           fs.file('test/some_test.dart').createSync(recursive: true);
-          fs.file('test/${TestCommand.optimizedTestFileName}').createSync();
+          fs.file('test/${TesterMixin.optimizedTestFileName}').createSync();
 
           final testables = ['test'];
           final testableTools = {
             testables.first: _FakeDetermineFlutterOrDart.dart(),
           };
 
-          testCommand.writeOptimizedFiles(testables, testableTools);
+          tester.writeOptimizedFiles(testables, testableTools);
 
           final optimizedFileContent = fs
-              .file('test/${TestCommand.optimizedTestFileName}')
+              .file('test/${TesterMixin.optimizedTestFileName}')
               .readAsStringSync();
 
           final imports = importPattern.allMatches(optimizedFileContent);
@@ -290,10 +319,10 @@ void main() {
             testables.first: _FakeDetermineFlutterOrDart.dart(),
           };
 
-          testCommand.writeOptimizedFiles(testables, testableTools);
+          tester.writeOptimizedFiles(testables, testableTools);
 
           final optimizedFileContent = fs
-              .file('test/${TestCommand.optimizedTestFileName}')
+              .file('test/${TesterMixin.optimizedTestFileName}')
               .readAsStringSync();
 
           final imports = importPattern.allMatches(optimizedFileContent);
@@ -312,7 +341,7 @@ void main() {
           };
 
           final optimizedFiles =
-              testCommand.writeOptimizedFiles(testables, testableTools);
+              tester.writeOptimizedFiles(testables, testableTools);
 
           expect(optimizedFiles.length, 0);
         });
@@ -327,7 +356,7 @@ void main() {
           'test': _FakeDetermineFlutterOrDart.dart(),
         };
 
-        final commands = testCommand.getCommandsToRun(
+        final commands = tester.getCommandsToRun(
           testableTools,
           flutterArgs: [],
           dartArgs: [],
@@ -345,7 +374,7 @@ void main() {
           'test/.optimized_test.dart': _FakeDetermineFlutterOrDart.dart(),
         };
 
-        final commands = testCommand.getCommandsToRun(
+        final commands = tester.getCommandsToRun(
           testableTools,
           flutterArgs: [],
           dartArgs: [],
@@ -363,7 +392,7 @@ void main() {
           'test/.optimized_test.dart': _FakeDetermineFlutterOrDart.dart(),
         };
 
-        final commands = testCommand.getCommandsToRun(
+        final commands = tester.getCommandsToRun(
           testableTools,
           flutterArgs: [],
           dartArgs: [],
@@ -384,7 +413,7 @@ void main() {
           'test/.optimized_test.dart': _FakeDetermineFlutterOrDart.flutter(),
         };
 
-        final commands = testCommand.getCommandsToRun(
+        final commands = tester.getCommandsToRun(
           testableTools,
           flutterArgs: [],
           dartArgs: [],
@@ -407,7 +436,7 @@ void main() {
             'test/.optimized_test.dart': _FakeDetermineFlutterOrDart.flutter(),
           };
 
-          final commands = testCommand.getCommandsToRun(
+          final commands = tester.getCommandsToRun(
             testableTools,
             flutterArgs: ['--flutter'],
             dartArgs: ['--dart'],
@@ -431,7 +460,7 @@ void main() {
             'test/.optimized_test.dart': _FakeDetermineFlutterOrDart.dart(),
           };
 
-          final commands = testCommand.getCommandsToRun(
+          final commands = tester.getCommandsToRun(
             testableTools,
             flutterArgs: ['--flutter'],
             dartArgs: ['--dart'],
@@ -451,7 +480,7 @@ void main() {
       test('should return optimized tests when optimizing', () {
         fs.file('test/some_test.dart').createSync(recursive: true);
 
-        final tests = testCommand.getTests(
+        final tests = tester.getTests(
           ['test'],
           {'test': _FakeDetermineFlutterOrDart.dart()},
           optimize: true,
@@ -464,7 +493,7 @@ void main() {
       test('should return all tests when not optimizing', () {
         fs.file('test/some_test.dart').createSync(recursive: true);
 
-        final tests = testCommand.getTests(
+        final tests = tester.getTests(
           ['test'],
           {'test': _FakeDetermineFlutterOrDart.dart()},
           optimize: false,
@@ -477,7 +506,7 @@ void main() {
       test(
           'should not return tests when no '
           'tests are found and not optimizing', () {
-        final tests = testCommand.getTests(
+        final tests = tester.getTests(
           ['test'],
           {'test': _FakeDetermineFlutterOrDart.dart()},
           optimize: false,
@@ -504,7 +533,7 @@ void main() {
           ),
         ];
 
-        final results = await testCommand.runCommands(
+        final results = await tester.runCommands(
           commands,
           bail: false,
           runConcurrently: false,
@@ -534,7 +563,7 @@ void main() {
           ),
         ];
 
-        final results = await testCommand.runCommands(
+        final results = await tester.runCommands(
           commands,
           bail: true,
           runConcurrently: false,
@@ -571,7 +600,7 @@ void main() {
             ),
           ];
 
-          final results = await testCommand.runCommands(
+          final results = await tester.runCommands(
             commands,
             bail: false,
             runConcurrently: true,
@@ -607,7 +636,7 @@ void main() {
             ),
           ];
 
-          final results = await testCommand.runCommands(
+          final results = await tester.runCommands(
             commands,
             bail: false,
             runConcurrently: true,
@@ -626,10 +655,10 @@ void main() {
 
     group('#cleanUp', () {
       test('should delete optimized files', () {
-        const path = 'test/${TestCommand.optimizedTestFileName}';
+        const path = 'test/${TesterMixin.optimizedTestFileName}';
         fs.file(path).createSync(recursive: true);
 
-        testCommand.cleanUp([path]);
+        tester.cleanUp([path]);
 
         expect(fs.file(path).existsSync(), isFalse);
       });
@@ -637,7 +666,7 @@ void main() {
       test('should not delete non optimized file', () {
         fs.file('test/other.dart').createSync(recursive: true);
 
-        testCommand.cleanUp(['test/other.dart']);
+        tester.cleanUp(['test/other.dart']);
 
         expect(fs.file('test/other.dart').existsSync(), isTrue);
       });
