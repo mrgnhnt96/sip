@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
@@ -153,7 +155,26 @@ class SipRunner extends CommandRunner<ExitCode> {
   }
 
   Future<void> checkForUpdate() async {
-    final (needsUpdate, latestVersion) = await updateCommand.needsUpdate();
+    // don't wait on this, stop after 1 second
+    final exiter = Completer<({(bool, String)? result, bool exit})>();
+
+    Timer? timer;
+
+    timer = Timer(const Duration(seconds: 1), () {
+      exiter.complete((result: null, exit: true));
+    });
+    updateCommand.needsUpdate().then((value) {
+      exiter.complete((result: value, exit: false));
+    }).ignore();
+
+    final (:result, :exit) = await exiter.future;
+    timer.cancel();
+
+    if (exit) {
+      return;
+    }
+
+    final (needsUpdate, latestVersion) = result!;
 
     if (needsUpdate) {
       const changelog =
