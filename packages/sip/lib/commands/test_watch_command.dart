@@ -105,6 +105,7 @@ class TestWatchCommand extends Command<ExitCode> with TesterMixin {
 
 ${yellow.wrap('Waiting for changes...')}
 ${darkGray.wrap('Press `q` to exit')}
+${darkGray.wrap('Press `r` to run all tests')}
 ''';
 
     logger.write(waitingMessage);
@@ -167,9 +168,12 @@ ${darkGray.wrap('Press `q` to exit')}
 
     var printMessage = true;
 
-    for (final dir in [...testDirs, ...libDirs]) {
-      logger.detail('Watching directory: $dir');
-    }
+    logger.detail(
+      'Watching directories: ${[
+        ...testDirs,
+        ...libDirs,
+      ].map(path.relative).join(', ')}',
+    );
 
     // This setup up will not include any new packages created,
     // only the ones that exist when the command is run
@@ -180,7 +184,7 @@ ${darkGray.wrap('Press `q` to exit')}
 
       printMessage = false;
 
-      final (:exit, :file) = await waitForChange(
+      final (:exit, :file, :runAll) = await waitForChange(
         testDirs: testDirs,
         libDirs: libDirs,
       );
@@ -189,30 +193,39 @@ ${darkGray.wrap('Press `q` to exit')}
         break;
       }
 
-      if (file == null) {
-        logger.detail('No file changed, waiting for changes...');
-        continue;
+      final testsToRun = <String, DetermineFlutterOrDart>{};
+
+      if (!runAll) {
+        if (file == null) {
+          logger.detail('No file changed, waiting for changes...');
+          continue;
+        }
+
+        if (file.endsWith(TesterMixin.optimizedTestFileName)) {
+          logger.detail('Optimized test file changed, waiting for changes...');
+          continue;
+        }
+
+        final testDirResult = findTestDir(tests, file);
+
+        if (testDirResult == null) {
+          logger.detail('No test directory found for $file');
+          continue;
+        }
+
+        logger.info('Running tests for ${path.relative(file)}');
+
+        final (testDir, tool) = testDirResult;
+        testsToRun[testDir] = tool;
+      } else {
+        logger.info('Running all tests');
+        testsToRun.addAll(tests);
       }
 
-      if (file.endsWith(TesterMixin.optimizedTestFileName)) {
-        logger.detail('Optimized test file changed, waiting for changes...');
-        continue;
-      }
-
-      final testDirResult = findTestDir(tests, file);
-
-      if (testDirResult == null) {
-        logger.detail('No test directory found for $file');
-        continue;
-      }
       printMessage = true;
 
-      logger.info('Running tests for ${path.relative(file)}');
-
-      final (testDir, tool) = testDirResult;
-
       final commandsToRun = getCommandsToRun(
-        {testDir: tool},
+        testsToRun,
         optimize: optimize,
         flutterArgs: flutterArgs,
         dartArgs: dartArgs,
@@ -275,7 +288,7 @@ ${darkGray.wrap('Press `q` to exit')}
     return null;
   }
 
-  Future<({bool exit, String? file})> waitForChange({
+  Future<({bool exit, String? file, bool runAll})> waitForChange({
     required Iterable<String> testDirs,
     required Iterable<String> libDirs,
   }) async {
@@ -318,11 +331,15 @@ ${darkGray.wrap('Press `q` to exit')}
       return controller.stream;
     }).toList();
 
-    final fileChangeCompleter = Completer<({bool exit, String? file})>();
+    final fileChangeCompleter =
+        Completer<({bool exit, String? file, bool runAll})>();
 
     final input = keyPressListener.listenToKeystrokes(
       onExit: () {
-        fileChangeCompleter.complete((exit: true, file: null));
+        fileChangeCompleter.complete((exit: true, file: null, runAll: false));
+      },
+      onRunAll: () {
+        fileChangeCompleter.complete((exit: false, file: null, runAll: true));
       },
       onEscape: writeWaitingMessage,
     );
@@ -332,14 +349,14 @@ ${darkGray.wrap('Press `q` to exit')}
 
     final fileChangeListener = StreamGroup(fileModifications).merge().listen(
           (file) => fileChangeCompleter.complete(
-            (exit: false, file: file),
+            (exit: false, file: file, runAll: false),
           ),
         );
 
-    final (:exit, :file) = await fileChangeCompleter.future;
+    final (:exit, :file, :runAll) = await fileChangeCompleter.future;
     await fileChangeListener.cancel();
     await inputSubscription?.cancel();
 
-    return (exit: exit, file: file);
+    return (exit: exit, file: file, runAll: runAll);
   }
 }
