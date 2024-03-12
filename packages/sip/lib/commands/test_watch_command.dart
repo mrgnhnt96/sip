@@ -206,17 +206,17 @@ ${darkGray.wrap('Press `r` to run all tests')}
           continue;
         }
 
-        final testDirResult = findTestDir(tests, file);
+        final testResult = findTest(tests, file);
 
-        if (testDirResult == null) {
+        if (testResult == null) {
           logger.detail('No test directory found for $file');
           continue;
         }
 
         logger.info('Running tests for ${path.relative(file)}');
 
-        final (testDir, tool) = testDirResult;
-        testsToRun[testDir] = tool;
+        final (test, tool) = testResult;
+        testsToRun[test] = tool;
       } else {
         logger.info('Running all tests');
         testsToRun.addAll(tests);
@@ -255,7 +255,7 @@ ${darkGray.wrap('Press `r` to run all tests')}
     return ExitCode.success;
   }
 
-  (String testDir, DetermineFlutterOrDart tool)? findTestDir(
+  (String test, DetermineFlutterOrDart tool)? findTest(
     Map<String, DetermineFlutterOrDart> tests,
     String modifiedFile,
   ) {

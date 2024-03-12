@@ -89,7 +89,7 @@ void main() {
 
               const modifiedFile = 'lib/foo.dart';
 
-              final result = testWatchCommand.findTestDir(
+              final result = testWatchCommand.findTest(
                 testDirs,
                 modifiedFile,
               );
@@ -112,7 +112,7 @@ void main() {
 
               const modifiedFile = 'test/foo_test.dart';
 
-              final result = testWatchCommand.findTestDir(
+              final result = testWatchCommand.findTest(
                 testDirs,
                 modifiedFile,
               );
@@ -138,7 +138,7 @@ void main() {
 
               const modifiedFile = 'packages/foo/lib/foo.dart';
 
-              final result = testWatchCommand.findTestDir(
+              final result = testWatchCommand.findTest(
                 testDirs,
                 modifiedFile,
               );
@@ -162,7 +162,7 @@ void main() {
 
               const modifiedFile = 'packages/foo/test/foo_test.dart';
 
-              final result = testWatchCommand.findTestDir(
+              final result = testWatchCommand.findTest(
                 testDirs,
                 modifiedFile,
               );
@@ -185,7 +185,7 @@ void main() {
 
             const modifiedFile = 'packages/foo/bar/test/foo_test.dart';
 
-            final result = testWatchCommand.findTestDir(
+            final result = testWatchCommand.findTest(
               testDirs,
               modifiedFile,
             );
