@@ -38,8 +38,8 @@ abstract mixin class TesterMixin {
     List<String> flutter,
   }) getArgs<T>(Command<T> command) {
     final bothArgs = command._getBothArgs();
-    final dartArgs = command._getFlutterArgs();
-    final flutterArgs = command._getDartArgs();
+    final dartArgs = command._getDartArgs();
+    final flutterArgs = command._getFlutterArgs();
 
     return (both: bothArgs, dart: dartArgs, flutter: flutterArgs);
   }
