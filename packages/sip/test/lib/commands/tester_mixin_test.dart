@@ -164,11 +164,15 @@ void main() {
           fs.file('pubspec.yaml').createSync();
           fs.directory('test').createSync();
 
-          final (testables, testableTool) = tester.getTestDirs(
+          final result = tester.getTestDirs(
             ['pubspec.yaml'],
             isFlutterOnly: false,
             isDartOnly: false,
           );
+
+          expect(result.$2, isNull);
+
+          final (testables, testableTool) = result.$1!;
 
           expect(testables.length, 1);
           expect(testableTool.length, 1);
@@ -180,11 +184,15 @@ void main() {
           fs.file('pubspec.lock').createSync();
           fs.directory('test').createSync();
 
-          final (testables, testableTool) = tester.getTestDirs(
+          final result = tester.getTestDirs(
             ['pubspec.yaml'],
             isFlutterOnly: false,
             isDartOnly: true,
           );
+
+          expect(result.$2, isNull);
+
+          final (testables, testableTool) = result.$1!;
 
           expect(testables.length, 1);
           expect(testableTool.length, 1);
@@ -200,11 +208,15 @@ void main() {
             ..writeAsString('flutter');
           fs.directory('test').createSync();
 
-          final (testables, testableTool) = tester.getTestDirs(
+          final result = tester.getTestDirs(
             ['pubspec.yaml'],
             isFlutterOnly: true,
             isDartOnly: false,
           );
+
+          expect(result.$2, isNull);
+
+          final (testables, testableTool) = result.$1!;
 
           expect(testables.length, 1);
           expect(testableTool.length, 1);
@@ -218,11 +230,15 @@ void main() {
         test('test dir does not exists', () async {
           fs.file('pubspec.yaml').createSync();
 
-          final (testables, testableTool) = tester.getTestDirs(
+          final result = tester.getTestDirs(
             ['pubspec.yaml'],
             isFlutterOnly: false,
             isDartOnly: false,
           );
+
+          expect(result.$2, isNull);
+
+          final (testables, testableTool) = result.$1!;
 
           expect(testables.length, isZero);
           expect(testableTool.length, isZero);
@@ -235,11 +251,15 @@ void main() {
             ..createSync()
             ..writeAsString('flutter');
 
-          final (testables, testableTool) = tester.getTestDirs(
+          final result = tester.getTestDirs(
             ['pubspec.yaml'],
             isFlutterOnly: false,
             isDartOnly: true,
           );
+
+          expect(result.$2, isNull);
+
+          final (testables, testableTool) = result.$1!;
 
           expect(testables.length, isZero);
           expect(testableTool.length, isZero);
@@ -250,11 +270,15 @@ void main() {
           fs.file('pubspec.yaml').createSync();
           fs.file('pubspec.lock').createSync();
 
-          final (testables, testableTool) = tester.getTestDirs(
+          final result = tester.getTestDirs(
             ['pubspec.yaml'],
             isFlutterOnly: true,
             isDartOnly: false,
           );
+
+          expect(result.$2, isNull);
+
+          final (testables, testableTool) = result.$1!;
 
           expect(testables.length, isZero);
           expect(testableTool.length, isZero);
@@ -480,11 +504,15 @@ void main() {
       test('should return optimized tests when optimizing', () {
         fs.file('test/some_test.dart').createSync(recursive: true);
 
-        final tests = tester.getTests(
+        final (tests, exitCode) = tester.getTests(
           ['test'],
           {'test': _FakeDetermineFlutterOrDart.dart()},
           optimize: true,
         );
+
+        expect(exitCode, isNull);
+        expect(tests, isNotNull);
+        tests!;
 
         expect(tests.length, 1);
         expect(tests.keys.first, 'test/.optimized_test.dart');
@@ -493,11 +521,15 @@ void main() {
       test('should return all tests when not optimizing', () {
         fs.file('test/some_test.dart').createSync(recursive: true);
 
-        final tests = tester.getTests(
+        final (tests, exitCode) = tester.getTests(
           ['test'],
           {'test': _FakeDetermineFlutterOrDart.dart()},
           optimize: false,
         );
+
+        expect(exitCode, isNull);
+        expect(tests, isNotNull);
+        tests!;
 
         expect(tests.length, 1);
         expect(tests.keys.first, 'test');
@@ -506,11 +538,15 @@ void main() {
       test(
           'should not return tests when no '
           'tests are found and not optimizing', () {
-        final tests = tester.getTests(
+        final (tests, exitCode) = tester.getTests(
           ['test'],
           {'test': _FakeDetermineFlutterOrDart.dart()},
           optimize: false,
         );
+
+        expect(exitCode, isNull);
+        expect(tests, isNotNull);
+        tests!;
 
         expect(tests.length, 0);
       });
