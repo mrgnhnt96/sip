@@ -6,14 +6,10 @@ import 'package:file/file.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:sip_cli/commands/test_command/tester_mixin.dart';
 import 'package:sip_cli/commands/test_watch_command.dart';
-import 'package:sip_cli/domain/any_arg_parser.dart';
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/utils/exit_code.dart';
+import 'package:sip_cli/utils/key_press_listener.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
-
-part '__both_args.dart';
-part '__dart_args.dart';
-part '__flutter_args.dart';
 
 class TestCommand extends Command<ExitCode> with TesterMixin {
   TestCommand({
@@ -23,6 +19,7 @@ class TestCommand extends Command<ExitCode> with TesterMixin {
     required this.findFile,
     required this.fs,
     required this.logger,
+    required KeyPressListener keyPressListener,
   }) : argParser = ArgParser(usageLineLength: 120) {
     addSubcommand(
       TestWatchCommand(
@@ -32,17 +29,11 @@ class TestCommand extends Command<ExitCode> with TesterMixin {
         logger: logger,
         pubspecLock: pubspecLock,
         pubspecYaml: pubspecYaml,
+        keyPressListener: keyPressListener,
       ),
     );
 
-    argParser.addSeparator(cyan.wrap('Dart Flags:')!);
-    _addDartArgs();
-
-    argParser.addSeparator(cyan.wrap('Flutter Flags:')!);
-    _addFlutterArgs();
-
-    argParser.addSeparator(cyan.wrap('Overlapping Flags:')!);
-    _addBothArgs();
+    addTestFlags(this);
 
     argParser.addSeparator(cyan.wrap('SIP Flags:')!);
     argParser
@@ -126,15 +117,10 @@ class TestCommand extends Command<ExitCode> with TesterMixin {
 
     final isRecursive = argResults['recursive'] as bool? ?? false;
 
-    if (isDartOnly || isFlutterOnly) {
-      if (isDartOnly && !isFlutterOnly) {
-        logger.info('Running only dart tests');
-      } else if (isFlutterOnly && !isDartOnly) {
-        logger.info('Running only flutter tests');
-      } else {
-        logger.info('Running both dart and flutter tests');
-      }
-    }
+    warnDartOrFlutterTests(
+      isFlutterOnly: isFlutterOnly,
+      isDartOnly: isDartOnly,
+    );
 
     final pubspecs = await this.pubspecs(isRecursive: isRecursive);
 
@@ -143,39 +129,38 @@ class TestCommand extends Command<ExitCode> with TesterMixin {
       return ExitCode.unavailable;
     }
 
-    final (testDirs, dirTools) = getTestDirs(
+    final testDirsResult = getTestDirs(
       pubspecs,
       isFlutterOnly: isFlutterOnly,
       isDartOnly: isDartOnly,
     );
 
-    if (testDirs.isEmpty) {
-      var forTool = '';
-
-      if (isFlutterOnly ^ isDartOnly) {
-        forTool = ' ';
-        forTool += isDartOnly ? 'dart' : 'flutter';
-      }
-      logger.err('No$forTool tests found');
-      return ExitCode.unavailable;
+    // exit code is not null
+    if (testDirsResult.$2 case final ExitCode exitCode) {
+      return exitCode;
     }
+
+    final (testDirs, dirTools) = testDirsResult.$1!;
 
     final optimize = argResults['optimize'] as bool;
 
-    final tests = getTests(
+    final testsResult = getTests(
       testDirs,
       dirTools,
       optimize: optimize,
     );
 
-    if (tests.isEmpty) {
-      logger.err('No tests found');
-      return ExitCode.unavailable;
+    // exit code is not null
+    if (testsResult.$2 case final ExitCode exitCode) {
+      return exitCode;
     }
 
-    final bothArgs = _getBothArgs();
-    final flutterArgs = [..._getFlutterArgs(), ...bothArgs];
-    final dartArgs = [..._getDartArgs(), ...bothArgs];
+    final tests = testsResult.$1!;
+
+    final (:both, :dart, :flutter) = getArgs(this);
+
+    final flutterArgs = [...flutter, ...both];
+    final dartArgs = [...dart, ...both];
     final commandsToRun = getCommandsToRun(
       tests,
       optimize: optimize,

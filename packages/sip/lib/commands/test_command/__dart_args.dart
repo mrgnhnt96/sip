@@ -1,6 +1,6 @@
-part of './test_command.dart';
+part of './tester_mixin.dart';
 
-extension _DartX on TestCommand {
+extension _DartX<T> on Command<T> {
   void _addDartArgs() {
     argParser
       // The UI term "platform" corresponds with

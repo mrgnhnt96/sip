@@ -1,6 +1,6 @@
-part of './test_command.dart';
+part of './tester_mixin.dart';
 
-extension _BothX on TestCommand {
+extension _BothX<T> on Command<T> {
   void _addBothArgs() {
     argParser
       ..addOption(
@@ -127,15 +127,15 @@ extension _BothX on TestCommand {
     if (argResults == null) return [];
     final args = <String>[];
 
-    final bail = argResults['bail'] as bool;
-    final canFailFast = options.contains('fail-fast');
-    if (canFailFast) {
-      options.remove('fail-fast');
-    }
+    if (argResults.options.contains('bail')) {
+      final bail = argResults['bail'] as bool;
+      final canFailFast = options.contains('fail-fast');
 
-    if (bail && canFailFast) {
-      args.add('--fail-fast');
+      if (bail && canFailFast) {
+        args.add('--fail-fast');
+      }
     }
+    options.remove('fail-fast');
 
     final arguments = [
       ...argResults.arguments,

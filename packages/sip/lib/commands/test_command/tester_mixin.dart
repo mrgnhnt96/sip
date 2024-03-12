@@ -1,7 +1,10 @@
+import 'package:args/args.dart';
+import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
 import 'package:glob/glob.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:path/path.dart' as path;
+import 'package:sip_cli/domain/any_arg_parser.dart';
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/run_many_scripts.dart';
 import 'package:sip_cli/domain/run_one_script.dart';
@@ -12,6 +15,10 @@ import 'package:sip_cli/utils/exit_code_extensions.dart';
 import 'package:sip_cli/utils/stopwatch_extensions.dart';
 import 'package:sip_cli/utils/write_optimized_test_file.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
+
+part '__both_args.dart';
+part '__dart_args.dart';
+part '__flutter_args.dart';
 
 abstract mixin class TesterMixin {
   const TesterMixin();
@@ -25,6 +32,50 @@ abstract mixin class TesterMixin {
   FileSystem get fs;
   Bindings get bindings;
 
+  ({
+    List<String> both,
+    List<String> dart,
+    List<String> flutter,
+  }) getArgs<T>(Command<T> command) {
+    final bothArgs = command._getBothArgs();
+    final dartArgs = command._getFlutterArgs();
+    final flutterArgs = command._getDartArgs();
+
+    return (both: bothArgs, dart: dartArgs, flutter: flutterArgs);
+  }
+
+  void addTestFlags<T>(Command<T> command) {
+    command
+      ..argParser.addSeparator(cyan.wrap('Dart Flags:')!)
+      .._addDartArgs()
+      ..argParser.addSeparator(cyan.wrap('Flutter Flags:')!)
+      .._addFlutterArgs()
+      ..argParser.addSeparator(cyan.wrap('Overlapping Flags:')!)
+      .._addBothArgs();
+  }
+
+  void warnDartOrFlutterTests({
+    required bool isFlutterOnly,
+    required bool isDartOnly,
+  }) {
+    if (isDartOnly || isFlutterOnly) {
+      if (isDartOnly && !isFlutterOnly) {
+        logger.info('Running only dart tests');
+      } else if (isFlutterOnly && !isDartOnly) {
+        logger.info('Running only flutter tests');
+      } else {
+        logger.info('Running both dart and flutter tests');
+      }
+    }
+  }
+
+  /// This method is used to find all the pubspecs in the project
+  ///
+  /// When [isRecursive] is true, this finds pubspecs in subdirectories
+  /// as well as the current directory.
+  ///
+  /// When [isRecursive] is false, this only finds the pubspec in the
+  /// current directory.
   Future<List<String>> pubspecs({
     required bool isRecursive,
   }) async {
@@ -45,9 +96,16 @@ abstract mixin class TesterMixin {
     return pubspecs.toList();
   }
 
+  /// This method is used to get the test directories and the tools
+  /// to run the tests
+  ///
+  /// It returns a map of test directories and the tools to run the tests
   (
-    List<String> testDirs,
-    Map<String, DetermineFlutterOrDart> dirTools,
+    (
+      List<String> testDirs,
+      Map<String, DetermineFlutterOrDart> dirTools,
+    )?,
+    ExitCode? exitCode,
   ) getTestDirs(
     List<String> pubspecs, {
     required bool isFlutterOnly,
@@ -91,7 +149,18 @@ abstract mixin class TesterMixin {
       dirTools[testDirectory] = tool;
     }
 
-    return (testDirs, dirTools);
+    if (testDirs.isEmpty) {
+      var forTool = '';
+
+      if (isFlutterOnly ^ isDartOnly) {
+        forTool = ' ';
+        forTool += isDartOnly ? 'dart' : 'flutter';
+      }
+      logger.err('No$forTool tests found');
+      return (null, ExitCode.unavailable);
+    }
+
+    return ((testDirs, dirTools), null);
   }
 
   Map<String, DetermineFlutterOrDart> writeOptimizedFiles(
@@ -257,7 +326,8 @@ abstract mixin class TesterMixin {
     }
   }
 
-  Map<String, DetermineFlutterOrDart> getTests(
+  (Map<String, DetermineFlutterOrDart>? filesToTest, ExitCode? exitCode)
+      getTests(
     List<String> testDirs,
     Map<String, DetermineFlutterOrDart> dirTools, {
     required bool optimize,
@@ -272,7 +342,12 @@ abstract mixin class TesterMixin {
 
       done.complete();
 
-      return result;
+      if (result.isEmpty) {
+        logger.err('No tests found');
+        return (null, ExitCode.unavailable);
+      }
+
+      return (result, null);
     }
 
     logger.warn('Running tests without optimization');
@@ -280,26 +355,25 @@ abstract mixin class TesterMixin {
     final dirsWithTests = <String>[];
 
     for (final MapEntry(key: dir, value: _) in dirTools.entries) {
-      final allFiles = Glob('**_test.dart')
+      final result = Glob('**_test.dart')
           .listFileSystemSync(fs, followLinks: false, root: dir);
 
-      var hasTests = false;
-
-      for (final file in allFiles) {
-        if (file is! File) continue;
-
-        hasTests = true;
-
-        break;
-      }
+      final hasTests = result.any((e) => e is File);
 
       if (hasTests) {
         dirsWithTests.add(dir);
       }
     }
 
-    return {
+    final dirs = {
       for (final dir in dirsWithTests) dir: dirTools[dir]!,
     };
+
+    if (dirs.isEmpty) {
+      logger.err('No tests found');
+      return (null, ExitCode.unavailable);
+    }
+
+    return (dirs, null);
   }
 }

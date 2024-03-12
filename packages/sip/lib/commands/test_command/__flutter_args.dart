@@ -1,6 +1,6 @@
-part of './test_command.dart';
+part of './tester_mixin.dart';
 
-extension _FlutterX on TestCommand {
+extension _FlutterX<T> on Command<T> {
   void _addFlutterArgs() {
     argParser
       ..addFlag(
