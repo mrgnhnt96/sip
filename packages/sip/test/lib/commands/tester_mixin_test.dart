@@ -105,6 +105,56 @@ void main() {
       );
     });
 
+    group('#packageRootFor', () {
+      group('successfully returns the path when', () {
+        test('a dir path is provided', () {
+          final expected = {
+            'test': '.',
+            'test/': '.',
+            'test/sub': '.',
+            'test/sub/': '.',
+            'lib': '.',
+            'lib/': '.',
+            'lib/src': '.',
+            'lib/src/': '.',
+          };
+
+          for (final entry in expected.entries) {
+            final result = tester.packageRootFor(entry.key);
+            expect(result, entry.value);
+          }
+        });
+
+        test('a file path is provided', () {
+          final expected = {
+            'test/some_test.dart': '.',
+            'test/sub/some_test.dart': '.',
+            'lib/some_file.dart': '.',
+            'lib/src/some_file.dart': '.',
+          };
+
+          for (final entry in expected.entries) {
+            final result = tester.packageRootFor(entry.key);
+            expect(result, entry.value);
+          }
+        });
+
+        test('when nested in a sub package', () {
+          final expected = {
+            'packages/ui/test': 'packages/ui',
+            'packages/ui/lib': 'packages/ui',
+            'packages/ui/lib/some_file.dart': 'packages/ui',
+            'packages/ui/test/some_file.dart': 'packages/ui',
+          };
+
+          for (final entry in expected.entries) {
+            final result = tester.packageRootFor(entry.key);
+            expect(result, entry.value);
+          }
+        });
+      });
+    });
+
     group('#pubspecs', () {
       group('when not recursive', () {
         test('should return the root pubspec.yaml', () async {
@@ -230,19 +280,15 @@ void main() {
         test('test dir does not exists', () async {
           fs.file('pubspec.yaml').createSync();
 
-          final result = tester.getTestDirs(
+          final (tests, exitCode) = tester.getTestDirs(
             ['pubspec.yaml'],
             isFlutterOnly: false,
             isDartOnly: false,
           );
 
-          expect(result.$2, isNull);
-
-          final (testables, testableTool) = result.$1!;
-
-          expect(testables.length, isZero);
-          expect(testableTool.length, isZero);
-          expect(testables.length, testableTool.length);
+          expect(tests, isNull);
+          expect(exitCode, isNotNull);
+          expect(exitCode, isA<ExitCode>());
         });
 
         test('dart only tests is enabled and is flutter project', () {
@@ -251,38 +297,30 @@ void main() {
             ..createSync()
             ..writeAsString('flutter');
 
-          final result = tester.getTestDirs(
+          final (tests, exitCode) = tester.getTestDirs(
             ['pubspec.yaml'],
             isFlutterOnly: false,
             isDartOnly: true,
           );
 
-          expect(result.$2, isNull);
-
-          final (testables, testableTool) = result.$1!;
-
-          expect(testables.length, isZero);
-          expect(testableTool.length, isZero);
-          expect(testables.length, testableTool.length);
+          expect(tests, isNull);
+          expect(exitCode, isNotNull);
+          expect(exitCode, isA<ExitCode>());
         });
 
         test('flutter only tests is enabled and is dart project', () {
           fs.file('pubspec.yaml').createSync();
           fs.file('pubspec.lock').createSync();
 
-          final result = tester.getTestDirs(
+          final (tests, exitCode) = tester.getTestDirs(
             ['pubspec.yaml'],
             isFlutterOnly: true,
             isDartOnly: false,
           );
 
-          expect(result.$2, isNull);
-
-          final (testables, testableTool) = result.$1!;
-
-          expect(testables.length, isZero);
-          expect(testableTool.length, isZero);
-          expect(testables.length, testableTool.length);
+          expect(tests, isNull);
+          expect(exitCode, isNotNull);
+          expect(exitCode, isA<ExitCode>());
         });
       });
     });
@@ -536,7 +574,7 @@ void main() {
       });
 
       test(
-          'should not return tests when no '
+          'should return exit code when no '
           'tests are found and not optimizing', () {
         final (tests, exitCode) = tester.getTests(
           ['test'],
@@ -544,11 +582,8 @@ void main() {
           optimize: false,
         );
 
-        expect(exitCode, isNull);
-        expect(tests, isNotNull);
-        tests!;
-
-        expect(tests.length, 0);
+        expect(tests, isNull);
+        expect(exitCode, isA<ExitCode>());
       });
     });
 

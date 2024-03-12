@@ -210,6 +210,25 @@ abstract mixin class TesterMixin {
     return optimizedFiles;
   }
 
+  String packageRootFor(String filePath) {
+    final parts = path.split(filePath);
+
+    String root;
+    if (parts.contains('test')) {
+      root = parts.sublist(0, parts.indexOf('test')).join(path.separator);
+    } else if (parts.contains('lib')) {
+      root = parts.sublist(0, parts.indexOf('lib')).join(path.separator);
+    } else {
+      root = path.basename(path.dirname(filePath));
+    }
+
+    if (root.isEmpty) {
+      root = '.';
+    }
+
+    return root;
+  }
+
   List<CommandToRun> getCommandsToRun(
     Map<String, DetermineFlutterOrDart> testFiles, {
     required bool optimize,
@@ -219,12 +238,7 @@ abstract mixin class TesterMixin {
     final commandsToRun = <CommandToRun>[];
 
     for (final MapEntry(key: test, value: tool) in testFiles.entries) {
-      String projectRoot;
-      if (fs.isFileSync(test)) {
-        projectRoot = path.dirname(path.dirname(test));
-      } else {
-        projectRoot = path.dirname(test);
-      }
+      final projectRoot = packageRootFor(test);
 
       final toolArgs = tool.isFlutter ? flutterArgs : dartArgs;
 
@@ -237,12 +251,9 @@ abstract mixin class TesterMixin {
       var label = darkGray.wrap('Running (')!;
       label += cyan.wrap(command)!;
       label += darkGray.wrap(') tests in ')!;
-      if (test.endsWith(optimizedTestFileName)) {
-        label +=
-            darkGray.wrap(path.dirname(path.dirname(path.relative(test))))!;
-      } else {
-        label += darkGray.wrap(path.relative(test))!;
-      }
+      final dirName = packageRootFor(path.relative(test));
+
+      label += darkGray.wrap(dirName)!;
 
       commandsToRun.add(
         CommandToRun(
