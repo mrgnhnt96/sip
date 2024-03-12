@@ -107,7 +107,23 @@ class SipRunner extends CommandRunner<ExitCode> {
     ExitCode exitCode;
 
     try {
-      final argResults = parse(args);
+      logger.detail('Received args: $args');
+
+      final argsToUse = [...args];
+
+      if (args.isNotEmpty) {
+        logger.detail('Checking for test command');
+        final first = argsToUse.first;
+        final second = argsToUse.length > 1 ? argsToUse[1] : null;
+
+        if (first == 'test' && second != 'watch') {
+          logger.detail('Inserting `run` to args list for `test` command');
+          // insert `run` to 2nd position
+          argsToUse.insert(1, 'run');
+        }
+      }
+
+      final argResults = parse(argsToUse);
 
       logger.detail('VERSION CHECK: ${argResults['version-check']}');
 
