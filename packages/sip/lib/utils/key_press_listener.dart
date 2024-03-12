@@ -27,8 +27,8 @@ class KeyPressListener {
   /// listens to keystrokes
   Stream<void>? listenToKeystrokes({
     required Event onExit,
-    required Event onRunAll,
     required Event onEscape,
+    Map<String, Event>? customStrokes,
   }) {
     if (!stdin.hasTerminal) {
       return null;
@@ -42,9 +42,9 @@ class KeyPressListener {
 
     final strokes = {
       'q': onExit,
-      'r': onRunAll,
       // escape key
       0x1b: onEscape,
+      ...?customStrokes,
     };
 
     return _stream!.asyncMap((event) {
