@@ -77,21 +77,22 @@ void main() {
       );
     });
 
-    group('#findTestDir', () {
-      group('return successfully', () {
+    group('#findTest', () {
+      group('return directory successfully', () {
         group('when root level', () {
           test(
             'and modified is in lib',
-            () {
+            () async {
               final testDirs = {
                 'test': _FakeDetermineFlutterOrDart.dart(),
               };
 
               const modifiedFile = 'lib/foo.dart';
 
-              final result = testWatchCommand.findTest(
+              final result = await testWatchCommand.findTest(
                 testDirs,
                 modifiedFile,
+                returnTestFile: false,
               );
 
               expect(result, isNotNull);
@@ -105,16 +106,17 @@ void main() {
 
           test(
             'and modified is in test',
-            () {
+            () async {
               final testDirs = {
                 'test': _FakeDetermineFlutterOrDart.dart(),
               };
 
               const modifiedFile = 'test/foo_test.dart';
 
-              final result = testWatchCommand.findTest(
+              final result = await testWatchCommand.findTest(
                 testDirs,
                 modifiedFile,
+                returnTestFile: false,
               );
 
               expect(result, isNotNull);
@@ -130,7 +132,7 @@ void main() {
         group('when nested level', () {
           test(
             'and modified is in lib',
-            () {
+            () async {
               final testDirs = {
                 'test': _FakeDetermineFlutterOrDart.dart(),
                 'packages/foo/test': _FakeDetermineFlutterOrDart.dart(),
@@ -138,9 +140,10 @@ void main() {
 
               const modifiedFile = 'packages/foo/lib/foo.dart';
 
-              final result = testWatchCommand.findTest(
+              final result = await testWatchCommand.findTest(
                 testDirs,
                 modifiedFile,
+                returnTestFile: false,
               );
 
               expect(result, isNotNull);
@@ -154,7 +157,7 @@ void main() {
 
           test(
             'and modified is in test',
-            () {
+            () async {
               final testDirs = {
                 'test': _FakeDetermineFlutterOrDart.dart(),
                 'packages/foo/test': _FakeDetermineFlutterOrDart.dart(),
@@ -162,9 +165,10 @@ void main() {
 
               const modifiedFile = 'packages/foo/test/foo_test.dart';
 
-              final result = testWatchCommand.findTest(
+              final result = await testWatchCommand.findTest(
                 testDirs,
                 modifiedFile,
+                returnTestFile: false,
               );
 
               expect(result, isNotNull);
@@ -176,7 +180,7 @@ void main() {
             },
           );
 
-          test('when there are similar starting paths', () {
+          test('when there are similar starting paths', () async {
             final testDirs = {
               'test': _FakeDetermineFlutterOrDart.dart(),
               'packages/foo/test': _FakeDetermineFlutterOrDart.dart(),
@@ -185,9 +189,10 @@ void main() {
 
             const modifiedFile = 'packages/foo/bar/test/foo_test.dart';
 
-            final result = testWatchCommand.findTest(
+            final result = await testWatchCommand.findTest(
               testDirs,
               modifiedFile,
+              returnTestFile: false,
             );
 
             expect(result, isNotNull);
@@ -197,6 +202,121 @@ void main() {
             expect(dir, 'packages/foo/bar/test');
             expect(tool.isDart, isTrue);
           });
+        });
+      });
+
+      group('returns file successfully', () {
+        group('when root level', () {
+          test('and modified is in lib', () async {
+            fs.file('test/foo_test.dart').createSync(recursive: true);
+
+            final testDirs = {
+              'test': _FakeDetermineFlutterOrDart.dart(),
+            };
+
+            const modifiedFile = 'lib/foo.dart';
+
+            final result = await testWatchCommand.findTest(
+              testDirs,
+              modifiedFile,
+              returnTestFile: true,
+            );
+
+            expect(result, isNotNull);
+
+            final (test, tool) = result!;
+
+            expect(test, 'test/foo_test.dart');
+            expect(tool.isDart, isTrue);
+          });
+
+          test('and modified is in test', () async {
+            fs.file('test/foo_test.dart').createSync(recursive: true);
+
+            final testDirs = {
+              'test': _FakeDetermineFlutterOrDart.dart(),
+            };
+
+            const modifiedFile = 'test/foo_test.dart';
+
+            final result = await testWatchCommand.findTest(
+              testDirs,
+              modifiedFile,
+              returnTestFile: true,
+            );
+
+            expect(result, isNotNull);
+
+            final (test, tool) = result!;
+
+            expect(test, 'test/foo_test.dart');
+            expect(tool.isDart, isTrue);
+          });
+        });
+
+        test('finds the right file when many files are found', () async {
+          fs.file('test/foo_test.dart').createSync(recursive: true);
+          fs.file('test/utils/foo_test.dart').createSync(recursive: true);
+          fs
+              .file('test/something/else/foo_test.dart')
+              .createSync(recursive: true);
+
+          final testDirs = {
+            'test': _FakeDetermineFlutterOrDart.dart(),
+          };
+
+          const expected = {
+            'lib/foo.dart': 'test/foo_test.dart',
+            'lib/utils/foo.dart': 'test/utils/foo_test.dart',
+            'lib/something/else/foo.dart': 'test/something/else/foo_test.dart',
+          };
+
+          for (final entry in expected.entries) {
+            final result = await testWatchCommand.findTest(
+              testDirs,
+              entry.key,
+              returnTestFile: true,
+            );
+
+            expect(result, isNotNull);
+
+            final (test, tool) = result!;
+
+            expect(test, entry.value);
+            expect(tool.isDart, isTrue);
+          }
+        });
+
+        test('does not return test file when nothing found', () async {
+          final testDirs = {
+            'test': _FakeDetermineFlutterOrDart.dart(),
+          };
+
+          const modifiedFile = 'lib/foo.dart';
+
+          final result = await testWatchCommand.findTest(
+            testDirs,
+            modifiedFile,
+            returnTestFile: true,
+          );
+
+          expect(result, isNull);
+        });
+
+        test('does not return test dir when nothing found', () async {
+          final testDirs = <String, DetermineFlutterOrDart>{
+            'test': _FakeDetermineFlutterOrDart.dart(),
+          };
+
+          const modifiedFile = 'packages/ui/lib/foo.dart';
+
+          final result = await testWatchCommand.findTest(
+            testDirs,
+            modifiedFile,
+            returnTestFile: false,
+          );
+
+          expect(result, isNull);
         });
       });
     });

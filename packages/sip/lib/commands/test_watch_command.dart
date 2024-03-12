@@ -7,6 +7,7 @@ import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/commands/test_command/tester_mixin.dart';
 import 'package:sip_cli/domain/find_file.dart';
+import 'package:sip_cli/domain/run_tests.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/key_press_listener.dart';
@@ -57,12 +58,14 @@ class TestWatchCommand extends Command<ExitCode> with TesterMixin {
         help: 'Run only flutter tests',
         negatable: false,
       )
-      ..addFlag(
-        'modified',
-        help: 'Re-run the test file associated with the most '
-            'recent changed file\n'
-            'eg. Edit `lib/foo.dart` will re-run `test/foo_test.dart`',
-        negatable: false,
+      ..addOption(
+        'run',
+        help: 'The type of tests to run',
+        defaultsTo: RunTests.package.option,
+        allowed: RunTests.values.map((e) => e.option).toList(),
+        allowedHelp: {
+          for (final val in RunTests.values) val.option: val.help,
+        },
       )
       ..addFlag(
         'optimize',
@@ -100,12 +103,40 @@ class TestWatchCommand extends Command<ExitCode> with TesterMixin {
 
   final KeyPressListener keyPressListener;
 
-  void writeWaitingMessage() {
+  void writeWaitingMessage(RunTests runType) {
+    var returnTestType = '';
+
+    switch (runType) {
+      case RunTests.package:
+        returnTestType = [
+          darkGray.wrap('Will run '),
+          magenta.wrap('package tests'),
+          darkGray.wrap(' with the most recent changed file'),
+        ].join();
+      case RunTests.modified:
+        returnTestType = [
+          darkGray.wrap('Will run '),
+          magenta.wrap('test file'),
+          darkGray.wrap(' associated with '),
+          darkGray.wrap('the most recent changed file'),
+        ].join();
+      case RunTests.all:
+        returnTestType = [
+          darkGray.wrap('Will run '),
+          magenta.wrap('all tests'),
+          darkGray.wrap(' in all packages'),
+        ].join();
+    }
+
+    returnTestType += darkGray.wrap('\n  Press `t` to toggle this feature')!;
+    returnTestType = darkGray.wrap(returnTestType)!;
+
     final waitingMessage = '''
 
 ${yellow.wrap('Waiting for changes...')}
+$returnTestType
 ${darkGray.wrap('Press `q` to exit')}
-${darkGray.wrap('Press `r` to run all tests')}
+${darkGray.wrap('Press `r` to run tests')}
 ''';
 
     logger.write(waitingMessage);
@@ -124,8 +155,8 @@ ${darkGray.wrap('Press `r` to run all tests')}
     final clean = argResults['clean'] as bool;
 
     final optimize = argResults['optimize'] as bool;
-    final modified =
-        argResults.wasParsed('modified') && argResults['modified'] as bool;
+    final runTestType =
+        RunTests.options[argResults['run'] as String] ?? RunTests.package;
 
     warnDartOrFlutterTests(
       isFlutterOnly: isFlutterOnly,
@@ -175,27 +206,39 @@ ${darkGray.wrap('Press `r` to run all tests')}
       ].map(path.relative).join(', ')}',
     );
 
+    var runType = runTestType;
+
+    Map<String, DetermineFlutterOrDart>? lastTests;
+
     // This setup up will not include any new packages created,
     // only the ones that exist when the command is run
     while (true) {
       if (printMessage) {
-        writeWaitingMessage();
+        writeWaitingMessage(runType);
       }
 
       printMessage = false;
 
-      final (:exit, :file, :runAll) = await waitForChange(
+      final (:exit, :file, :run, :toggleModified) = await waitForChange(
         testDirs: testDirs,
         libDirs: libDirs,
+        runType: runType,
       );
 
       if (exit) {
         break;
       }
 
+      if (toggleModified) {
+        runType = RunTests.toggle(runType);
+        printMessage = true;
+        lastTests = null;
+        continue;
+      }
+
       final testsToRun = <String, DetermineFlutterOrDart>{};
 
-      if (!runAll) {
+      if (!run) {
         if (file == null) {
           logger.detail('No file changed, waiting for changes...');
           continue;
@@ -205,11 +248,34 @@ ${darkGray.wrap('Press `r` to run all tests')}
           logger.detail('Optimized test file changed, waiting for changes...');
           continue;
         }
+      }
 
-        final testResult = findTest(tests, file);
+      if (runType.isAll) {
+        logger.info('Running all tests');
+
+        testsToRun.addAll(tests);
+      } else if (file == null) {
+        logger.info('Checking for last tests run...');
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        if (lastTests == null) {
+          logger.info(
+            red.wrap('No previous tests found, modify a file to run tests'),
+          );
+
+          printMessage = true;
+          continue;
+        }
+
+        testsToRun.addAll(lastTests);
+      } else {
+        final testResult = await findTest(
+          tests,
+          file,
+          returnTestFile: runType.isModified,
+        );
 
         if (testResult == null) {
-          logger.detail('No test directory found for $file');
+          logger.detail('No test found for $file, waiting for changes...');
           continue;
         }
 
@@ -217,10 +283,9 @@ ${darkGray.wrap('Press `r` to run all tests')}
 
         final (test, tool) = testResult;
         testsToRun[test] = tool;
-      } else {
-        logger.info('Running all tests');
-        testsToRun.addAll(tests);
       }
+
+      lastTests = testsToRun;
 
       printMessage = true;
 
@@ -255,10 +320,11 @@ ${darkGray.wrap('Press `r` to run all tests')}
     return ExitCode.success;
   }
 
-  (String test, DetermineFlutterOrDart tool)? findTest(
+  Future<(String test, DetermineFlutterOrDart tool)?> findTest(
     Map<String, DetermineFlutterOrDart> tests,
-    String modifiedFile,
-  ) {
+    String modifiedFile, {
+    required bool returnTestFile,
+  }) async {
     // {<directory>, <key>}
     final keys = <String, String>{};
 
@@ -270,10 +336,13 @@ ${darkGray.wrap('Press `r` to run all tests')}
       }
     }
 
+    (String, DetermineFlutterOrDart)? testResult;
+
     for (final MapEntry(key: directory, value: test) in keys.entries) {
       // check if the modified file is in the test directory
       if (modifiedFile.startsWith(directory)) {
-        return (directory, tests[test]!);
+        testResult = (directory, tests[test]!);
+        break;
       }
 
       // check if the modified file is in the lib directory
@@ -281,16 +350,70 @@ ${darkGray.wrap('Press `r` to run all tests')}
       // eg. lib/foo.dart -> test/foo_test.dart
       final libDir = directory.replaceAll(RegExp(r'test$'), 'lib');
       if (modifiedFile.startsWith(libDir)) {
-        return (directory, tests[test]!);
+        testResult = (directory, tests[test]!);
+        break;
+      }
+    }
+
+    if (testResult == null) {
+      return null;
+    }
+
+    if (!returnTestFile) {
+      return testResult;
+    }
+
+    // check for the test file associated with the modified file
+    final base = path.basenameWithoutExtension(modifiedFile);
+    final nameOfTest =
+        base.endsWith('_test') ? '$base.dart' : '${base}_test.dart';
+    final possibleFiles =
+        await findFile.childrenOf(nameOfTest, directoryPath: testResult.$1);
+
+    if (possibleFiles.isEmpty) {
+      return null;
+    }
+
+    if (possibleFiles.length == 1) {
+      return (possibleFiles.first, testResult.$2);
+    }
+
+    final libPath = testResult.$1.replaceAll(RegExp(r'.*.?test$'), 'lib');
+    final modifiedFileInLib = modifiedFile
+        .replaceAll(libPath, 'test')
+        .replaceAll(path.basename(modifiedFile), nameOfTest);
+    final segments = path.split(modifiedFileInLib);
+
+    for (final test in possibleFiles) {
+      final segmentsInTestFile = path.split(test);
+      if (segmentsInTestFile.length != segments.length) {
+        continue;
+      }
+
+      for (var i = 0; i < segments.length; i++) {
+        if (segments[i] != segmentsInTestFile[i]) {
+          break;
+        }
+
+        if (i == segments.length - 1) {
+          return (test, testResult.$2);
+        }
       }
     }
 
     return null;
   }
 
-  Future<({bool exit, String? file, bool runAll})> waitForChange({
+  Future<
+      ({
+        bool exit,
+        String? file,
+        bool run,
+        bool toggleModified,
+      })> waitForChange({
     required Iterable<String> testDirs,
     required Iterable<String> libDirs,
+    required RunTests runType,
   }) async {
     String eventType(int event) {
       switch (event) {
@@ -331,17 +454,48 @@ ${darkGray.wrap('Press `r` to run all tests')}
       return controller.stream;
     }).toList();
 
-    final fileChangeCompleter =
-        Completer<({bool exit, String? file, bool runAll})>();
+    final fileChangeCompleter = Completer<
+        ({
+          bool exit,
+          String? file,
+          bool run,
+          bool toggleModified,
+        })>();
 
     final input = keyPressListener.listenToKeystrokes(
       onExit: () {
-        fileChangeCompleter.complete((exit: true, file: null, runAll: false));
+        fileChangeCompleter.complete(
+          (
+            exit: true,
+            file: null,
+            run: false,
+            toggleModified: false,
+          ),
+        );
       },
-      onRunAll: () {
-        fileChangeCompleter.complete((exit: false, file: null, runAll: true));
+      onEscape: () => writeWaitingMessage(runType),
+      customStrokes: {
+        'r': () {
+          fileChangeCompleter.complete(
+            (
+              exit: false,
+              file: null,
+              run: true,
+              toggleModified: false,
+            ),
+          );
+        },
+        't': () {
+          fileChangeCompleter.complete(
+            (
+              exit: false,
+              file: null,
+              run: false,
+              toggleModified: true,
+            ),
+          );
+        },
       },
-      onEscape: writeWaitingMessage,
     );
 
     StreamSubscription<void>? inputSubscription;
@@ -349,14 +503,19 @@ ${darkGray.wrap('Press `r` to run all tests')}
 
     final fileChangeListener = StreamGroup(fileModifications).merge().listen(
           (file) => fileChangeCompleter.complete(
-            (exit: false, file: file, runAll: false),
+            (
+              exit: false,
+              file: file,
+              run: false,
+              toggleModified: false,
+            ),
           ),
         );
 
-    final (:exit, :file, :runAll) = await fileChangeCompleter.future;
+    final result = await fileChangeCompleter.future;
     await fileChangeListener.cancel();
     await inputSubscription?.cancel();
 
-    return (exit: exit, file: file, runAll: runAll);
+    return result;
   }
 }
