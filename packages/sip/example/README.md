@@ -139,6 +139,64 @@ Sip can run dart/flutter tests, and pass most all dart/flutter test flags. To vi
 $ sip test --recursive --concurrent
 ```
 
+## Running only dart or flutter tests
+
+By default, sip will run all tests, regardless of whether the project is a dart or flutter project. If you would like to run only dart tests, you can run:
+
+```bash
+sip test --dart-only
+```
+
+If you would like to run only flutter tests, you can run:
+
+```bash
+sip test --flutter-only
+```
+
+## Watch Mode
+
+Sip can watch for changes in the project and run the tests whenever a file changes. To run tests in watch mode, you can run:
+
+```bash
+sip test watch
+```
+
+### Ways to run tests
+
+Sip can run tests in a few different ways:
+
+#### Run all tests
+
+```bash
+sip test watch --run all
+```
+
+When a file changes in the project, all tests will be run. This is helpful if you want to ensure that the changes you made did not break any tests.
+
+#### Run package tests
+
+```bash
+sip test watch --run package
+```
+
+When a file changes in the project, only the tests in the package will be run. This is helpful if you want to ensure that the changes you made did not break any tests in the package.
+
+#### Run file tests
+
+```bash
+sip test watch --run file
+```
+
+When a file changes in the project, only the tests in the file will be run. This is helpful if you want to ensure that the changes you made did not break any tests for that file. This is also a great way for [TDD](https://en.wikipedia.org/wiki/Test-driven_development)!
+
+### Toggle run states
+
+Toggling these states during watch mode is possible by pressing the `t` key in the terminal.
+
+![toggle_states](../assets/toggle_states.png)
+
+In addition to toggling the run states, you can also toggle the `--concurrent` flag by pressing the `c` key in the terminal.
+
 ### --bail
 
 Bailing on tests means that the moment a test fails, the script will stop running, even if there are other tests to run.

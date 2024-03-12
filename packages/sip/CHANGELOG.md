@@ -1,3 +1,15 @@
+# 0.3.0 | 3/12/2024
+
+## Features
+
+- Test Watch Mode
+  - `sip test watch`
+  - Listens for changes in the project and re-runs tests when changes are detected
+
+## Enhancements
+
+- Clean up test usage output
+
 # 0.2.4 | 3/8/2024
 
 ## Enhancements
@@ -136,7 +148,7 @@
 
 ## Fixes
 
-- Fix issue where - and _ chars were being ignored in variables
+- Fix issue where - and \_ chars were being ignored in variables
 
 # 0.0.13 | 2/12/2024
 
