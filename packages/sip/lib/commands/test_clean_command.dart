@@ -1,6 +1,5 @@
 import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
-import 'package:path/path.dart' as path;
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:sip_cli/commands/test_command/tester_mixin.dart';
 import 'package:sip_cli/domain/find_file.dart';
