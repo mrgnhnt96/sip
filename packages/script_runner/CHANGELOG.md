@@ -1,3 +1,20 @@
+# 0.4.0 | 3/12/2024
+
+## Breaking Changes
+
+- Rename `.optimized_test.dart` to `.test_optimizer.dart`
+  - Helps avoid unintentionally running optimized tests
+- Rename `--run` to `--scope` for the `sip test watch` command
+- Rename `package` to `active` for improved comprehension regarding the test scope for the `sip test watch` command
+
+## Features
+
+- Create a new command to clean up optimized test files `sip test clean`
+
+## Enhancements
+
+- Wait for a max of 1 second to check for the latest version for `sip_cli`
+
 # 0.3.0 | 3/12/2024
 
 ## Features
