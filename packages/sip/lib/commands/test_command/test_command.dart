@@ -3,6 +3,7 @@
 import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
+import 'package:sip_cli/commands/test_clean_command.dart';
 import 'package:sip_cli/commands/test_run_command.dart';
 import 'package:sip_cli/commands/test_watch_command.dart';
 import 'package:sip_cli/domain/find_file.dart';
@@ -22,6 +23,17 @@ class TestCommand extends Command<ExitCode> {
   }) {
     addSubcommand(
       TestRunCommand(
+        bindings: bindings,
+        findFile: findFile,
+        fs: fs,
+        logger: logger,
+        pubspecLock: pubspecLock,
+        pubspecYaml: pubspecYaml,
+      ),
+    );
+
+    addSubcommand(
+      TestCleanCommand(
         bindings: bindings,
         findFile: findFile,
         fs: fs,
