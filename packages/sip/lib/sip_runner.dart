@@ -116,7 +116,7 @@ class SipRunner extends CommandRunner<ExitCode> {
         final first = argsToUse.first;
         final second = argsToUse.length > 1 ? argsToUse[1] : null;
 
-        if (first == 'test' && second != 'watch') {
+        if (first == 'test' && second != null && second.startsWith('-')) {
           logger.detail('Inserting `run` to args list for `test` command');
           // insert `run` to 2nd position
           argsToUse.insert(1, 'run');
