@@ -553,7 +553,7 @@ void main() {
         tests!;
 
         expect(tests.length, 1);
-        expect(tests.keys.first, 'test/.optimized_test.dart');
+        expect(tests.keys.first, 'test/${TesterMixin.optimizedTestFileName}');
       });
 
       test('should return all tests when not optimizing', () {

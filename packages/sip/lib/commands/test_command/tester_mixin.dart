@@ -23,7 +23,7 @@ part '__flutter_args.dart';
 abstract mixin class TesterMixin {
   const TesterMixin();
 
-  static const String optimizedTestFileName = '.optimized_test.dart';
+  static const String optimizedTestFileName = '.test_optimizer.dart';
 
   Logger get logger;
   PubspecYaml get pubspecYaml;
