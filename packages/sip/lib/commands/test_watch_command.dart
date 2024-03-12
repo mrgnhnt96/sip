@@ -7,7 +7,7 @@ import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/commands/test_command/tester_mixin.dart';
 import 'package:sip_cli/domain/find_file.dart';
-import 'package:sip_cli/domain/run_tests.dart';
+import 'package:sip_cli/domain/test_scope.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/key_press_listener.dart';
@@ -59,12 +59,12 @@ class TestWatchCommand extends Command<ExitCode> with TesterMixin {
         negatable: false,
       )
       ..addOption(
-        'run',
-        help: 'The type of tests to run',
-        defaultsTo: RunTests.package.option,
-        allowed: RunTests.values.map((e) => e.option).toList(),
+        'scope',
+        help: 'The scope of tests to run',
+        defaultsTo: TestScope.active.option,
+        allowed: TestScope.values.map((e) => e.option).toList(),
         allowedHelp: {
-          for (final val in RunTests.values) val.option: val.help,
+          for (final val in TestScope.values) val.option: val.help,
         },
       )
       ..addFlag(
@@ -103,33 +103,15 @@ class TestWatchCommand extends Command<ExitCode> with TesterMixin {
 
   final KeyPressListener keyPressListener;
 
-  void writeWaitingMessage(RunTests runType, {required bool runConcurrently}) {
-    var returnTestType = '';
+  void writeWaitingMessage(TestScope scope, {required bool runConcurrently}) {
+    var testScope = darkGray.wrap('Test Scope: ')!;
+    testScope += magenta.wrap(scope.option)!;
+    testScope += darkGray.wrap(' (${scope.help})')!;
 
-    switch (runType) {
-      case RunTests.package:
-        returnTestType = [
-          darkGray.wrap('Will run '),
-          magenta.wrap('package tests'),
-          darkGray.wrap(' with the most recent changed file'),
-        ].join();
-      case RunTests.modified:
-        returnTestType = [
-          darkGray.wrap('Will run '),
-          magenta.wrap('test file'),
-          darkGray.wrap(' associated with '),
-          darkGray.wrap('the most recent changed file'),
-        ].join();
-      case RunTests.all:
-        returnTestType = [
-          darkGray.wrap('Will run '),
-          magenta.wrap('all tests'),
-          darkGray.wrap(' in all packages'),
-        ].join();
-    }
-
-    returnTestType += darkGray.wrap('\n  Press `t` to toggle this feature')!;
-    returnTestType = darkGray.wrap(returnTestType)!;
+    testScope += darkGray.wrap(
+      '\n  Press `t` to cycle ${TestScope.values.map((e) => e.option)}',
+    )!;
+    testScope = darkGray.wrap(testScope)!;
 
     var concurrent = darkGray.wrap('Concurrency: ')!;
 
@@ -138,12 +120,12 @@ class TestWatchCommand extends Command<ExitCode> with TesterMixin {
     } else {
       concurrent += darkGray.wrap('OFF')!;
     }
-    concurrent += darkGray.wrap('\n  Press `c` to toggle this feature')!;
+    concurrent += darkGray.wrap('\n  Press `c` to toggle concurrency')!;
 
     final waitingMessage = '''
 
 ${yellow.wrap('Waiting for changes...')}
-$returnTestType
+$testScope
 $concurrent
 ${darkGray.wrap('Press `r` to run tests again')}
 ${darkGray.wrap('Press `q` to exit')}
@@ -166,7 +148,7 @@ ${darkGray.wrap('Press `q` to exit')}
 
     final optimize = argResults['optimize'] as bool;
     final runTestType =
-        RunTests.options[argResults['run'] as String] ?? RunTests.package;
+        TestScope.options[argResults['scope'] as String] ?? TestScope.active;
 
     warnDartOrFlutterTests(
       isFlutterOnly: isFlutterOnly,
@@ -247,7 +229,7 @@ ${darkGray.wrap('Press `q` to exit')}
       }
 
       if (event.isToggleModified) {
-        runType = RunTests.toggle(runType);
+        runType = TestScope.toggle(runType);
         printMessage = true;
         lastTests = null;
         continue;

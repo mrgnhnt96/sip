@@ -1,13 +1,13 @@
-import 'package:sip_cli/domain/run_tests.dart';
+import 'package:sip_cli/domain/test_scope.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('$RunTests', () {
+  group('$TestScope', () {
     group('#toggle', () {
       test('should toggle to the next value', () {
-        expect(RunTests.toggle(RunTests.package), RunTests.modified);
-        expect(RunTests.toggle(RunTests.modified), RunTests.all);
-        expect(RunTests.toggle(RunTests.all), RunTests.package);
+        expect(TestScope.toggle(TestScope.active), TestScope.file);
+        expect(TestScope.toggle(TestScope.file), TestScope.all);
+        expect(TestScope.toggle(TestScope.all), TestScope.active);
       });
     });
   });
