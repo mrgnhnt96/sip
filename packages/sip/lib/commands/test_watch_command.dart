@@ -103,7 +103,7 @@ class TestWatchCommand extends Command<ExitCode> with TesterMixin {
 
   final KeyPressListener keyPressListener;
 
-  void writeWaitingMessage(RunTests runType) {
+  void writeWaitingMessage(RunTests runType, {required bool runConcurrently}) {
     var returnTestType = '';
 
     switch (runType) {
@@ -131,12 +131,22 @@ class TestWatchCommand extends Command<ExitCode> with TesterMixin {
     returnTestType += darkGray.wrap('\n  Press `t` to toggle this feature')!;
     returnTestType = darkGray.wrap(returnTestType)!;
 
+    var concurrent = darkGray.wrap('Concurrency: ')!;
+
+    if (runConcurrently) {
+      concurrent += green.wrap('ON')!;
+    } else {
+      concurrent += darkGray.wrap('OFF')!;
+    }
+    concurrent += darkGray.wrap('\n  Press `c` to toggle this feature')!;
+
     final waitingMessage = '''
 
 ${yellow.wrap('Waiting for changes...')}
 $returnTestType
+$concurrent
+${darkGray.wrap('Press `r` to run tests again')}
 ${darkGray.wrap('Press `q` to exit')}
-${darkGray.wrap('Press `r` to run tests')}
 ''';
 
     logger.write(waitingMessage);
@@ -207,6 +217,7 @@ ${darkGray.wrap('Press `r` to run tests')}
     );
 
     var runType = runTestType;
+    var runConcurrently = concurrent;
 
     Map<String, DetermineFlutterOrDart>? lastTests;
 
@@ -214,31 +225,43 @@ ${darkGray.wrap('Press `r` to run tests')}
     // only the ones that exist when the command is run
     while (true) {
       if (printMessage) {
-        writeWaitingMessage(runType);
+        writeWaitingMessage(
+          runType,
+          runConcurrently: runConcurrently,
+        );
       }
 
       printMessage = false;
 
-      final (:exit, :file, :run, :toggleModified) = await waitForChange(
+      final (type: event, :file) = await waitForChange(
         testDirs: testDirs,
         libDirs: libDirs,
-        runType: runType,
+        printMessage: () => writeWaitingMessage(
+          runType,
+          runConcurrently: runConcurrently,
+        ),
       );
 
-      if (exit) {
+      if (event.isExit) {
         break;
       }
 
-      if (toggleModified) {
+      if (event.isToggleModified) {
         runType = RunTests.toggle(runType);
         printMessage = true;
         lastTests = null;
         continue;
       }
 
+      if (event.isToggleConcurrency) {
+        runConcurrently = !runConcurrently;
+        printMessage = true;
+        continue;
+      }
+
       final testsToRun = <String, DetermineFlutterOrDart>{};
 
-      if (!run) {
+      if (!event.isRun) {
         if (file == null) {
           logger.detail('No file changed, waiting for changes...');
           continue;
@@ -298,7 +321,7 @@ ${darkGray.wrap('Press `r` to run tests')}
 
       final exitCode = await runCommands(
         commandsToRun,
-        runConcurrently: concurrent,
+        runConcurrently: runConcurrently,
         bail: false,
       );
 
@@ -406,14 +429,12 @@ ${darkGray.wrap('Press `r` to run tests')}
 
   Future<
       ({
-        bool exit,
+        EventType type,
         String? file,
-        bool run,
-        bool toggleModified,
       })> waitForChange({
     required Iterable<String> testDirs,
     required Iterable<String> libDirs,
-    required RunTests runType,
+    required void Function() printMessage,
   }) async {
     String eventType(int event) {
       switch (event) {
@@ -456,42 +477,42 @@ ${darkGray.wrap('Press `r` to run tests')}
 
     final fileChangeCompleter = Completer<
         ({
-          bool exit,
+          EventType type,
           String? file,
-          bool run,
-          bool toggleModified,
         })>();
 
     final input = keyPressListener.listenToKeystrokes(
       onExit: () {
         fileChangeCompleter.complete(
           (
-            exit: true,
+            type: EventType.exit,
             file: null,
-            run: false,
-            toggleModified: false,
           ),
         );
       },
-      onEscape: () => writeWaitingMessage(runType),
+      onEscape: printMessage,
       customStrokes: {
         'r': () {
           fileChangeCompleter.complete(
             (
-              exit: false,
+              type: EventType.run,
               file: null,
-              run: true,
-              toggleModified: false,
             ),
           );
         },
         't': () {
           fileChangeCompleter.complete(
             (
-              exit: false,
+              type: EventType.toggleModified,
               file: null,
-              run: false,
-              toggleModified: true,
+            ),
+          );
+        },
+        'c': () {
+          fileChangeCompleter.complete(
+            (
+              type: EventType.toggleConcurrency,
+              file: null,
             ),
           );
         },
@@ -504,10 +525,8 @@ ${darkGray.wrap('Press `r` to run tests')}
     final fileChangeListener = StreamGroup(fileModifications).merge().listen(
           (file) => fileChangeCompleter.complete(
             (
-              exit: false,
+              type: EventType.file,
               file: file,
-              run: false,
-              toggleModified: false,
             ),
           ),
         );
@@ -518,4 +537,20 @@ ${darkGray.wrap('Press `r` to run tests')}
 
     return result;
   }
+}
+
+enum EventType {
+  exit,
+  file,
+  run,
+  toggleModified,
+  toggleConcurrency;
+
+  const EventType();
+
+  bool get isExit => this == EventType.exit;
+  bool get isFile => this == EventType.file;
+  bool get isRun => this == EventType.run;
+  bool get isToggleModified => this == EventType.toggleModified;
+  bool get isToggleConcurrency => this == EventType.toggleConcurrency;
 }
