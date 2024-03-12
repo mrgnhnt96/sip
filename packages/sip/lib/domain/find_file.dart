@@ -65,13 +65,16 @@ class FindFile {
   /// finds all children that match the given file name, starts from the current
   /// directory and traverses down
   Future<List<String>> childrenOf(
-    String fileName,
-  ) async {
+    String fileName, {
+    String? directoryPath,
+  }) async {
     final children = <String>[];
 
-    final directory = fs.currentDirectory;
+    final directory = directoryPath != null
+        ? fs.directory(directoryPath)
+        : fs.currentDirectory;
 
-    final glob = Glob('**/$fileName', recursive: true);
+    final glob = Glob('**$fileName', recursive: true);
 
     final entities = glob.listFileSystemSync(
       fs,
