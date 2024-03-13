@@ -136,16 +136,20 @@ class SipRunner extends CommandRunner<ExitCode> {
         ..detail('$stack');
       exitCode = ExitCode.software;
     } finally {
-      final anyResult = (AnyArgParser()
-            ..addFlag(
-              'version-check',
-              defaultsTo: true,
-            ))
-          .parse(args);
+      if (args.first != 'update') {
+        final anyResult = (AnyArgParser()
+              ..addFlag(
+                'version-check',
+                defaultsTo: true,
+              ))
+            .parse(args);
 
-      if (anyResult['version-check'] as bool) {
-        logger.detail('Checking for updates');
-        await checkForUpdate();
+        if (anyResult['version-check'] as bool) {
+          logger.detail('Checking for updates');
+          await checkForUpdate();
+        } else {
+          logger.detail('Skipping version check');
+        }
       } else {
         logger.detail('Skipping version check');
       }
