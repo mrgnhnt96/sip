@@ -1,3 +1,9 @@
+# 0.4.1 | 3/12/2024
+
+## Enhancements
+
+- Don't check for update after running `sip update`
+
 # 0.4.0 | 3/12/2024
 
 ## Breaking Changes
