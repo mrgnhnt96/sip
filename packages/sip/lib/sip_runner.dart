@@ -54,7 +54,7 @@ class SipRunner extends CommandRunner<ExitCode> {
       ..addFlag(
         'version-check',
         defaultsTo: true,
-        help: 'Do not check for new versions of sip_cli',
+        help: 'Checks for the latest version of sip_cli',
       );
 
     addCommand(
@@ -167,6 +167,7 @@ class SipRunner extends CommandRunner<ExitCode> {
     timer = Timer(const Duration(seconds: 1), () {
       exiter.complete((result: null, exit: true));
     });
+
     updateCommand.needsUpdate().then((value) {
       exiter.complete((result: value, exit: false));
     }).ignore();
@@ -175,6 +176,7 @@ class SipRunner extends CommandRunner<ExitCode> {
     timer.cancel();
 
     if (exit) {
+      logger.detail('Skipping version check, timeout reached');
       return;
     }
 
