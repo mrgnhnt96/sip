@@ -104,15 +104,19 @@ class RunManyScripts {
       }
     }
 
-    yield* controller.stream;
+    if (sequentially) {
+      await controller.close();
+    } else {
+      yield* controller.stream;
+    }
   }
 }
 
 extension _StringX on String {
   String truncate([int length = 1]) {
-    final lints = split('\n');
-    if (lints.length > length) {
-      return [...lints.take(length), '...'].join('\n');
+    final lines = split('\n');
+    if (lines.length > length) {
+      return [...lines.take(length), '...'].join('\n');
     }
 
     return this;
