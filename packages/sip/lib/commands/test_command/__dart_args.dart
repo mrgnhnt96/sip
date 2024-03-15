@@ -30,12 +30,6 @@ extension _DartX<T> on Command<T> {
         abbr: 'P',
         help: 'The configuration preset(s) to use.',
       )
-      ..addOption(
-        'pub-serve',
-        help: '[Removed] The port of a pub serve instance serving "test/".',
-        valueHelp: 'port',
-        hide: true,
-      )
       ..addFlag(
         'ignore-timeouts',
         help: 'Ignore all timeouts (useful if debugging)',
@@ -98,7 +92,6 @@ extension _DartX<T> on Command<T> {
       'platform',
       'compiler',
       'preset',
-      'pub-serve',
       'ignore-timeouts',
       'pause-after-load',
       'debug',
