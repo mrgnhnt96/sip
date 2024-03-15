@@ -87,9 +87,17 @@ abstract class APubCommand extends Command<ExitCode> {
   Future<ExitCode> run([List<String>? args]) async {
     final argResults = args != null ? argParser.parse(args) : this.argResults!;
 
+    final bail = argResults['bail'] as bool;
     final recursive = argResults['recursive'] as bool;
     final dartOnly = argResults['dart-only'] as bool;
     final flutterOnly = argResults['flutter-only'] as bool;
+    var concurrent = argResults['concurrent'] as bool;
+
+    if (flutterOnly && !dartOnly) {
+      logger
+          .warn('Flutter does not support concurrency, running sequentially.');
+      concurrent = false;
+    }
 
     warnDartOrFlutter(
       isDartOnly: dartOnly,
@@ -165,7 +173,7 @@ abstract class APubCommand extends Command<ExitCode> {
       );
     }
 
-    if (argResults['concurrent'] == true) {
+    if (concurrent) {
       final runMany = RunManyScripts(
         commands: commands,
         bindings: bindings,
@@ -181,23 +189,31 @@ abstract class APubCommand extends Command<ExitCode> {
 
       return exitCodes.exitCode(logger);
     } else {
+      var exitCode = ExitCode.success;
+
       for (final command in commands) {
         logger.info('\nRunning ${lightCyan.wrap(command.command)}');
 
-        final exitCode = await RunOneScript(
+        final result = await RunOneScript(
           command: command,
           bindings: bindings,
           logger: logger,
           showOutput: true,
         ).run();
 
-        if (exitCode != ExitCode.success && argResults['bail'] == true) {
-          exitCode.printError(command, logger);
-          return exitCode;
+        if (result != ExitCode.success) {
+          if (exitCode != ExitCode.success) {
+            exitCode = result;
+          }
+
+          if (bail) {
+            exitCode.printError(command, logger);
+            return exitCode;
+          }
         }
       }
 
-      return ExitCode.success;
+      return exitCode;
     }
   }
 }
