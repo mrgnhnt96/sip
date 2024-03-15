@@ -207,7 +207,7 @@ abstract class APubCommand extends Command<ExitCode> {
           bail: bail,
         );
 
-        exitCodes.printErrors(commands.dart, logger);
+        exitCodes.printErrors(runner.commands, logger);
 
         final result = exitCodes.exitCode(logger);
         if (result != ExitCode.success) {
