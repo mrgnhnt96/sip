@@ -136,7 +136,7 @@ class SipRunner extends CommandRunner<ExitCode> {
         ..detail('$stack');
       exitCode = ExitCode.software;
     } finally {
-      if (args.first != 'update') {
+      if (args.isNotEmpty && args.first != 'update') {
         final anyResult = (AnyArgParser()
               ..addFlag(
                 'version-check',
