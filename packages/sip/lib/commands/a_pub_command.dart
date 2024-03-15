@@ -83,21 +83,23 @@ abstract class APubCommand extends Command<ExitCode> {
     }
   }
 
+  ExitCode onFinish(ExitCode exitCode) => exitCode;
+
   @override
   Future<ExitCode> run([List<String>? args]) async {
+    final result = await _run(args);
+
+    return onFinish(result);
+  }
+
+  Future<ExitCode> _run([List<String>? args]) async {
     final argResults = args != null ? argParser.parse(args) : this.argResults!;
 
     final bail = argResults['bail'] as bool;
     final recursive = argResults['recursive'] as bool;
     final dartOnly = argResults['dart-only'] as bool;
     final flutterOnly = argResults['flutter-only'] as bool;
-    var concurrent = argResults['concurrent'] as bool;
-
-    if (flutterOnly && !dartOnly) {
-      logger
-          .warn('Flutter does not support concurrency, running sequentially.');
-      concurrent = false;
-    }
+    final concurrent = argResults['concurrent'] as bool;
 
     warnDartOrFlutter(
       isDartOnly: dartOnly,
@@ -126,7 +128,11 @@ abstract class APubCommand extends Command<ExitCode> {
       ..sort()
       ..sort((a, b) => path.split(b).length - path.split(a).length);
 
-    final commands = <CommandToRun>[];
+    final commands = (
+      dart: <CommandToRun>[],
+      flutter: <CommandToRun>[],
+      ordered: <CommandToRun>[],
+    );
     for (final pubspec in sortedPubspecs) {
       final flutterOrDart = DetermineFlutterOrDart(
         pubspecYaml: pubspec,
@@ -163,57 +169,83 @@ abstract class APubCommand extends Command<ExitCode> {
 
       final label = '$toolString $pathString';
 
-      commands.add(
-        CommandToRun(
-          command: '$tool pub $name ${pubFlags.join(' ')}',
-          workingDirectory: project,
-          label: label,
-          keys: null,
-        ),
+      final command = CommandToRun(
+        command: '$tool pub $name ${pubFlags.join(' ')}',
+        workingDirectory: project,
+        label: label,
+        keys: null,
       );
+
+      commands.ordered.add(command);
+      if (flutterOrDart.isFlutter) {
+        commands.flutter.add(command);
+      } else {
+        commands.dart.add(command);
+      }
     }
 
     if (concurrent) {
-      final runMany = RunManyScripts(
-        commands: commands,
-        bindings: bindings,
-        logger: logger,
-      );
+      final runners = [
+        if (commands.dart.isNotEmpty)
+          RunManyScripts(
+            commands: commands.dart,
+            bindings: bindings,
+            logger: logger,
+          ),
+        if (commands.flutter.isNotEmpty)
+          RunManyScripts(
+            commands: commands.flutter,
+            bindings: bindings,
+            logger: logger,
+          ),
+      ];
 
-      final exitCodes = await runMany.run(
-        label: 'Running ${lightCyan.wrap('pub $name ${pubFlags.join(' ')}')}',
-        bail: false,
-      );
+      ExitCode? exitCode;
+      for (final runner in runners) {
+        final exitCodes = await runner.run(
+          label: 'Running ${lightCyan.wrap('pub $name ${pubFlags.join(' ')}')}',
+          bail: bail,
+        );
 
-      exitCodes.printErrors(commands, logger);
+        exitCodes.printErrors(commands.dart, logger);
 
-      return exitCodes.exitCode(logger);
-    } else {
-      var exitCode = ExitCode.success;
-
-      for (final command in commands) {
-        logger.info('\nRunning ${lightCyan.wrap(command.command)}');
-
-        final result = await RunOneScript(
-          command: command,
-          bindings: bindings,
-          logger: logger,
-          showOutput: true,
-        ).run();
-
+        final result = exitCodes.exitCode(logger);
         if (result != ExitCode.success) {
-          if (exitCode != ExitCode.success) {
-            exitCode = result;
+          if (bail) {
+            return result;
           }
 
-          if (bail) {
-            exitCode.printError(command, logger);
-            return exitCode;
-          }
+          exitCode = result;
         }
       }
 
-      return exitCode;
+      return exitCode ?? ExitCode.success;
     }
+
+    var exitCode = ExitCode.success;
+
+    for (final command in commands.ordered) {
+      logger.info('\nRunning ${lightCyan.wrap(command.command)}');
+
+      final result = await RunOneScript(
+        command: command,
+        bindings: bindings,
+        logger: logger,
+        showOutput: true,
+      ).run();
+
+      if (result != ExitCode.success) {
+        if (exitCode != ExitCode.success) {
+          exitCode = result;
+        }
+
+        if (bail) {
+          exitCode.printError(command, logger);
+          return exitCode;
+        }
+      }
+    }
+
+    return exitCode;
   }
 }
