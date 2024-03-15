@@ -11,6 +11,13 @@ extension _ConflictingX<T> on Command<T> {
 
   void _addConflictingArgs() {
     argParser
+      ..addFlag(
+        'coverage',
+        negatable: false,
+        help:
+            'Dart: Gather coverage and output it to the `coverage` directory\n'
+            'Flutter: Gathers coverage',
+      )
       ..addOption(
         'dart-coverage',
         help: '${red.wrap('RENAMED')} from ${magenta.wrap('coverage')}\n'
@@ -28,24 +35,49 @@ extension _ConflictingX<T> on Command<T> {
   }
 
   List<String> _getDartConflictingArgs() {
+    final args = <String>{};
+
+    final options = {...dartOptions};
+    final coverage = argResults?['coverage'] as bool? ?? false;
+    final dartCoverage = argResults?.wasParsed('dart-coverage') ?? false;
+
+    if (coverage && !dartCoverage) {
+      args.add('--coverage=coverage');
+      options.remove('dart-coverage');
+    }
+
     return _parseArguments(
       argParser,
       argResults,
-      dartOptions,
+      options,
       flagReplacements: {
         'dart-coverage': 'coverage',
       },
+      initialArgs: args,
     );
   }
 
   List<String> _getFlutterConflictingArgs() {
+    final args = <String>{};
+
+    final options = {...flutterOptions};
+
+    final coverage = argResults?['coverage'] as bool? ?? false;
+    final flutterCoverage = argResults?['flutter-coverage'] as bool? ?? false;
+
+    if (coverage && !flutterCoverage) {
+      args.add('--coverage');
+      options.remove('flutter-coverage');
+    }
+
     return _parseArguments(
       argParser,
       argResults,
-      flutterOptions,
+      options,
       flagReplacements: {
         'flutter-coverage': 'coverage',
       },
+      initialArgs: args,
     );
   }
 }

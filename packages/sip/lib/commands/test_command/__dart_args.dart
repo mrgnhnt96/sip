@@ -109,12 +109,8 @@ extension _DartX<T> on Command<T> {
 
     final options = {..._DartX.options};
 
-    if (argResults?.options != null && argResults!.options.contains('bail')) {
-      final bail = argResults['bail'] as bool;
-
-      if (bail) {
-        args.add('--fail-fast');
-      }
+    if (argResults?['bail'] as bool? ?? false) {
+      args.add('--fail-fast');
     }
     options.remove('fail-fast');
 

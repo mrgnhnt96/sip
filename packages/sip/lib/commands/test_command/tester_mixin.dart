@@ -251,6 +251,8 @@ abstract mixin class TesterMixin {
 
       final script = '$command test $testPath ${toolArgs.join(' ')}';
 
+      logger.detail('Test command: $script');
+
       var label = darkGray.wrap('Running (')!;
       label += cyan.wrap(command)!;
       label += darkGray.wrap(') tests in ')!;
