@@ -1,3 +1,24 @@
+# 0.4.2 | 3/15/2024
+
+## Fixes
+
+- Create alternative flags for the `--coverage` flags as they exist in both flutter and dart but accept different arguments
+  - `--coverage` for dart is changed to `--dart-coverage`
+  - `--coverage` for flutter is changed to `--flutter-coverage`
+
+## Features
+
+- Support running pub commands for dart or flutter packages only
+- If the `--coverage` flag is provided in the `sip test` command, default values will be provided to dart and flutter
+  - Dart: Coverage is enabled and sets the coverage directory to `coverage`
+  - Flutter: coverage is enabled
+- Add `--ignore-lockfile-exit` flag to `sip pub get` command
+  - When using `--enforce-lockfile`, if the lockfile is not up to date, the command will exit with a non-zero exit code. When using `--ignore-lockfile-exit`, the command ignore the non-zero exit. Even if the lockfile is not up to date, the dependencies will still be retrieved.
+
+## Enhancements
+
+- Update copy for the `--version-check` flag
+
 # 0.4.1 | 3/12/2024
 
 ## Enhancements
