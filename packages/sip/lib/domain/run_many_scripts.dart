@@ -10,11 +10,18 @@ class RunManyScripts {
     required this.commands,
     required this.bindings,
     required this.logger,
-  });
+  }) : sequentially = false;
+
+  const RunManyScripts.sequentially({
+    required this.commands,
+    required this.bindings,
+    required this.logger,
+  }) : sequentially = true;
 
   final Bindings bindings;
   final Iterable<CommandToRun> commands;
   final Logger logger;
+  final bool sequentially;
 
   Future<List<ExitCode>> run({
     required bool bail,
@@ -67,10 +74,17 @@ class RunManyScripts {
   Stream<ExitCode> _run(
     Iterable<CommandToRun> commands, {
     required bool bail,
-  }) {
+  }) async* {
     logger.write('\n');
 
     final controller = StreamController<ExitCode>();
+
+    if (sequentially) {
+      for (final command in commands) {
+        final label = command.label.truncate();
+        logger.info(darkGray.wrap(label));
+      }
+    }
 
     for (final command in commands) {
       final script = RunOneScript(
@@ -80,18 +94,27 @@ class RunManyScripts {
         showOutput: false,
       );
 
-      String label;
-      final lines = command.label.split('\n');
-      if (lines.length > 2) {
-        label = [lines.first, '...'].join('\n');
+      if (sequentially) {
+        yield await script.run();
       } else {
-        label = command.label;
-      }
-      logger.info(darkGray.wrap(label));
+        final label = command.label.truncate();
+        logger.info(darkGray.wrap(label));
 
-      script.run().then(controller.add);
+        script.run().then(controller.add).ignore();
+      }
     }
 
-    return controller.stream;
+    yield* controller.stream;
+  }
+}
+
+extension _StringX on String {
+  String truncate([int length = 1]) {
+    final lints = split('\n');
+    if (lints.length > length) {
+      return [...lints.take(length), '...'].join('\n');
+    }
+
+    return this;
   }
 }
