@@ -24,27 +24,36 @@ abstract class APubCommand extends Command<ExitCode> {
     required this.logger,
     required this.fs,
   }) {
-    argParser.addFlag(
-      'recursive',
-      abbr: 'r',
-      negatable: false,
-      help: 'Run command recursively in all subdirectories.',
-    );
-
-    argParser.addFlag(
-      'concurrent',
-      aliases: ['parallel'],
-      abbr: 'c',
-      defaultsTo: true,
-      help: 'Run command concurrently in all subdirectories.',
-    );
-
-    argParser.addFlag(
-      'bail',
-      abbr: 'b',
-      negatable: false,
-      help: 'Stop running commands if one fails.',
-    );
+    argParser
+      ..addFlag(
+        'recursive',
+        abbr: 'r',
+        negatable: false,
+        help: 'Run command recursively in all subdirectories.',
+      )
+      ..addFlag(
+        'concurrent',
+        aliases: ['parallel'],
+        abbr: 'c',
+        defaultsTo: true,
+        help: 'Run command concurrently in all subdirectories.',
+      )
+      ..addFlag(
+        'bail',
+        abbr: 'b',
+        negatable: false,
+        help: 'Stop running commands if one fails.',
+      )
+      ..addFlag(
+        'dart-only',
+        negatable: false,
+        help: 'Only run command in Dart projects.',
+      )
+      ..addFlag(
+        'flutter-only',
+        negatable: false,
+        help: 'Only run command in Flutter projects.',
+      );
   }
 
   List<String> get pubFlags => [];
@@ -59,21 +68,45 @@ abstract class APubCommand extends Command<ExitCode> {
   @override
   String get description => '$name dependencies for pubspec.yaml files';
 
+  void warnDartOrFlutter({
+    required bool isFlutterOnly,
+    required bool isDartOnly,
+  }) {
+    if (isDartOnly || isFlutterOnly) {
+      if (isDartOnly && !isFlutterOnly) {
+        logger.info('Running only in dart packages');
+      } else if (isFlutterOnly && !isDartOnly) {
+        logger.info('Running only in flutter packages');
+      } else {
+        logger.info('Running both dart and flutter');
+      }
+    }
+  }
+
   @override
-  Future<ExitCode> run() async {
-    final recursive = argResults!['recursive'] as bool;
+  Future<ExitCode> run([List<String>? args]) async {
+    final argResults = args != null ? argParser.parse(args) : this.argResults!;
+
+    final recursive = argResults['recursive'] as bool;
+    final dartOnly = argResults['dart-only'] as bool;
+    final flutterOnly = argResults['flutter-only'] as bool;
+
+    warnDartOrFlutter(
+      isDartOnly: dartOnly,
+      isFlutterOnly: flutterOnly,
+    );
 
     final allPubspecs = <String>{};
-
-    final pubspecPath = pubspecYaml.nearest();
-    if (pubspecPath != null) {
-      allPubspecs.add(pubspecPath);
-    }
 
     if (recursive) {
       final children = await pubspecYaml.children();
 
       allPubspecs.addAll(children);
+    } else {
+      final pubspecLockPath = pubspecYaml.nearest();
+      if (pubspecLockPath != null) {
+        allPubspecs.add(pubspecLockPath);
+      }
     }
 
     if (allPubspecs.isEmpty) {
@@ -81,13 +114,17 @@ abstract class APubCommand extends Command<ExitCode> {
       return ExitCode.unavailable;
     }
 
+    final sortedPubspecs = [...allPubspecs]
+      ..sort()
+      ..sort((a, b) => path.split(b).length - path.split(a).length);
+
     final commands = <CommandToRun>[];
-    for (final pubspec in allPubspecs) {
-      final tool = DetermineFlutterOrDart(
+    for (final pubspec in sortedPubspecs) {
+      final flutterOrDart = DetermineFlutterOrDart(
         pubspecYaml: pubspec,
         pubspecLock: pubspecLock,
         findFile: findFile,
-      ).tool();
+      );
 
       final project = path.dirname(pubspec);
 
@@ -95,6 +132,18 @@ abstract class APubCommand extends Command<ExitCode> {
         project,
         from: fs.currentDirectory.path,
       );
+
+      if (dartOnly ^ flutterOnly) {
+        if (dartOnly && flutterOrDart.isFlutter) {
+          logger.detail('Skipping flutter project: $relativeDir');
+          continue;
+        } else if (flutterOnly && flutterOrDart.isDart) {
+          logger.detail('Skipping dart project: $relativeDir');
+          continue;
+        }
+      }
+
+      final tool = flutterOrDart.tool();
 
       final padding = max('flutter'.length, tool.length) - tool.length;
       var toolString = '(${cyan.wrap(tool)})';
@@ -116,7 +165,7 @@ abstract class APubCommand extends Command<ExitCode> {
       );
     }
 
-    if (argResults!['concurrent'] == true) {
+    if (argResults['concurrent'] == true) {
       final runMany = RunManyScripts(
         commands: commands,
         bindings: bindings,
@@ -142,7 +191,7 @@ abstract class APubCommand extends Command<ExitCode> {
           showOutput: true,
         ).run();
 
-        if (exitCode != ExitCode.success && argResults!['bail'] == true) {
+        if (exitCode != ExitCode.success && argResults['bail'] == true) {
           exitCode.printError(command, logger);
           return exitCode;
         }
