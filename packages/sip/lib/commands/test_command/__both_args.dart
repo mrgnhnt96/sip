@@ -1,6 +1,21 @@
 part of './tester_mixin.dart';
 
 extension _BothX<T> on Command<T> {
+  static const options = {
+    'concurrency',
+    'exclude-tags',
+    'file-reporter',
+    'name',
+    'plain-name',
+    'reporter',
+    'run-skipped',
+    'shard-index',
+    'tags',
+    'test-randomize-ordering-seed',
+    'timeout',
+    'total-shards',
+  };
+
   void _addBothArgs() {
     argParser
       ..addOption(
@@ -9,11 +24,6 @@ extension _BothX<T> on Command<T> {
         help: 'The number of concurrent test processes to run. '
             'This will be ignored when running integration tests.',
         valueHelp: 'jobs',
-      )
-      ..addOption(
-        'coverage',
-        help: 'Gather coverage and output it to the specified directory.\n'
-            'Implies --debug.',
       )
       ..addOption(
         'exclude-tags',
@@ -100,81 +110,84 @@ extension _BothX<T> on Command<T> {
   }
 
   List<String> _getBothArgs() {
-    const options = {
-      'concurrency',
-      'coverage',
-      'exclude-tags',
-      'file-reporter',
-      'name',
-      'plain-name',
-      'reporter',
-      'run-skipped',
-      'shard-index',
-      'tags',
-      'test-randomize-ordering-seed',
-      'timeout',
-      'total-shards',
-    };
-
-    return _parse(options);
+    return _parseArguments(argParser, argResults, options);
   }
 
-  List<String> _parse(Set<String> options_) {
-    final options = {...options_};
+  List<String> _parseArguments(
+    ArgParser argParser,
+    ArgResults? argResults,
+    Set<String> options, {
+    Map<String, String> flagReplacements = const {},
+    Set<String> initialArgs = const {},
+  }) =>
+      parseArguments(
+        argParser,
+        argResults,
+        options,
+        flagReplacements: flagReplacements,
+        initialArgs: initialArgs,
+      );
+}
 
-    final argResults = this.argResults;
+/// [flagReplacements]\
+/// Flags that are identified by an alternative name, but should
+/// be replaced with the original name.
+///
+/// eg. dart-coverage -> coverage
+List<String> parseArguments(
+  ArgParser argParser,
+  ArgResults? argResults,
+  Set<String> options, {
+  required Map<String, String> flagReplacements,
+  required Set<String> initialArgs,
+}) {
+  if (argResults == null) return [];
+  final args = <String>[...initialArgs];
 
-    if (argResults == null) return [];
-    final args = <String>[];
+  final arguments = [
+    ...argResults.arguments,
+  ];
 
-    if (argResults.options.contains('bail')) {
-      final bail = argResults['bail'] as bool;
-      final canFailFast = options.contains('fail-fast');
-
-      if (bail && canFailFast) {
-        args.add('--fail-fast');
-      }
+  for (final option in options) {
+    if (!argResults.wasParsed(option)) {
+      continue;
     }
-    options.remove('fail-fast');
 
-    final arguments = [
-      ...argResults.arguments,
-    ];
+    final definedOption = argParser.findByNameOrAlias(option);
+    if (definedOption == null) {
+      throw Exception('Unknown option: $option');
+    }
 
-    for (final option in options) {
-      if (!argResults.wasParsed(option)) {
-        continue;
-      }
+    final tempParser = AnyArgParser()..inject(definedOption);
 
-      final definedOption = argParser.findByNameOrAlias(option);
-      if (definedOption == null) {
-        throw Exception('Unknown option: $option');
-      }
+    final result = tempParser.parse(arguments);
+    final value = result[option];
 
-      final tempParser = AnyArgParser()..inject(definedOption);
+    if (value == null) {
+      continue;
+    }
 
-      final result = tempParser.parse(arguments);
-      final value = result[option];
+    // We to check if the option has a replacement
+    dynamic option_ = option;
 
-      if (value == null) {
-        continue;
-      }
+    if (flagReplacements.containsKey(option)) {
+      option_ = flagReplacements[option];
+    }
 
-      if (value is List<String>) {
-        args.addAll(['--$option', ...value]);
-      } else if (value is bool) {
-        if (value) {
-          args.add('--$option');
-        } else {
-          args.add('--no-$option');
-        }
+    if (value is List<String>) {
+      args.addAll(['--$option_', ...value]);
+    } else if (value is bool) {
+      if (value) {
+        args.add('--$option_');
       } else {
-        args.addAll(['--$option', '$value']);
+        args.add('--no-$option_');
       }
+    } else {
+      args.addAll(['--$option_', '$value']);
     }
-
-    args.removeWhere((e) => e.isEmpty);
-
-    return args;
   }
+
+  args.removeWhere((e) => e.isEmpty);
+
+  return args;
 }

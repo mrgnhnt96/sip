@@ -19,6 +19,7 @@ import 'package:sip_script_runner/sip_script_runner.dart';
 part '__both_args.dart';
 part '__dart_args.dart';
 part '__flutter_args.dart';
+part '__conflicting_args.dart';
 
 abstract mixin class TesterMixin {
   const TesterMixin();
@@ -51,7 +52,9 @@ abstract mixin class TesterMixin {
       ..argParser.addSeparator(cyan.wrap('Flutter Flags:')!)
       .._addFlutterArgs()
       ..argParser.addSeparator(cyan.wrap('Overlapping Flags:')!)
-      .._addBothArgs();
+      .._addBothArgs()
+      ..argParser.addSeparator(cyan.wrap('Conflicting Flags:')!)
+      .._addConflictingArgs();
   }
 
   void warnDartOrFlutterTests({

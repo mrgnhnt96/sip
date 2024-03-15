@@ -1,6 +1,29 @@
 part of './tester_mixin.dart';
 
 extension _FlutterX<T> on Command<T> {
+  static const options = {
+    'experimental-faster-testing',
+    'name',
+    'plain-name',
+    'tags',
+    'exclude-tags',
+    'start-paused',
+    'run-skipped',
+    'merge-coverage',
+    'branch-coverage',
+    'coverage-path',
+    'coverage-package',
+    'update-goldens',
+    'concurrency',
+    'test-assets',
+    'test-randomize-ordering-seed',
+    'total-shards',
+    'shard-index',
+    'reporter',
+    'file-reporter',
+    'timeout',
+  };
+
   void _addFlutterArgs() {
     argParser
       ..addFlag(
@@ -60,30 +83,17 @@ extension _FlutterX<T> on Command<T> {
   }
 
   List<String> _getFlutterArgs() {
-    const options = {
-      'experimental-faster-testing',
-      'name',
-      'plain-name',
-      'tags',
-      'exclude-tags',
-      'start-paused',
-      'run-skipped',
-      'coverage',
-      'merge-coverage',
-      'branch-coverage',
-      'coverage-path',
-      'coverage-package',
-      'update-goldens',
-      'concurrency',
-      'test-assets',
-      'test-randomize-ordering-seed',
-      'total-shards',
-      'shard-index',
-      'reporter',
-      'file-reporter',
-      'timeout',
-    };
+    final original = _parseArguments(
+      argParser,
+      argResults,
+      options,
+      flagReplacements: {
+        'flutter-coverage': 'coverage',
+      },
+    );
 
-    return _parse(options);
+    final conflicted = _getFlutterConflictingArgs();
+
+    return [...original, ...conflicted];
   }
 }

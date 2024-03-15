@@ -1,6 +1,21 @@
 part of './tester_mixin.dart';
 
 extension _DartX<T> on Command<T> {
+  static const options = {
+    'platform',
+    'compiler',
+    'preset',
+    'ignore-timeouts',
+    'pause-after-load',
+    'debug',
+    'chain-stack-traces',
+    'no-retry',
+    'use-data-isolate-strategy',
+    'verbose-trace',
+    'js-trace',
+    'color',
+  };
+
   void _addDartArgs() {
     argParser
       // The UI term "platform" corresponds with
@@ -88,73 +103,33 @@ extension _DartX<T> on Command<T> {
   }
 
   List<String> _getDartArgs() {
-    const options = {
-      'platform',
-      'compiler',
-      'preset',
-      'ignore-timeouts',
-      'pause-after-load',
-      'debug',
-      'chain-stack-traces',
-      'no-retry',
-      'use-data-isolate-strategy',
-      'fail-fast',
-      'verbose-trace',
-      'js-trace',
-      'color',
-    };
+    final argResults = this.argResults;
 
-    return _parse(options);
-  }
-}
+    final args = <String>{};
 
-typedef Callback<T> = void Function(T);
+    final options = {..._DartX.options};
 
-extension _ArgParserX on ArgParser {
-  void inject(Option option) {
-    void voidCallback(_) {}
+    if (argResults?.options != null && argResults!.options.contains('bail')) {
+      final bail = argResults['bail'] as bool;
 
-    if (option.isFlag) {
-      addFlag(
-        option.name,
-        abbr: option.abbr,
-        aliases: option.aliases,
-        help: option.help,
-        callback: option.callback as Callback? ?? voidCallback,
-        defaultsTo: option.defaultsTo as bool? ?? false,
-        hide: option.hide,
-        negatable: option.negatable ?? false,
-      );
-    } else if (option.isMultiple) {
-      addMultiOption(
-        option.name,
-        abbr: option.abbr,
-        aliases: option.aliases,
-        help: option.help,
-        defaultsTo: option.defaultsTo as List<String>? ?? <String>[],
-        hide: option.hide,
-        allowed: option.allowed,
-        allowedHelp: option.allowedHelp,
-        callback: option.callback as Callback? ?? voidCallback,
-        splitCommas: option.splitCommas,
-        valueHelp: option.valueHelp,
-      );
-    } else if (option.isSingle) {
-      addOption(
-        option.name,
-        abbr: option.abbr,
-        aliases: option.aliases,
-        help: option.help,
-        defaultsTo: option.defaultsTo as String? ?? '',
-        hide: option.hide,
-        allowed: option.allowed,
-        allowedHelp: option.allowedHelp,
-        callback: option.callback as Callback? ?? voidCallback,
-        valueHelp: option.valueHelp,
-        mandatory: option.mandatory,
-      );
-    } else {
-      throw Exception('Unknown option type: $option');
+      if (bail) {
+        args.add('--fail-fast');
+      }
     }
+    options.remove('fail-fast');
+
+    final original = _parseArguments(
+      argParser,
+      argResults,
+      options,
+      flagReplacements: {
+        'dart-coverage': 'coverage',
+      },
+      initialArgs: args,
+    );
+
+    final conflicted = _getDartConflictingArgs();
+
+    return [...original, ...conflicted];
   }
 }
