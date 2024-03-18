@@ -1,3 +1,9 @@
+# 0.4.3 | 3/18/2024
+
+## Breaking Changes
+
+- Remove `--ignore-lockfile-exit` flag from `sip pub get` command
+
 # 0.4.2 | 3/15/2024
 
 ## Fixes
