@@ -1,3 +1,9 @@
+# 0.4.4 | 3/25/2024
+
+## Fixes
+
+- Fix issue where tests were not run without passing an argument to the `sip test` command
+
 # 0.4.3 | 3/18/2024
 
 ## Breaking Changes

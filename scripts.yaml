@@ -22,7 +22,6 @@ clean: find . -name ".dart_tool" -type d -exec rm -rf {} +
 build: (+) {$_packages} dart run build_runner build --delete-conflicting-outputs
 
 prep:
-  (bail): false
   (command):
     - (+) {$format} --set-exit-if-changed
     - (+) {$analyze} --fatal-infos --fatal-warnings
