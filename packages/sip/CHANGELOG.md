@@ -1,3 +1,11 @@
+# 0.4.5 | 4/10/2024
+
+## Features
+
+- Support different flutter test types to avoid clashing during tests
+  - `TestWidgetsFlutterBinding`, `AutomatedTestWidgetsFlutterBinding`, `LiveTestWidgetsFlutterBinding` can be used to specify the types of tests to run and CANNOT be used together
+  - SIP_CLI will create a new test file for each type of test to avoid clashing
+
 # 0.4.4 | 3/25/2024
 
 ## Fixes

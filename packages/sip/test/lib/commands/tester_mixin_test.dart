@@ -1,6 +1,5 @@
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
-import 'package:file/src/interface/file_system.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:mocktail/mocktail.dart';
 import 'package:sip_cli/commands/test_command/tester_mixin.dart';
