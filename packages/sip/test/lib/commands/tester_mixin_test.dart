@@ -326,7 +326,7 @@ void main() {
     });
 
     group('#writeOptimizedFiles', () {
-      group('should write optimized files', () {
+      group('should write optimized files for dart', () {
         test('when test files exist', () {
           fs.file('test/some_test.dart').createSync(recursive: true);
 
@@ -347,6 +347,48 @@ void main() {
                 .existsSync(),
             isTrue,
           );
+        });
+      });
+
+      group('should write optimized files for flutter', () {
+        test('when test files exist', () {
+          fs.file('test/nest/automated_test.dart')
+            ..createSync(recursive: true)
+            ..writeAsStringSync('AutomatedTestWidgetsFlutterBinding');
+          fs.file('test/nest/live_test.dart')
+            ..createSync(recursive: true)
+            ..writeAsStringSync('LiveTestWidgetsFlutterBinding');
+          fs.file('test/nest/test_test.dart')
+            ..createSync(recursive: true)
+            ..writeAsStringSync('TestWidgetsFlutterBinding');
+          fs.file('test/nest/unknown_test.dart')
+            ..createSync(recursive: true)
+            ..writeAsStringSync('');
+
+          final testables = ['test'];
+          final testableTools = {
+            testables.first: _FakeDetermineFlutterOrDart.flutter(),
+          };
+
+          final optimizedFiles =
+              tester.writeOptimizedFiles(testables, testableTools);
+
+          expect(optimizedFiles.length, 4);
+          expect(optimizedFiles.entries.first.value.isFlutter, isTrue);
+
+          final files = fs.directory('test').listSync().whereType<File>();
+
+          expect(files.length, 4);
+          final tests = {
+            TesterMixin.optimizedTestFileName('automated'),
+            TesterMixin.optimizedTestFileName('test'),
+            TesterMixin.optimizedTestFileName('live'),
+            TesterMixin.optimizedTestFileName('flutter'),
+          };
+
+          for (final file in files) {
+            expect(tests.contains(file.basename), isTrue);
+          }
         });
       });
 
