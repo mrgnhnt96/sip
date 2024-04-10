@@ -249,7 +249,7 @@ ${darkGray.wrap('Press `q` to exit')}
           continue;
         }
 
-        if (file.endsWith(TesterMixin.optimizedTestFileName)) {
+        if (file.endsWith(TesterMixin.optimizedTestBasename)) {
           logger.detail('Optimized test file changed, waiting for changes...');
           continue;
         }

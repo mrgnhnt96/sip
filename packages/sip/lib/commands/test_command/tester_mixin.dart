@@ -24,7 +24,14 @@ part '__conflicting_args.dart';
 abstract mixin class TesterMixin {
   const TesterMixin();
 
-  static const String optimizedTestFileName = '.test_optimizer.dart';
+  static const String optimizedTestBasename = '.test_optimizer';
+  static String optimizedTestFileName(String type) {
+    if (type == 'dart') {
+      return '$optimizedTestBasename.dart';
+    }
+
+    return '$optimizedTestBasename.$type.dart';
+  }
 
   Logger get logger;
   PubspecYaml get pubspecYaml;
@@ -173,6 +180,7 @@ abstract mixin class TesterMixin {
     final optimizedFiles = <String, DetermineFlutterOrDart>{};
 
     for (final testDir in testDirs) {
+      final tool = dirTools[testDir]!;
       final allFiles = Glob(path.join('**_test.dart'))
           .listFileSystemSync(fs, followLinks: false, root: testDir);
 
@@ -181,9 +189,28 @@ abstract mixin class TesterMixin {
       for (final file in allFiles) {
         if (file is! File) continue;
 
+        var testType = 'dart';
+
+        if (tool.isFlutter) {
+          final content = file.readAsStringSync();
+
+          final flutterTestType = RegExp(r'(\w+WidgetsFlutterBinding)')
+              .firstMatch(content)
+              ?.group(1)
+              ?.toLowerCase()
+              .replaceAll('TestsWidgetBinding', '');
+
+          if (flutterTestType == null) {
+            testType = 'flutter';
+          } else {
+            logger.detail('Found Flutter $testType test');
+            testType = flutterTestType;
+          }
+        }
+
         final fileName = path.basename(file.path);
 
-        if (fileName == optimizedTestFileName) {
+        if (fileName.contains(optimizedTestBasename)) {
           continue;
         }
 
@@ -194,13 +221,11 @@ abstract mixin class TesterMixin {
         continue;
       }
 
-      final optimizedPath = path.join(testDir, optimizedTestFileName);
+      final optimizedPath = path.join(testDir, optimizedTestFileName('dart'));
       fs.file(optimizedPath).createSync(recursive: true);
 
       final testDirs = testFiles
           .map((e) => Testable(absolute: e, optimizedPath: optimizedPath));
-
-      final tool = dirTools[testDir]!;
 
       final content =
           writeOptimizedTestFile(testDirs, isFlutterPackage: tool.isFlutter);
@@ -335,7 +360,7 @@ abstract mixin class TesterMixin {
 
   void cleanUp(Iterable<String> optimizedFiles) {
     for (final optimizedFile in optimizedFiles) {
-      if (!optimizedFile.endsWith(optimizedTestFileName)) continue;
+      if (!optimizedFile.contains(optimizedTestBasename)) continue;
 
       fs.file(optimizedFile).deleteSync();
     }

@@ -342,7 +342,7 @@ void main() {
           expect(optimizedFiles.entries.first.value.isDart, isTrue);
 
           expect(
-            fs.file('test/${TesterMixin.optimizedTestFileName}').existsSync(),
+            fs.file('test/${TesterMixin.optimizedTestBasename}').existsSync(),
             isTrue,
           );
         });
@@ -354,7 +354,7 @@ void main() {
 
         test('should not include optimized file import', () {
           fs.file('test/some_test.dart').createSync(recursive: true);
-          fs.file('test/${TesterMixin.optimizedTestFileName}').createSync();
+          fs.file('test/${TesterMixin.optimizedTestBasename}').createSync();
 
           final testables = ['test'];
           final testableTools = {
@@ -364,7 +364,7 @@ void main() {
           tester.writeOptimizedFiles(testables, testableTools);
 
           final optimizedFileContent = fs
-              .file('test/${TesterMixin.optimizedTestFileName}')
+              .file('test/${TesterMixin.optimizedTestBasename}')
               .readAsStringSync();
 
           final imports = importPattern.allMatches(optimizedFileContent);
@@ -384,7 +384,7 @@ void main() {
           tester.writeOptimizedFiles(testables, testableTools);
 
           final optimizedFileContent = fs
-              .file('test/${TesterMixin.optimizedTestFileName}')
+              .file('test/${TesterMixin.optimizedTestBasename}')
               .readAsStringSync();
 
           final imports = importPattern.allMatches(optimizedFileContent);
@@ -547,7 +547,7 @@ void main() {
         tests!;
 
         expect(tests.length, 1);
-        expect(tests.keys.first, 'test/${TesterMixin.optimizedTestFileName}');
+        expect(tests.keys.first, 'test/${TesterMixin.optimizedTestBasename}');
       });
 
       test('should return all tests when not optimizing', () {
@@ -720,7 +720,7 @@ void main() {
 
     group('#cleanUp', () {
       test('should delete optimized files', () {
-        const path = 'test/${TesterMixin.optimizedTestFileName}';
+        const path = 'test/${TesterMixin.optimizedTestBasename}';
         fs.file(path).createSync(recursive: true);
 
         tester.cleanUp([path]);

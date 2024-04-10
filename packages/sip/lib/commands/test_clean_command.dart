@@ -65,7 +65,7 @@ class TestCleanCommand extends Command<ExitCode> with TesterMixin {
 
     final optimized = <String>[];
     for (final dir in testDirs) {
-      final file = findFile.fileWithin(TesterMixin.optimizedTestFileName, dir);
+      final file = findFile.fileWithin(TesterMixin.optimizedTestBasename, dir);
 
       if (file == null) continue;
 
