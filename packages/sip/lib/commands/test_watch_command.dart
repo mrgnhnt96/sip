@@ -296,7 +296,6 @@ ${darkGray.wrap('Press `q` to exit')}
 
       final commandsToRun = getCommandsToRun(
         testsToRun,
-        optimize: optimize,
         flutterArgs: flutterArgs,
         dartArgs: dartArgs,
       );

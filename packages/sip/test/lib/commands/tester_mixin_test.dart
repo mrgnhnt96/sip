@@ -422,7 +422,6 @@ void main() {
           testableTools,
           flutterArgs: [],
           dartArgs: [],
-          optimize: false,
         );
 
         expect(commands.length, 1);
@@ -440,7 +439,6 @@ void main() {
           testableTools,
           flutterArgs: [],
           dartArgs: [],
-          optimize: true,
         );
 
         expect(commands.length, 1);
@@ -458,7 +456,6 @@ void main() {
           testableTools,
           flutterArgs: [],
           dartArgs: [],
-          optimize: true,
         );
 
         expect(commands.length, 1);
@@ -479,7 +476,6 @@ void main() {
           testableTools,
           flutterArgs: [],
           dartArgs: [],
-          optimize: true,
         );
 
         expect(commands.length, 1);
@@ -502,7 +498,6 @@ void main() {
             testableTools,
             flutterArgs: ['--flutter'],
             dartArgs: ['--dart'],
-            optimize: true,
           );
 
           expect(commands.length, 1);
@@ -526,7 +521,6 @@ void main() {
             testableTools,
             flutterArgs: ['--flutter'],
             dartArgs: ['--dart'],
-            optimize: true,
           );
 
           expect(commands.length, 1);

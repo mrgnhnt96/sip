@@ -234,7 +234,6 @@ abstract mixin class TesterMixin {
 
   List<CommandToRun> getCommandsToRun(
     Map<String, DetermineFlutterOrDart> testFiles, {
-    required bool optimize,
     required List<String> flutterArgs,
     required List<String> dartArgs,
   }) {

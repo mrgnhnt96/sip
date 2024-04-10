@@ -167,7 +167,6 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
     final dartArgs = [...dart, ...both];
     final commandsToRun = getCommandsToRun(
       tests,
-      optimize: optimize,
       flutterArgs: flutterArgs,
       dartArgs: dartArgs,
     );
