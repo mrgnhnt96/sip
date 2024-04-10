@@ -14,7 +14,6 @@ extension _FlutterX<T> on Command<T> {
     'coverage-path',
     'coverage-package',
     'update-goldens',
-    'concurrency',
     'test-assets',
     'test-randomize-ordering-seed',
     'total-shards',
