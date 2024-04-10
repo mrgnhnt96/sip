@@ -342,7 +342,9 @@ void main() {
           expect(optimizedFiles.entries.first.value.isDart, isTrue);
 
           expect(
-            fs.file('test/${TesterMixin.optimizedTestBasename}').existsSync(),
+            fs
+                .file('test/${TesterMixin.optimizedTestFileName('dart')}')
+                .existsSync(),
             isTrue,
           );
         });
@@ -353,8 +355,11 @@ void main() {
             RegExp(r"^import '(.*)' as _i\d+;$", multiLine: true);
 
         test('should not include optimized file import', () {
+          final optimizedFile =
+              'test/${TesterMixin.optimizedTestFileName('dart')}';
+
           fs.file('test/some_test.dart').createSync(recursive: true);
-          fs.file('test/${TesterMixin.optimizedTestBasename}').createSync();
+          fs.file(optimizedFile).createSync();
 
           final testables = ['test'];
           final testableTools = {
@@ -363,9 +368,8 @@ void main() {
 
           tester.writeOptimizedFiles(testables, testableTools);
 
-          final optimizedFileContent = fs
-              .file('test/${TesterMixin.optimizedTestBasename}')
-              .readAsStringSync();
+          final optimizedFileContent =
+              fs.file(optimizedFile).readAsStringSync();
 
           final imports = importPattern.allMatches(optimizedFileContent);
 
@@ -384,7 +388,7 @@ void main() {
           tester.writeOptimizedFiles(testables, testableTools);
 
           final optimizedFileContent = fs
-              .file('test/${TesterMixin.optimizedTestBasename}')
+              .file('test/${TesterMixin.optimizedTestFileName('dart')}')
               .readAsStringSync();
 
           final imports = importPattern.allMatches(optimizedFileContent);
