@@ -26,7 +26,7 @@ abstract mixin class TesterMixin {
 
   static const String optimizedTestBasename = '.test_optimizer';
   static String optimizedTestFileName(String type) {
-    if (type == 'dart') {
+    if (type == 'dart' || type == 'flutter') {
       return '$optimizedTestBasename.dart';
     }
 
@@ -184,7 +184,8 @@ abstract mixin class TesterMixin {
       final allFiles = Glob(path.join('**_test.dart'))
           .listFileSystemSync(fs, followLinks: false, root: testDir);
 
-      final testFiles = <String>[];
+      /// the key is the name of the test type
+      final testFiles = <String, List<String>>{};
 
       for (final file in allFiles) {
         if (file is! File) continue;
@@ -197,14 +198,19 @@ abstract mixin class TesterMixin {
           final flutterTestType = RegExp(r'(\w+WidgetsFlutterBinding)')
               .firstMatch(content)
               ?.group(1)
-              ?.toLowerCase()
-              .replaceAll('TestsWidgetBinding', '');
+              ?.replaceAll('TestWidgetsFlutterBinding', '')
+              .toLowerCase();
 
           if (flutterTestType == null) {
             testType = 'flutter';
           } else {
+            if (flutterTestType.isEmpty) {
+              testType = 'test';
+            } else {
+              testType = flutterTestType;
+            }
+
             logger.detail('Found Flutter $testType test');
-            testType = flutterTestType;
           }
         }
 
@@ -214,25 +220,27 @@ abstract mixin class TesterMixin {
           continue;
         }
 
-        testFiles.add(file.path);
+        (testFiles[testType] ??= []).add(file.path);
       }
 
       if (testFiles.isEmpty) {
         continue;
       }
 
-      final optimizedPath = path.join(testDir, optimizedTestFileName('dart'));
-      fs.file(optimizedPath).createSync(recursive: true);
+      for (final MapEntry(key: type, value: testFiles) in testFiles.entries) {
+        final optimizedPath = path.join(testDir, optimizedTestFileName(type));
+        fs.file(optimizedPath).createSync(recursive: true);
 
-      final testDirs = testFiles
-          .map((e) => Testable(absolute: e, optimizedPath: optimizedPath));
+        final testDirs = testFiles
+            .map((e) => Testable(absolute: e, optimizedPath: optimizedPath));
 
-      final content =
-          writeOptimizedTestFile(testDirs, isFlutterPackage: tool.isFlutter);
+        final content =
+            writeOptimizedTestFile(testDirs, isFlutterPackage: tool.isFlutter);
 
-      fs.file(optimizedPath).writeAsStringSync(content);
+        fs.file(optimizedPath).writeAsStringSync(content);
 
-      optimizedFiles[optimizedPath] = tool;
+        optimizedFiles[optimizedPath] = tool;
+      }
     }
 
     return optimizedFiles;
