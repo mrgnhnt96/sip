@@ -1,3 +1,7 @@
+# 0.4.6 | 4/11/2024
+
+- Downgrade args dependency to <2.5.0
+
 # 0.4.5 | 4/10/2024
 
 ## Features
