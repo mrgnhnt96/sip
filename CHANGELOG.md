@@ -1,3 +1,21 @@
+# 0.5.0 | 5/1/2024
+
+## Breaking Changes
+
+- Add `--no-pub` when testing Flutter packages
+
+## Enhancements
+
+- Update copy when testing packages to
+  - Display Flutter test type
+  - Display args
+  - Update colors for better readability
+
+## Features
+
+- Speed up getting dependencies via an internal auto-retry mechanism
+  - For whatever reason, dart/flutter will hang after dependencies are retrieved for a lengthy amount of time. SIP_CLI will now auto-retry if the `pub get` command has been running for too long
+
 # 0.4.6 | 4/11/2024
 
 - Downgrade args dependency to <2.5.0
