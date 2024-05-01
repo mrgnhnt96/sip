@@ -65,6 +65,8 @@ abstract class APubCommand extends Command<ExitCode> {
   final Logger logger;
   final FileSystem fs;
 
+  ({Duration? dart, Duration? flutter})? get retryAfter => null;
+
   @override
   String get description => '$name dependencies for pubspec.yaml files';
 
@@ -131,7 +133,7 @@ abstract class APubCommand extends Command<ExitCode> {
     final commands = (
       dart: <CommandToRun>[],
       flutter: <CommandToRun>[],
-      ordered: <CommandToRun>[],
+      ordered: <(DetermineFlutterOrDart, CommandToRun)>[],
     );
     for (final pubspec in sortedPubspecs) {
       final flutterOrDart = DetermineFlutterOrDart(
@@ -176,7 +178,7 @@ abstract class APubCommand extends Command<ExitCode> {
         keys: null,
       );
 
-      commands.ordered.add(command);
+      commands.ordered.add((flutterOrDart, command));
       if (flutterOrDart.isFlutter) {
         commands.flutter.add(command);
       } else {
@@ -191,12 +193,14 @@ abstract class APubCommand extends Command<ExitCode> {
             commands: commands.dart,
             bindings: bindings,
             logger: logger,
+            retryAfter: retryAfter?.dart,
           ),
         if (commands.flutter.isNotEmpty)
           RunManyScripts(
             commands: commands.flutter,
             bindings: bindings,
             logger: logger,
+            retryAfter: retryAfter?.flutter,
           ),
       ];
 
@@ -224,7 +228,7 @@ abstract class APubCommand extends Command<ExitCode> {
 
     var exitCode = ExitCode.success;
 
-    for (final command in commands.ordered) {
+    for (final (tool, command) in commands.ordered) {
       logger.info('\nRunning ${lightCyan.wrap(command.command)}');
 
       final result = await RunOneScript(
@@ -232,6 +236,7 @@ abstract class APubCommand extends Command<ExitCode> {
         bindings: bindings,
         logger: logger,
         showOutput: true,
+        retryAfter: tool.isDart ? retryAfter?.dart : retryAfter?.flutter,
       ).run();
 
       if (result != ExitCode.success) {

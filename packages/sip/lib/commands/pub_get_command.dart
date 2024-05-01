@@ -39,6 +39,12 @@ class PubGetCommand extends APubCommand {
   String get name => 'get';
 
   @override
+  ({Duration? dart, Duration? flutter}) get retryAfter => (
+        dart: const Duration(milliseconds: 750),
+        flutter: const Duration(milliseconds: 2000)
+      );
+
+  @override
   List<String> get pubFlags => [
         if (argResults!['offline'] as bool) '--offline',
         if (argResults!['dry-run'] as bool) '--dry-run',

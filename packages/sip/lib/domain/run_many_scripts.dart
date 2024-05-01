@@ -10,18 +10,24 @@ class RunManyScripts {
     required this.commands,
     required this.bindings,
     required this.logger,
+    this.retryAfter,
+    this.maxAttempts = 3,
   }) : sequentially = false;
 
   const RunManyScripts.sequentially({
     required this.commands,
     required this.bindings,
     required this.logger,
+    this.retryAfter,
+    this.maxAttempts = 3,
   }) : sequentially = true;
 
   final Bindings bindings;
   final Iterable<CommandToRun> commands;
   final Logger logger;
   final bool sequentially;
+  final Duration? retryAfter;
+  final int maxAttempts;
 
   Future<List<ExitCode>> run({
     required bool bail,
@@ -92,6 +98,8 @@ class RunManyScripts {
         bindings: bindings,
         logger: logger,
         showOutput: false,
+        retryAfter: retryAfter,
+        maxAttempts: maxAttempts,
       );
 
       if (sequentially) {
