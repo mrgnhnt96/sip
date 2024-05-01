@@ -17,9 +17,9 @@ import 'package:sip_cli/utils/write_optimized_test_file.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
 part '__both_args.dart';
+part '__conflicting_args.dart';
 part '__dart_args.dart';
 part '__flutter_args.dart';
-part '__conflicting_args.dart';
 
 abstract mixin class TesterMixin {
   const TesterMixin();
@@ -231,15 +231,20 @@ abstract mixin class TesterMixin {
         final optimizedPath = path.join(testDir, optimizedTestFileName(type));
         fs.file(optimizedPath).createSync(recursive: true);
 
-        final testDirs = testFiles
-            .map((e) => Testable(absolute: e, optimizedPath: optimizedPath));
+        final testDirs = testFiles.map(
+          (e) => Testable(
+            absolute: e,
+            optimizedPath: optimizedPath,
+            testType: type,
+          ),
+        );
 
         final content =
             writeOptimizedTestFile(testDirs, isFlutterPackage: tool.isFlutter);
 
         fs.file(optimizedPath).writeAsStringSync(content);
 
-        optimizedFiles[optimizedPath] = tool;
+        optimizedFiles[optimizedPath] = tool.setTestType(type);
       }
     }
 
@@ -287,10 +292,14 @@ abstract mixin class TesterMixin {
 
       var label = darkGray.wrap('Running (')!;
       label += cyan.wrap(command)!;
+      if (tool.testType != null) {
+        label += darkGray.wrap(' | ')!;
+        label += magenta.wrap(tool.testType!.toUpperCase())!;
+      }
       label += darkGray.wrap(') tests in ')!;
       final dirName = packageRootFor(path.relative(test));
 
-      label += darkGray.wrap(dirName)!;
+      label += yellow.wrap(dirName)!;
 
       commandsToRun.add(
         CommandToRun(
@@ -374,8 +383,10 @@ abstract mixin class TesterMixin {
     }
   }
 
-  (Map<String, DetermineFlutterOrDart>? filesToTest, ExitCode? exitCode)
-      getTests(
+  (
+    Map<String, DetermineFlutterOrDart>? filesToTest,
+    ExitCode? exitCode,
+  ) getTests(
     List<String> testDirs,
     Map<String, DetermineFlutterOrDart> dirTools, {
     required bool optimize,

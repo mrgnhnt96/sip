@@ -10,10 +10,12 @@ void main() {
         Testable(
           optimizedPath: './test/.optimized_test.dart',
           absolute: './test/lib/core_1/test1_test.dart',
+          testType: null,
         ),
         Testable(
           optimizedPath: './test/.optimized_test.dart',
           absolute: './test/lib/core/test1_test.dart',
+          testType: null,
         ),
       ];
     });

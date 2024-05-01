@@ -7,16 +7,37 @@ class DetermineFlutterOrDart {
     required this.pubspecYaml,
     required this.pubspecLock,
     required this.findFile,
+  }) : testType = null;
+
+  DetermineFlutterOrDart._({
+    required this.pubspecYaml,
+    required this.pubspecLock,
+    required this.findFile,
+    required this.testType,
   });
 
   final FindFile findFile;
   final String pubspecYaml;
   final PubspecLock pubspecLock;
+  final String? testType;
 
   String? _tool;
 
   bool get isFlutter => tool() == 'flutter';
   bool get isDart => tool() == 'dart';
+
+  DetermineFlutterOrDart setTestType(String testType) {
+    if (testType == 'dart' || testType == 'flutter') {
+      return this;
+    }
+
+    return DetermineFlutterOrDart._(
+      pubspecYaml: pubspecYaml,
+      pubspecLock: pubspecLock,
+      findFile: findFile,
+      testType: testType,
+    );
+  }
 
   String tool() {
     if (_tool != null) {

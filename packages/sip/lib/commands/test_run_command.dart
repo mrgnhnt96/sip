@@ -119,6 +119,8 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
     final isFlutterOnly = argResults.wasParsed('flutter-only') &&
         argResults['flutter-only'] as bool;
 
+    final isBoth = isDartOnly == isFlutterOnly;
+
     final isRecursive = argResults['recursive'] as bool? ?? false;
 
     warnDartOrFlutterTests(
@@ -170,6 +172,30 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
       flutterArgs: flutterArgs,
       dartArgs: dartArgs,
     );
+
+    logger.info('ARGS:');
+
+    if (isBoth || isDartOnly) {
+      var message = darkGray.wrap('  Dart:    ')!;
+      if (dartArgs.isEmpty) {
+        message += cyan.wrap('NONE')!;
+      } else {
+        message += cyan.wrap(dartArgs.join(', '))!;
+      }
+      logger.info(message);
+    }
+
+    if (isBoth || isFlutterOnly) {
+      var message = darkGray.wrap('  Flutter: ')!;
+      if (flutterArgs.isEmpty) {
+        message += cyan.wrap('NONE')!;
+      } else {
+        message += cyan.wrap(flutterArgs.join(', '))!;
+      }
+      logger.info(message);
+    }
+
+    logger.write('\n');
 
     final exitCode = await runCommands(
       commandsToRun,

@@ -93,6 +93,6 @@ extension _FlutterX<T> on Command<T> {
 
     final conflicted = _getFlutterConflictingArgs();
 
-    return [...original, ...conflicted];
+    return [...original, ...conflicted, '--no-pub'];
   }
 }
