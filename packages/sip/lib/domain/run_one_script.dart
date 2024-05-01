@@ -31,11 +31,13 @@ class RunOneScript {
       printOutput = false;
     }
 
+    final runScript = bindings.runScript(cmd, showOutput: printOutput);
+
     int? result;
     final retryAfter = this.retryAfter;
     if (retryAfter == null) {
       logger.detail('Not retrying');
-      result = await bindings.runScript(cmd, showOutput: printOutput);
+      result = await runScript;
     } else {
       logger.detail('Retrying command after $retryAfter');
       var hasExited = false;
@@ -52,10 +54,7 @@ class RunOneScript {
 
         final timer = Timer(wait, () => controller.add(null));
 
-        bindings
-            .runScript(cmd, showOutput: printOutput)
-            .then(controller.add)
-            .ignore();
+        runScript.then(controller.add).ignore();
 
         final exitCode = await controller.stream.first;
 
@@ -69,10 +68,12 @@ class RunOneScript {
         hasExited = true;
       }
 
-      if (result == null) {
-        logger.err('Native failed to exit after $maxAttempts attempts');
-        return const ExitCode.unknown(1);
-      }
+      logger.detail(
+        'Native failed to exit after $maxAttempts attempts, '
+        'running without retries',
+      );
+
+      result = await runScript;
     }
 
     logger.detail('Native exited with $result');
