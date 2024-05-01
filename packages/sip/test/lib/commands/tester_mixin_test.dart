@@ -70,6 +70,12 @@ class _FakeDetermineFlutterOrDart extends Fake
   bool get isFlutter => _isFlutter;
 
   @override
+  DetermineFlutterOrDart setTestType(String _) => this;
+
+  @override
+  String get testType => 'dart';
+
+  @override
   String tool() {
     if (_isFlutter) {
       return 'flutter';
