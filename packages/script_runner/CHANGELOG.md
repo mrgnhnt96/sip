@@ -1,3 +1,9 @@
+# 0.5.1 | 5/6/2024
+
+## Fixes
+
+- An issue where some flutter test arguments were being duplicated
+
 # 0.5.0 | 5/1/2024
 
 ## Breaking Changes
