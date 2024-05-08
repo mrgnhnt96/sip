@@ -31,6 +31,12 @@ class RunOneScript {
       printOutput = false;
     }
 
+    logger.detail('''
+--------- SCRIPT ---------
+${command.command}
+--------------------------
+''');
+
     final runScript = bindings.runScript(cmd, showOutput: printOutput);
 
     int? result;
