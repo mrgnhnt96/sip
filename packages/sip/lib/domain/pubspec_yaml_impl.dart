@@ -49,6 +49,10 @@ class PubspecYamlImpl extends FindYaml implements PubspecYaml {
       pubspecs.addAll(children.map((e) => path.join(path.separator, e)));
     }
 
-    return pubspecs;
+    final sortedPubspecs = [...pubspecs]
+      ..sort()
+      ..sort((a, b) => path.split(b).length - path.split(a).length);
+
+    return sortedPubspecs;
   }
 }

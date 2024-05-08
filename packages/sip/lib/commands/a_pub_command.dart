@@ -108,23 +108,19 @@ abstract class APubCommand extends Command<ExitCode> {
       isFlutterOnly: flutterOnly,
     );
 
-    final allPubspecs = await pubspecYaml.all(recursive: recursive);
+    final pubspecs = await pubspecYaml.all(recursive: recursive);
 
-    if (allPubspecs.isEmpty) {
+    if (pubspecs.isEmpty) {
       logger.err('No pubspec.yaml files found.');
       return ExitCode.unavailable;
     }
-
-    final sortedPubspecs = [...allPubspecs]
-      ..sort()
-      ..sort((a, b) => path.split(b).length - path.split(a).length);
 
     final commands = (
       dart: <CommandToRun>[],
       flutter: <CommandToRun>[],
       ordered: <(DetermineFlutterOrDart, CommandToRun)>[],
     );
-    for (final pubspec in sortedPubspecs) {
+    for (final pubspec in pubspecs) {
       final flutterOrDart = DetermineFlutterOrDart(
         pubspecYaml: pubspec,
         pubspecLock: pubspecLock,

@@ -65,6 +65,18 @@ void main() {
 
         expect(all.length, 1);
       });
+
+      test('should come back sorted by length', () async {
+        fs.file('pubspec.yaml').createSync();
+        fs.file('sub/pubspec.yaml').createSync(recursive: true);
+
+        final all = await tester.all(recursive: true);
+
+        expect(all, isNotNull);
+        expect(all.length, 2);
+        expect(all.first, endsWith('sub/pubspec.yaml'));
+        expect(all.last, endsWith('pubspec.yaml'));
+      });
     });
   });
 }
