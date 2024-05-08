@@ -1,3 +1,18 @@
+# 0.6.0 | 5/8/2024
+
+## Features
+
+- Support running specific tests by providing a test file or directory
+
+  - `sip test ./test/my_test.dart`
+  - `sip test ./test`
+
+- Create new `clean` command
+  - Removes all `.dart_tool` and `build` directories in dart & flutter packages
+  - Run `flutter clean` in flutter packages
+
+- Increase retry time frame from 2s to 4s for `flutter pub get` command
+
 # 0.5.1 | 5/6/2024
 
 ## Fixes
