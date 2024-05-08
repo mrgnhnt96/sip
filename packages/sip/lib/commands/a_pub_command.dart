@@ -160,7 +160,6 @@ abstract class APubCommand extends Command<ExitCode> {
         command: '$tool pub $name ${pubFlags.join(' ')}',
         workingDirectory: project,
         label: label,
-        keys: null,
       );
 
       commands.ordered.add((flutterOrDart, command));

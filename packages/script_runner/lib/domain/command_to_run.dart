@@ -6,7 +6,7 @@ class CommandToRun extends Equatable {
   const CommandToRun({
     required this.command,
     required this.workingDirectory,
-    required this.keys,
+    this.keys,
     this.runConcurrently = false,
     String? label,
   }) : label = label ?? command;

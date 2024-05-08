@@ -278,7 +278,6 @@ abstract mixin class TesterMixin {
         CommandToRun(
           command: script,
           workingDirectory: projectRoot,
-          keys: null,
           label: label,
         ),
       );
