@@ -5,6 +5,7 @@ import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:pub_updater/pub_updater.dart';
+import 'package:sip_cli/commands/clean_command.dart';
 import 'package:sip_cli/commands/list_command.dart';
 import 'package:sip_cli/commands/pub_command.dart';
 import 'package:sip_cli/commands/script_run_command.dart';
@@ -74,6 +75,16 @@ class SipRunner extends CommandRunner<ExitCode> {
         fs: fs,
         logger: logger,
         bindings: bindings,
+      ),
+    );
+    addCommand(
+      CleanCommand(
+        pubspecYaml: pubspecYaml,
+        pubspecLock: pubspecLock,
+        findFile: findFile,
+        bindings: bindings,
+        logger: logger,
+        cwd: cwd,
       ),
     );
     addCommand(
