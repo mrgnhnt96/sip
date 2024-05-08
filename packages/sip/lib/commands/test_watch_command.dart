@@ -169,7 +169,7 @@ ${darkGray.wrap('Press `q` to exit')}
 
     final (testDirs, dirTools) = testDirsResult.$1!;
 
-    final testsResult = getTests(
+    final testsResult = getTestsFromDirs(
       testDirs,
       dirTools,
       optimize: optimize,

@@ -146,7 +146,7 @@ abstract mixin class TesterMixin {
     return ((testDirs, dirTools), null);
   }
 
-  Map<String, DetermineFlutterOrDart> writeOptimizedFiles(
+  Map<String, DetermineFlutterOrDart> prepareOptimizedFilesFromDirs(
     List<String> testDirs,
     Map<String, DetermineFlutterOrDart> dirTools,
   ) {
@@ -157,71 +157,114 @@ abstract mixin class TesterMixin {
       final allFiles = Glob(path.join('**_test.dart'))
           .listFileSystemSync(fs, followLinks: false, root: testDir);
 
-      /// the key is the name of the test type
-      final testFiles = <String, List<String>>{};
-
-      for (final file in allFiles) {
-        if (file is! File) continue;
-
-        var testType = 'dart';
-
-        if (tool.isFlutter) {
-          final content = file.readAsStringSync();
-
-          final flutterTestType = RegExp(r'(\w+WidgetsFlutterBinding)')
-              .firstMatch(content)
-              ?.group(1)
-              ?.replaceAll('TestWidgetsFlutterBinding', '')
-              .toLowerCase();
-
-          if (flutterTestType == null) {
-            testType = 'flutter';
-          } else {
-            if (flutterTestType.isEmpty) {
-              testType = 'test';
-            } else {
-              testType = flutterTestType;
-            }
-
-            logger.detail('Found Flutter $testType test');
-          }
-        }
-
-        final fileName = path.basename(file.path);
-
-        if (fileName.contains(optimizedTestBasename)) {
-          continue;
-        }
-
-        (testFiles[testType] ??= []).add(file.path);
-      }
+      final testFiles = separateTestFiles(allFiles, isFlutter: tool.isFlutter);
 
       if (testFiles.isEmpty) {
         continue;
       }
 
-      for (final MapEntry(key: type, value: testFiles) in testFiles.entries) {
-        final optimizedPath = path.join(testDir, optimizedTestFileName(type));
-        fs.file(optimizedPath).createSync(recursive: true);
-
-        final testDirs = testFiles.map(
-          (e) => Testable(
-            absolute: e,
-            optimizedPath: optimizedPath,
-            testType: type,
-          ),
-        );
-
-        final content =
-            writeOptimizedTestFile(testDirs, isFlutterPackage: tool.isFlutter);
-
-        fs.file(optimizedPath).writeAsStringSync(content);
-
-        optimizedFiles[optimizedPath] = tool.setTestType(type);
-      }
+      optimizedFiles.addAll(
+        writeOptimizedFiles(
+          testFiles,
+          testDir: testDir,
+          tool: tool,
+        ),
+      );
     }
 
     return optimizedFiles;
+  }
+
+  Map<String, List<String>> separateTestFiles(
+    List<FileSystemEntity> allFiles, {
+    required bool isFlutter,
+  }) {
+    /// the key is the name of the test type
+    final testFiles = <String, List<String>>{};
+
+    for (final file in allFiles) {
+      if (file is! File) continue;
+
+      final testType = getTestType(file.path, isFlutter: isFlutter);
+
+      final fileName = path.basename(file.path);
+
+      if (fileName.contains(optimizedTestBasename)) {
+        continue;
+      }
+
+      (testFiles[testType] ??= []).add(file.path);
+    }
+
+    return testFiles;
+  }
+
+  /// The [files] param's key is the value of the type of test
+  ///
+  /// The base values for this are `dart` for dart tests and `flutter`
+  /// for flutter tests.
+  ///
+  /// When these values are different, it is because flutter has specific
+  /// tests to be run. Such as `LiveTestWidgetsFlutterBinding`, the value would
+  /// be `live`
+  Map<String, DetermineFlutterOrDart> writeOptimizedFiles(
+    Map<String, List<String>> files, {
+    required String testDir,
+    required DetermineFlutterOrDart tool,
+  }) {
+    final optimizedFiles = <String, DetermineFlutterOrDart>{};
+
+    for (final MapEntry(key: type, value: testFiles) in files.entries) {
+      final optimizedPath = path.join(testDir, optimizedTestFileName(type));
+      fs.file(optimizedPath).createSync(recursive: true);
+
+      final testDirs = testFiles.map(
+        (e) => Testable(
+          absolute: e,
+          optimizedPath: optimizedPath,
+          testType: type,
+        ),
+      );
+
+      final content =
+          writeOptimizedTestFile(testDirs, isFlutterPackage: tool.isFlutter);
+
+      fs.file(optimizedPath).writeAsStringSync(content);
+
+      optimizedFiles[optimizedPath] = tool.setTestType(type);
+    }
+
+    return optimizedFiles;
+  }
+
+  String getTestType(String path, {required bool isFlutter}) {
+    var testType = 'dart';
+
+    final file = fs.file(path);
+
+    if (isFlutter) {
+      final content = file.readAsStringSync();
+
+      final flutterTestType = RegExp(r'(\w+WidgetsFlutterBinding)')
+          .firstMatch(content)
+          ?.group(1)
+          ?.replaceAll('TestWidgetsFlutterBinding', '')
+          .toLowerCase();
+
+      if (flutterTestType == null) {
+        testType = 'flutter';
+      } else {
+        if (flutterTestType.isEmpty) {
+          testType = 'test';
+        } else {
+          testType = flutterTestType;
+        }
+
+        logger.detail('Found Flutter $testType test');
+      }
+    }
+
+    return testType;
   }
 
   String packageRootFor(String filePath) {
@@ -253,37 +296,64 @@ abstract mixin class TesterMixin {
     for (final MapEntry(key: test, value: tool) in testFiles.entries) {
       final projectRoot = packageRootFor(test);
 
-      final toolArgs = tool.isFlutter ? flutterArgs : dartArgs;
-
-      final command = tool.tool();
-
       final testPath = path.relative(test, from: projectRoot);
 
-      final script = '$command test $testPath ${toolArgs.join(' ')}';
-
-      logger.detail('Test command: $script');
-
-      var label = darkGray.wrap('Running (')!;
-      label += cyan.wrap(command)!;
-      if (tool.testType != null) {
-        label += darkGray.wrap(' | ')!;
-        label += magenta.wrap(tool.testType!.toUpperCase())!;
-      }
-      label += darkGray.wrap(') tests in ')!;
-      final dirName = packageRootFor(path.relative(test));
-
-      label += yellow.wrap(dirName)!;
-
-      commandsToRun.add(
-        CommandToRun(
-          command: script,
-          workingDirectory: projectRoot,
-          label: label,
-        ),
+      final command = createTestCommand(
+        projectRoot: projectRoot,
+        relativeProjectRoot: packageRootFor(path.relative(test)),
+        tool: tool,
+        flutterArgs: flutterArgs,
+        dartArgs: dartArgs,
+        tests: [testPath],
       );
+
+      commandsToRun.add(command);
     }
 
     return commandsToRun;
+  }
+
+  CommandToRun createTestCommand({
+    required String projectRoot,
+    required String relativeProjectRoot,
+    required DetermineFlutterOrDart tool,
+    required List<String> flutterArgs,
+    required List<String> dartArgs,
+    required List<String> tests,
+  }) {
+    if (tests.isEmpty) {
+      throw Exception('Cannot create a command without tests');
+    }
+
+    final toolArgs = tool.isFlutter ? flutterArgs : dartArgs;
+
+    final command = tool.tool();
+
+    final script = '$command test ${tests.join(' ')} ${toolArgs.join(' ')}';
+
+    logger.detail('Test command: $script');
+
+    var label = darkGray.wrap('Running (')!;
+    label += cyan.wrap(command)!;
+    if (tool.testType != null) {
+      label += darkGray.wrap(' | ')!;
+      label += magenta.wrap(tool.testType!.toUpperCase())!;
+    }
+    if (tests.length == 1) {
+      label += darkGray.wrap(') tests in ')!;
+
+      label += yellow.wrap(relativeProjectRoot)!;
+    } else {
+      label += darkGray.wrap(') tests for ')!;
+
+      label += yellow.wrap(tests.join(', '))!;
+    }
+
+    return CommandToRun(
+      command: script,
+      workingDirectory: projectRoot,
+      label: label,
+    );
   }
 
   Future<ExitCode> runCommands(
@@ -358,7 +428,7 @@ abstract mixin class TesterMixin {
   (
     Map<String, DetermineFlutterOrDart>? filesToTest,
     ExitCode? exitCode,
-  ) getTests(
+  ) getTestsFromDirs(
     List<String> testDirs,
     Map<String, DetermineFlutterOrDart> dirTools, {
     required bool optimize,
@@ -369,7 +439,7 @@ abstract mixin class TesterMixin {
 
     if (optimize) {
       final done = logger.progress('Optimizing test files');
-      final result = writeOptimizedFiles(testDirs, dirTools);
+      final result = prepareOptimizedFilesFromDirs(testDirs, dirTools);
 
       done.complete();
 

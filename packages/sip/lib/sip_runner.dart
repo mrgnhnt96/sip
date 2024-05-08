@@ -4,6 +4,7 @@ import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
+import 'package:path/path.dart' as path;
 import 'package:pub_updater/pub_updater.dart';
 import 'package:sip_cli/commands/clean_command.dart';
 import 'package:sip_cli/commands/list_command.dart';
@@ -129,7 +130,11 @@ class SipRunner extends CommandRunner<ExitCode> {
         final first = argsToUse.first;
         final second = argsToUse.length > 1 ? argsToUse[1] : null;
 
-        if (first == 'test' && (second == null || second.startsWith('-'))) {
+        if (first == 'test' &&
+            (second == null ||
+                second.startsWith('-') ||
+                second.startsWith('.${path.separator}') ||
+                second.startsWith('test${path.separator}'))) {
           logger.detail('Inserting `run` to args list for `test` command');
           // insert `run` to 2nd position
           argsToUse.insert(1, 'run');

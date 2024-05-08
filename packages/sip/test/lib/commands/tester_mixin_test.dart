@@ -288,7 +288,7 @@ void main() {
           };
 
           final optimizedFiles =
-              tester.writeOptimizedFiles(testables, testableTools);
+              tester.prepareOptimizedFilesFromDirs(testables, testableTools);
 
           expect(optimizedFiles.length, 1);
           expect(optimizedFiles.entries.first.value.isDart, isTrue);
@@ -323,7 +323,7 @@ void main() {
           };
 
           final optimizedFiles =
-              tester.writeOptimizedFiles(testables, testableTools);
+              tester.prepareOptimizedFilesFromDirs(testables, testableTools);
 
           expect(optimizedFiles.length, 4);
           expect(optimizedFiles.entries.first.value.isFlutter, isTrue);
@@ -360,7 +360,7 @@ void main() {
             testables.first: _FakeDetermineFlutterOrDart.dart(),
           };
 
-          tester.writeOptimizedFiles(testables, testableTools);
+          tester.prepareOptimizedFilesFromDirs(testables, testableTools);
 
           final optimizedFileContent =
               fs.file(optimizedFile).readAsStringSync();
@@ -379,7 +379,7 @@ void main() {
             testables.first: _FakeDetermineFlutterOrDart.dart(),
           };
 
-          tester.writeOptimizedFiles(testables, testableTools);
+          tester.prepareOptimizedFilesFromDirs(testables, testableTools);
 
           final optimizedFileContent = fs
               .file('test/${TesterMixin.optimizedTestFileName('dart')}')
@@ -401,7 +401,7 @@ void main() {
           };
 
           final optimizedFiles =
-              tester.writeOptimizedFiles(testables, testableTools);
+              tester.prepareOptimizedFilesFromDirs(testables, testableTools);
 
           expect(optimizedFiles.length, 0);
         });
@@ -534,7 +534,7 @@ void main() {
       test('should return optimized tests when optimizing', () {
         fs.file('test/some_test.dart').createSync(recursive: true);
 
-        final (tests, exitCode) = tester.getTests(
+        final (tests, exitCode) = tester.getTestsFromDirs(
           ['test'],
           {'test': _FakeDetermineFlutterOrDart.dart()},
           optimize: true,
@@ -554,7 +554,7 @@ void main() {
       test('should return all tests when not optimizing', () {
         fs.file('test/some_test.dart').createSync(recursive: true);
 
-        final (tests, exitCode) = tester.getTests(
+        final (tests, exitCode) = tester.getTestsFromDirs(
           ['test'],
           {'test': _FakeDetermineFlutterOrDart.dart()},
           optimize: false,
@@ -571,7 +571,7 @@ void main() {
       test(
           'should return exit code when no '
           'tests are found and not optimizing', () {
-        final (tests, exitCode) = tester.getTests(
+        final (tests, exitCode) = tester.getTestsFromDirs(
           ['test'],
           {'test': _FakeDetermineFlutterOrDart.dart()},
           optimize: false,
