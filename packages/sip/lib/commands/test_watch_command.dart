@@ -316,7 +316,7 @@ ${darkGray.wrap('Press `q` to exit')}
     if (optimize && clean) {
       final done = logger.progress('Cleaning up optimized test files');
 
-      cleanUp(tests.keys);
+      cleanUpOptimizedFiles(tests.keys);
 
       done.complete('Optimized test files cleaned!');
     }

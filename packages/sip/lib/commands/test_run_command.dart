@@ -114,35 +114,6 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
   @override
   Future<ExitCode> run([List<String>? args]) async {
     final argResults = args != null ? argParser.parse(args) : super.argResults!;
-
-    final providedTests = [...argResults.rest];
-
-    List<String>? testsToRun;
-    if (providedTests.isNotEmpty) {
-      testsToRun = [];
-      for (final fileOrDir in providedTests) {
-        if (fs.isFileSync(fileOrDir)) {
-          testsToRun.add(fileOrDir);
-        } else if (fs.isDirectorySync(fileOrDir)) {
-          final files = fs.directory(fileOrDir).listSync(recursive: true);
-          for (final file in files) {
-            if (file is File) {
-              testsToRun.add(file.path);
-            }
-          }
-        } else {
-          logger.err('File or directory not found: $fileOrDir');
-        }
-      }
-
-      if (testsToRun.isEmpty) {
-        logger.err('No valid files or directories found');
-        return ExitCode.noInput;
-      }
-
-      logger.detail('Running tests: \n  - ${testsToRun.join('\n  - ')}');
-    }
-
     final isDartOnly =
         argResults.wasParsed('dart-only') && argResults['dart-only'] as bool;
     final isFlutterOnly = argResults.wasParsed('flutter-only') &&
@@ -151,6 +122,18 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
     final optimize = argResults['optimize'] as bool;
     final isRecursive = argResults['recursive'] as bool? ?? false;
     final cleanOptimizedFiles = argResults['clean'] as bool;
+
+    final providedTests = [...argResults.rest];
+
+    List<String>? testsToRun;
+    if (providedTests.isNotEmpty) {
+      testsToRun = getTestsFromProvided(providedTests);
+
+      if (testsToRun.isEmpty) {
+        logger.err('No valid files or directories found');
+        return ExitCode.usage;
+      }
+    }
 
     if (isRecursive && testsToRun != null) {
       logger.err(
@@ -175,9 +158,67 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
       return ExitCode.unavailable;
     }
 
-    Map<String, DetermineFlutterOrDart>? tests;
+    final (:both, :dart, :flutter) = getArgs(this);
 
-    if (testsToRun == null) {
+    final flutterArgs = [...flutter, ...both];
+    final dartArgs = [...dart, ...both];
+
+    final commandsToRun = <CommandToRun>[];
+
+    void Function()? cleanUp;
+
+    if (testsToRun != null) {
+      final pubspec = pubspecYaml.nearest();
+
+      if (pubspec == null) {
+        logger.err('No pubspec.yaml file found');
+        return ExitCode.unavailable;
+      }
+
+      final tool = DetermineFlutterOrDart(
+        pubspecYaml: pubspec,
+        pubspecLock: pubspecLock,
+        findFile: findFile,
+      );
+
+      if (optimize) {
+        final entities = testsToRun.map((e) => fs.file(e)).toList();
+
+        final testFiles =
+            separateTestFiles(entities, isFlutter: tool.isFlutter);
+
+        logger.detail('Optimizing provided test files, $testFiles');
+
+        final tests = writeOptimizedFiles(
+          testFiles,
+          testDir: path.join(tool.directory(), 'test'),
+          tool: tool,
+        );
+
+        logger.detail('Got tests, $tests');
+
+        commandsToRun.addAll(
+          getCommandsToRun(
+            tests,
+            flutterArgs: flutterArgs,
+            dartArgs: dartArgs,
+          ),
+        );
+
+        cleanUp = () => cleanUpOptimizedFiles(tests.keys);
+      } else {
+        final command = createTestCommand(
+          projectRoot: tool.directory(),
+          relativeProjectRoot: path.relative(tool.directory()),
+          tool: tool,
+          flutterArgs: flutterArgs,
+          dartArgs: dartArgs,
+          tests: testsToRun,
+        );
+
+        commandsToRun.add(command);
+      }
+    } else {
       final testDirsResult = getTestDirs(
         pubspecs,
         isFlutterOnly: isFlutterOnly,
@@ -209,83 +250,17 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
         return ExitCode.unavailable;
       }
 
-      tests = possibleTests;
-    } else {
-      final pubspec = pubspecYaml.nearest();
+      final tests = possibleTests;
 
-      if (pubspec == null) {
-        logger.err('No pubspec.yaml file found');
-        return ExitCode.unavailable;
-      }
-
-      final tool = DetermineFlutterOrDart(
-        pubspecYaml: pubspec,
-        pubspecLock: pubspecLock,
-        findFile: findFile,
+      commandsToRun.addAll(
+        getCommandsToRun(
+          tests,
+          flutterArgs: flutterArgs,
+          dartArgs: dartArgs,
+        ),
       );
 
-      if (optimize) {
-        final entities = testsToRun.map((e) => fs.file(e)).toList();
-
-        final testFiles =
-            separateTestFiles(entities, isFlutter: tool.isFlutter);
-
-        logger.detail('Optimizing provided test files, $testFiles');
-
-        tests = writeOptimizedFiles(
-          testFiles,
-          testDir: path.join(tool.directory(), 'test'),
-          tool: tool,
-        );
-
-        logger.detail('Got tests, $tests');
-      } else {
-        // do nothing
-        // This will
-      }
-    }
-
-    final (:both, :dart, :flutter) = getArgs(this);
-
-    final flutterArgs = [...flutter, ...both];
-    final dartArgs = [...dart, ...both];
-    List<CommandToRun> commandsToRun;
-
-    if (tests != null) {
-      commandsToRun = getCommandsToRun(
-        tests,
-        flutterArgs: flutterArgs,
-        dartArgs: dartArgs,
-      );
-    } else {
-      if (testsToRun == null) {
-        logger.err('No tests found to run');
-        return ExitCode.unavailable;
-      }
-
-      final pubspec = pubspecYaml.nearest();
-
-      if (pubspec == null) {
-        logger.err('No pubspec.yaml file found');
-        return ExitCode.unavailable;
-      }
-
-      final tool = DetermineFlutterOrDart(
-        pubspecYaml: pubspec,
-        pubspecLock: pubspecLock,
-        findFile: findFile,
-      );
-
-      final command = createTestCommand(
-        projectRoot: tool.directory(),
-        relativeProjectRoot: path.relative(tool.directory()),
-        tool: tool,
-        flutterArgs: flutterArgs,
-        dartArgs: dartArgs,
-        tests: testsToRun,
-      );
-
-      commandsToRun = [command];
+      cleanUp = () => cleanUpOptimizedFiles(tests.keys);
     }
 
     logger.info('ARGS:');
@@ -320,10 +295,10 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
 
     logger.write('\n');
 
-    if (optimize && cleanOptimizedFiles && tests != null) {
+    if (optimize && cleanOptimizedFiles) {
       final done = logger.progress('Cleaning up optimized test files');
 
-      cleanUp(tests.keys);
+      cleanUp?.call();
 
       done.complete('Optimized test files cleaned!');
     }

@@ -417,7 +417,7 @@ abstract mixin class TesterMixin {
     return exitCode ?? ExitCode.success;
   }
 
-  void cleanUp(Iterable<String> optimizedFiles) {
+  void cleanUpOptimizedFiles(Iterable<String> optimizedFiles) {
     for (final optimizedFile in optimizedFiles) {
       if (!optimizedFile.contains(optimizedTestBasename)) continue;
 
@@ -476,5 +476,26 @@ abstract mixin class TesterMixin {
     }
 
     return (dirs, null);
+  }
+
+  List<String> getTestsFromProvided(List<String> providedTests) {
+    final testsToRun = <String>[];
+    for (final fileOrDir in providedTests) {
+      if (fs.isFileSync(fileOrDir)) {
+        testsToRun.add(fileOrDir);
+      } else if (fs.isDirectorySync(fileOrDir)) {
+        final files = fs.directory(fileOrDir).listSync(recursive: true);
+        for (final file in files) {
+          if (file is File) {
+            testsToRun.add(file.path);
+          }
+        }
+      } else {
+        logger.err('File or directory not found: $fileOrDir');
+      }
+    }
+
+    logger.detail('Running tests: \n  - ${testsToRun.join('\n  - ')}');
+    return testsToRun;
   }
 }

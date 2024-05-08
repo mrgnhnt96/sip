@@ -74,7 +74,7 @@ class TestCleanCommand extends Command<ExitCode> with TesterMixin {
 
     final done = logger.progress('Cleaning up optimized test files');
 
-    cleanUp(optimized);
+    cleanUpOptimizedFiles(optimized);
 
     done.complete('Optimized test files cleaned!');
 

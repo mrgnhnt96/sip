@@ -724,7 +724,7 @@ void main() {
         const path = 'test/${TesterMixin.optimizedTestBasename}';
         fs.file(path).createSync(recursive: true);
 
-        tester.cleanUp([path]);
+        tester.cleanUpOptimizedFiles([path]);
 
         expect(fs.file(path).existsSync(), isFalse);
       });
@@ -732,7 +732,7 @@ void main() {
       test('should not delete non optimized file', () {
         fs.file('test/other.dart').createSync(recursive: true);
 
-        tester.cleanUp(['test/other.dart']);
+        tester.cleanUpOptimizedFiles(['test/other.dart']);
 
         expect(fs.file('test/other.dart').existsSync(), isTrue);
       });
