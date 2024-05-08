@@ -155,7 +155,7 @@ ${darkGray.wrap('Press `q` to exit')}
       isDartOnly: isDartOnly,
     );
 
-    final pubspecs = await this.pubspecs(isRecursive: isRecursive);
+    final pubspecs = await pubspecYaml.all(recursive: isRecursive);
 
     final testDirsResult = getTestDirs(
       pubspecs,

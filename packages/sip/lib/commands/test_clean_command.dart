@@ -44,7 +44,7 @@ class TestCleanCommand extends Command<ExitCode> with TesterMixin {
 
   @override
   Future<ExitCode> run() async {
-    final pubspecs = await this.pubspecs(isRecursive: true);
+    final pubspecs = await pubspecYaml.all(recursive: true);
 
     if (pubspecs.isEmpty) {
       logger.err('No pubspec.yaml files found');

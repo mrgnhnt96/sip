@@ -128,7 +128,11 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
       isDartOnly: isDartOnly,
     );
 
-    final pubspecs = await this.pubspecs(isRecursive: isRecursive);
+    if (isRecursive) {
+      logger.detail('Running tests recursively');
+    }
+
+    final pubspecs = await pubspecYaml.all(recursive: isRecursive);
 
     if (pubspecs.isEmpty) {
       logger.err('No pubspec.yaml files found');

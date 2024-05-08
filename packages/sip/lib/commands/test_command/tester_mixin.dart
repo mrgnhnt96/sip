@@ -79,33 +79,6 @@ abstract mixin class TesterMixin {
     }
   }
 
-  /// This method is used to find all the pubspecs in the project
-  ///
-  /// When [isRecursive] is true, this finds pubspecs in subdirectories
-  /// as well as the current directory.
-  ///
-  /// When [isRecursive] is false, this only finds the pubspec in the
-  /// current directory.
-  Future<List<String>> pubspecs({
-    required bool isRecursive,
-  }) async {
-    final pubspecs = <String>{};
-
-    final pubspec = pubspecYaml.nearest();
-
-    if (pubspec != null) {
-      pubspecs.add(pubspec);
-    }
-
-    if (isRecursive) {
-      logger.detail('Running tests recursively');
-      final children = await pubspecYaml.children();
-      pubspecs.addAll(children.map((e) => path.join(path.separator, e)));
-    }
-
-    return pubspecs.toList();
-  }
-
   /// This method is used to get the test directories and the tools
   /// to run the tests
   ///
@@ -117,7 +90,7 @@ abstract mixin class TesterMixin {
     )?,
     ExitCode? exitCode,
   ) getTestDirs(
-    List<String> pubspecs, {
+    Iterable<String> pubspecs, {
     required bool isFlutterOnly,
     required bool isDartOnly,
   }) {

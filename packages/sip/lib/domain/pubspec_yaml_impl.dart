@@ -1,3 +1,4 @@
+import 'package:path/path.dart' as path;
 import 'package:sip_cli/domain/find_yaml.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 
@@ -31,5 +32,23 @@ class PubspecYamlImpl extends FindYaml implements PubspecYaml {
     final children = await super.childrenOf(PubspecYaml.fileName);
 
     return children;
+  }
+
+  @override
+  Future<Iterable<String>> all({bool recursive = false}) async {
+    final pubspecs = <String>{};
+
+    final pubspec = nearest();
+
+    if (pubspec != null) {
+      pubspecs.add(pubspec);
+    }
+
+    if (recursive) {
+      final children = await this.children();
+      pubspecs.addAll(children.map((e) => path.join(path.separator, e)));
+    }
+
+    return pubspecs;
   }
 }

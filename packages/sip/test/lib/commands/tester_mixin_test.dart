@@ -160,59 +160,6 @@ void main() {
       });
     });
 
-    group('#pubspecs', () {
-      group('when not recursive', () {
-        test('should return the root pubspec.yaml', () async {
-          fs.file('pubspec.yaml').createSync();
-
-          final pubspecs = await tester.pubspecs(isRecursive: false);
-
-          expect(pubspecs, isNotNull);
-          expect(pubspecs.length, 1);
-        });
-
-        test('should return not return sub pubspec.yamls', () async {
-          fs.file('pubspec.yaml').createSync();
-          fs.file('sub/pubspec.yaml').createSync(recursive: true);
-
-          final pubspecs = await tester.pubspecs(isRecursive: false);
-
-          expect(pubspecs, isNotNull);
-          expect(pubspecs.length, 1);
-        });
-      });
-
-      group('when recursive', () {
-        test('should return the root pubspec.yaml', () async {
-          fs.file('pubspec.yaml').createSync();
-
-          final pubspecs = await tester.pubspecs(isRecursive: true);
-
-          expect(pubspecs, isNotNull);
-          expect(pubspecs.length, 1);
-        });
-
-        test('should return all pubspec.yamls and root', () async {
-          fs.file('pubspec.yaml').createSync();
-          fs.file('sub/pubspec.yaml').createSync(recursive: true);
-
-          final pubspecs = await tester.pubspecs(isRecursive: true);
-
-          expect(pubspecs, isNotNull);
-          expect(pubspecs.length, 2);
-        });
-
-        test('should return all pubspec.yamls even when root does not exist',
-            () async {
-          fs.file('sub/pubspec.yaml').createSync(recursive: true);
-
-          final pubspecs = await tester.pubspecs(isRecursive: true);
-
-          expect(pubspecs.length, 1);
-        });
-      });
-    });
-
     group('#testables', () {
       group('should return testable path when', () {
         test('test dir exists', () async {
