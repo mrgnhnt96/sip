@@ -26,6 +26,16 @@ class DetermineFlutterOrDart {
   bool get isFlutter => tool() == 'flutter';
   bool get isDart => tool() == 'dart';
 
+  String directory({String? fromDirectory}) {
+    final dir = path.dirname(pubspecYaml);
+
+    if (fromDirectory == null) {
+      return dir;
+    }
+
+    return path.relative(dir, from: fromDirectory);
+  }
+
   DetermineFlutterOrDart setTestType(String testType) {
     if (testType == 'dart' || testType == 'flutter') {
       return this;
