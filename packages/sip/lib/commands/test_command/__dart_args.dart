@@ -109,10 +109,12 @@ extension _DartX<T> on Command<T> {
 
     final options = {..._DartX.options};
 
-    if (argResults?['bail'] as bool? ?? false) {
-      args.add('--fail-fast');
+    if (argParser.options.containsKey('bail')) {
+      if (argResults?['bail'] as bool? ?? false) {
+        args.add('--fail-fast');
+      }
+      options.remove('fail-fast');
     }
-    options.remove('fail-fast');
 
     final original = _parseArguments(
       argParser,

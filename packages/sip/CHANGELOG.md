@@ -1,3 +1,9 @@
+# 0.6.1 | 6/3/2024
+
+## Fixes
+
+- Issue where exception was thrown if `bail` flag was not defined in `ArgParser`
+
 # 0.6.0 | 5/8/2024
 
 ## Features
