@@ -50,6 +50,11 @@ abstract class APubCommand extends Command<ExitCode> {
         help: 'Only run command in Dart projects.',
       )
       ..addFlag(
+        'separated',
+        help: 'Runs concurrent dart and flutter commands separately. '
+            'Does nothing if --concurrent is not enabled.',
+      )
+      ..addFlag(
         'flutter-only',
         negatable: false,
         help: 'Only run command in Flutter projects.',
@@ -102,6 +107,7 @@ abstract class APubCommand extends Command<ExitCode> {
     final dartOnly = argResults['dart-only'] as bool;
     final flutterOnly = argResults['flutter-only'] as bool;
     final concurrent = argResults['concurrent'] as bool;
+    final separated = argResults['separated'] as bool;
 
     warnDartOrFlutter(
       isDartOnly: dartOnly,
@@ -172,19 +178,26 @@ abstract class APubCommand extends Command<ExitCode> {
 
     if (concurrent) {
       final runners = [
-        if (commands.dart.isNotEmpty)
+        if (separated) ...[
+          if (commands.dart.isNotEmpty)
+            RunManyScripts(
+              commands: commands.dart,
+              bindings: bindings,
+              logger: logger,
+              retryAfter: retryAfter?.dart,
+            ),
+          if (commands.flutter.isNotEmpty)
+            RunManyScripts(
+              commands: commands.flutter,
+              bindings: bindings,
+              logger: logger,
+              retryAfter: retryAfter?.flutter,
+            ),
+        ] else
           RunManyScripts(
-            commands: commands.dart,
+            commands: commands.ordered.map((e) => e.$2),
             bindings: bindings,
             logger: logger,
-            retryAfter: retryAfter?.dart,
-          ),
-        if (commands.flutter.isNotEmpty)
-          RunManyScripts(
-            commands: commands.flutter,
-            bindings: bindings,
-            logger: logger,
-            retryAfter: retryAfter?.flutter,
           ),
       ];
 
