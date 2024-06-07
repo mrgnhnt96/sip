@@ -1,3 +1,10 @@
+# 0.7.0 | 6/7/2024
+
+## Breaking Changes
+
+- Revert change to run dart and flutter commands separately
+  - To continue running dart and flutter commands separately, use the `--separated` flag
+
 # 0.6.1 | 6/3/2024
 
 ## Fixes
