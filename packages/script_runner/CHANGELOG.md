@@ -1,3 +1,14 @@
+# 0.7.1 | 6/7/2024
+
+## Enhancements
+
+- Add new alias to clean command `pubspecs`
+  - Existing: 'lock', 'locks', 'pubspec-locks'
+
+## Fixes
+
+- Exit clean command when no directories are found to clean
+
 # 0.7.0 | 6/7/2024
 
 ## Breaking Changes
