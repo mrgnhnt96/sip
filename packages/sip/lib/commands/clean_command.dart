@@ -21,7 +21,7 @@ class CleanCommand extends Command<ExitCode> {
       ..addFlag(
         'pubspec-lock',
         help: 'Whether to remove the pubspec.lock file.',
-        aliases: ['lock', 'locks', 'pubspec-locks'],
+        aliases: ['lock', 'locks', 'pubspec-locks', 'pubspecs'],
       )
       ..addFlag(
         'concurrent',
@@ -59,6 +59,16 @@ class CleanCommand extends Command<ExitCode> {
     final erasePubspecLock = argResults['pubspec-lock'] as bool? ?? false;
 
     final pubspecs = await pubspecYaml.all(recursive: isRecursive);
+
+    logger.detail('Found ${pubspecs.length} pubspec.yaml files');
+    for (final pubspec in pubspecs) {
+      logger.detail(' - $pubspec');
+    }
+
+    if (pubspecs.isEmpty) {
+      logger.err('No pubspec.yaml files found');
+      return ExitCode.usage;
+    }
 
     final packages = pubspecs.map(
       (e) => DetermineFlutterOrDart(
