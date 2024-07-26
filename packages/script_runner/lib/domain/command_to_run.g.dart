@@ -11,6 +11,7 @@ extension _$CommandToRunAutoequal on CommandToRun {
         command,
         workingDirectory,
         label,
+        envFile,
         runConcurrently,
         keys,
       ];

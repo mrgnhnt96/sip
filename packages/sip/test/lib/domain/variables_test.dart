@@ -44,5 +44,19 @@ void main() {
         });
       });
     });
+
+    group('#variablePattern', () {
+      test('matches', () {
+        const matches = <String>[
+          r'{$help}',
+          r'{$help:me}',
+          r'{$help:me:please}',
+        ];
+
+        for (final match in matches) {
+          expect(Variables.variablePattern.hasMatch(match), isTrue);
+        }
+      });
+    });
   });
 }

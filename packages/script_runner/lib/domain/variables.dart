@@ -125,6 +125,8 @@ class Variables {
   }
 
   static final variablePattern =
+      // what if we added a new pattern to match :{...}?
+      // instead of {$...} which requires to wrap the input with quotes
       RegExp(r'(?:{)(\$?-{0,2}[\w-_]+(?::[\w-_]+)*)(?:})');
 
   List<String> replace(
@@ -132,77 +134,100 @@ class Variables {
     ScriptsConfig config, {
     OptionalFlags? flags,
   }) {
-    final commands = <String>[];
-
     late final sipVariables = populate();
+    Iterable<String> resolve(String command) {
+      return replaceVariables(
+        command,
+        sipVariables: sipVariables,
+        config: config,
+        flags: flags,
+      );
+    }
+
+    final commands = <String>[
+      if (script.env?.command case final commands?)
+        for (final command in commands) ...resolve(command),
+    ];
 
     for (final command in script.commands) {
-      final matches = variablePattern.allMatches(command);
+      for (final resolved in resolve(command)) {
+        commands.add(resolved.trim());
+      }
+    }
 
-      if (matches.isEmpty) {
-        commands.add(command);
+    return commands.toList();
+  }
+
+  Iterable<String> replaceVariables(
+    String command, {
+    required Map<String, String?> sipVariables,
+    required ScriptsConfig config,
+    OptionalFlags? flags,
+  }) sync* {
+    final matches = variablePattern.allMatches(command);
+
+    if (matches.isEmpty) {
+      yield command;
+      return;
+    }
+
+    Iterable<String> resolvedCommands = [command];
+
+    for (final match in matches) {
+      final variable = match.group(1);
+
+      if (variable == null) {
         continue;
       }
 
-      Iterable<String> resolvedCommands = [command];
+      if (variable.startsWith(r'$')) {
+        final scriptPath = variable.substring(1).split(':');
 
-      for (final match in matches) {
-        final variable = match.group(1);
+        final found = config.find(scriptPath);
 
-        if (variable == null) {
-          continue;
+        if (found == null) {
+          throw Exception('Script path $variable is invalid');
         }
 
-        if (variable.startsWith(r'$')) {
-          final scriptPath = variable.substring(1).split(':');
+        final resolved = replace(found, config, flags: flags);
 
-          final found = config.find(scriptPath);
+        final commandsToCopy = [...resolvedCommands];
 
-          if (found == null) {
-            throw Exception('Script path $variable is invalid');
-          }
+        resolvedCommands =
+            List.generate(resolvedCommands.length * resolved.length, (index) {
+          final commandIndex = index % resolved.length;
+          final command = resolved[commandIndex];
 
-          final resolved = replace(found, config, flags: flags);
+          final commandsToCopyIndex = index ~/ resolved.length;
+          final commandsToCopyCommand = commandsToCopy[commandsToCopyIndex];
 
-          final commandsToCopy = [...resolvedCommands];
+          return commandsToCopyCommand.replaceAll(match.group(0)!, command);
+        });
 
-          resolvedCommands =
-              List.generate(resolvedCommands.length * resolved.length, (index) {
-            final commandIndex = index % resolved.length;
-            final command = resolved[commandIndex];
-
-            final commandsToCopyIndex = index ~/ resolved.length;
-            final commandsToCopyCommand = commandsToCopy[commandsToCopyIndex];
-
-            return commandsToCopyCommand.replaceAll(match.group(0)!, command);
-          });
-
-          continue;
-        }
-
-        if (variable.startsWith('-')) {
-          // flags are optional, so if not found, replace with empty string
-          final flag = flags?[variable] ?? '';
-
-          resolvedCommands =
-              resolvedCommands.map((e) => e.replaceAll(match.group(0)!, flag));
-
-          continue;
-        }
-
-        final sipValue = sipVariables[variable];
-
-        if (sipValue == null) {
-          throw Exception('Variable $variable is not defined');
-        }
-
-        resolvedCommands = resolvedCommands
-            .map((e) => e.replaceAll(match.group(0)!, sipValue));
+        continue;
       }
 
-      commands.addAll(resolvedCommands);
+      if (variable.startsWith('-')) {
+        // flags are optional, so if not found, replace with empty string
+        final flag = flags?[variable] ?? '';
+
+        resolvedCommands =
+            resolvedCommands.map((e) => e.replaceAll(match.group(0)!, flag));
+
+        continue;
+      }
+
+      final sipValue = sipVariables[variable];
+
+      if (sipValue == null) {
+        throw Exception('Variable $variable is not defined');
+      }
+
+      resolvedCommands =
+          resolvedCommands.map((e) => e.replaceAll(match.group(0)!, sipValue));
     }
 
-    return commands.map((e) => e.trim()).toList();
+    yield* resolvedCommands;
+    return;
   }
 }

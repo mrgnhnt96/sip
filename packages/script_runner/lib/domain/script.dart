@@ -158,7 +158,7 @@ Map? _readScriptsConfig(Map json, String key) {
 
   final mutableMap = {...json};
 
-  final removeKeys = {...Keys.values};
+  final removeKeys = {...Keys.scriptParameters};
   // remove all other keys
   mutableMap.removeWhere(
     (key, _) => removeKeys.contains(key),
