@@ -1,3 +1,15 @@
+# 0.8.0 | 7/26/2024
+
+## Features
+
+- Support env files for scripts
+
+  ```dart
+  my-script:
+    (command): echo $MY_ENV_VAR
+    (env): .env
+  ```
+
 # 0.7.1 | 6/7/2024
 
 ## Enhancements

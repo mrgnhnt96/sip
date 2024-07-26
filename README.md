@@ -49,6 +49,34 @@ $ sip run build_runner build
 
 For more information on the `scripts.yaml` file, see the [scripts.yaml configuration](#scriptsyaml-configuration) section.
 
+### Environment configuration
+
+A script can accept a file path to a file that contains environment variables. This is useful when you need to access environment variables across multiple scripts.
+
+Since each script (in a list) is run in a separate process, the environment variables are not shared between scripts. By passing a file path to a script, the environment variables will be loaded into the script.
+
+```yaml
+# scripts.yaml
+
+build:
+    (command): flutter build apk
+    (env): .env
+```
+
+If there is a script required to run to generate the environment variables, you can pass the script to the `(env)` key.
+
+```yaml
+# scripts.yaml
+
+build:
+    (command): flutter build apk
+    (env):
+        file: .env
+        command: dart run generate_env.dart
+```
+
+This command will only run once, right before the `(command)` is run.
+
 ### Continuous Commands
 
 Sometimes, you may want to run a command continuously, even if the command fails.
