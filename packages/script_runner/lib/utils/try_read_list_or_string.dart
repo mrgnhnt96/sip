@@ -3,7 +3,7 @@ import 'package:sip_script_runner/utils/logger.dart';
 List<String>? tryReadListOrString(dynamic json) {
   if (json is String) {
     final trimmed = json.trim();
-    if (trimmed.isEmpty) return null;
+    if (trimmed.isEmpty) return [];
 
     return [trimmed];
   } else if (json is List) {
