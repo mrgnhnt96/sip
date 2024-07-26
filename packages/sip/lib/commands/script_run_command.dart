@@ -44,6 +44,7 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
           'restart after a 1 second delay.\n'
           'This is useful for long running scripts that '
           'should always be running.',
+      aliases: ['never-quit'],
     );
 
     argParser.addFlag(
