@@ -8,7 +8,7 @@ part of 'script_env.dart';
 
 extension _$ScriptEnvAutoequal on ScriptEnv {
   List<Object?> get _$props => [
-        file,
+        files,
         command,
       ];
 }
@@ -18,7 +18,10 @@ extension _$ScriptEnvAutoequal on ScriptEnv {
 // **************************************************************************
 
 ScriptEnv _$ScriptEnvFromJson(Map json) => ScriptEnv(
-      file: json['file'] as String?,
+      files: (_readFiles(json, 'files') as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
       command: (_readScript(json, 'command') as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
@@ -26,6 +29,6 @@ ScriptEnv _$ScriptEnvFromJson(Map json) => ScriptEnv(
     );
 
 Map<String, dynamic> _$ScriptEnvToJson(ScriptEnv instance) => <String, dynamic>{
-      'file': instance.file,
+      'files': instance.files,
       'command': instance.command,
     };

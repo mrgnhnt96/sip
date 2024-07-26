@@ -189,6 +189,7 @@ Map? _readEnv(Map json, String key) {
 
   return switch (value) {
     String() => {'file': value},
+    List() => {'files': value},
     Map() => value,
     _ => null,
   };

@@ -8,14 +8,14 @@ class CommandToRun extends Equatable {
     required this.workingDirectory,
     this.keys,
     this.runConcurrently = false,
-    this.envFile,
+    this.envFile = const [],
     String? label,
   }) : label = label ?? command;
 
   final String command;
   final String workingDirectory;
   final String label;
-  final String? envFile;
+  final List<String> envFile;
   final bool runConcurrently;
   final List<String>? keys;
 

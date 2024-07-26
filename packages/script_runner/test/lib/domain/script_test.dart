@@ -175,7 +175,31 @@ void main() {
           );
 
           expect(script.env, isNotNull);
-          expect(script.env, const ScriptEnv(file: '.env'));
+          expect(script.env, const ScriptEnv(files: ['.env']));
+        });
+
+        test('can parse empty string', () {
+          final script = Script.fromJson(
+            'script',
+            const {
+              Keys.env: '',
+            },
+          );
+
+          expect(script.env, isNotNull);
+          expect(script.env, const ScriptEnv());
+        });
+
+        test('can parse list', () {
+          final script = Script.fromJson(
+            'script',
+            const {
+              Keys.env: ['.env', '.dev.env'],
+            },
+          );
+
+          expect(script.env, isNotNull);
+          expect(script.env, const ScriptEnv(files: ['.env', '.dev.env']));
         });
 
         group('can parse map', () {
@@ -193,7 +217,7 @@ void main() {
             expect(script.env, isNotNull);
             expect(
               script.env,
-              const ScriptEnv(file: '.env', command: ['command']),
+              const ScriptEnv(files: ['.env'], command: ['command']),
             );
           });
 
@@ -210,7 +234,7 @@ void main() {
             expect(script.env, isNotNull);
             expect(
               script.env,
-              const ScriptEnv(file: '.env'),
+              const ScriptEnv(files: ['.env']),
             );
           });
 
@@ -228,7 +252,7 @@ void main() {
             expect(script.env, isNotNull);
             expect(
               script.env,
-              const ScriptEnv(file: '.env'),
+              const ScriptEnv(files: ['.env']),
             );
           });
 
@@ -246,7 +270,7 @@ void main() {
             expect(script.env, isNotNull);
             expect(
               script.env,
-              const ScriptEnv(file: '.env', command: ['command']),
+              const ScriptEnv(files: ['.env'], command: ['command']),
             );
           });
         });

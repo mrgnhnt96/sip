@@ -7,7 +7,7 @@ part 'script_env.g.dart';
 @JsonSerializable()
 class ScriptEnv extends Equatable {
   const ScriptEnv({
-    this.file,
+    this.files = const [],
     this.command = const [],
   });
 
@@ -16,7 +16,8 @@ class ScriptEnv extends Equatable {
   }
 
   /// the file to source when running the script
-  final String? file;
+  @JsonKey(readValue: _readFiles)
+  final List<String> files;
 
   /// The script to run to create the environment
   @JsonKey(readValue: _readScript)
@@ -26,6 +27,11 @@ class ScriptEnv extends Equatable {
 
   @override
   List<Object?> get props => _$props;
+}
+
+// ignore: strict_raw_type
+List? _readFiles(Map json, String key) {
+  return tryReadListOrString(json[key] ?? json['file']);
 }
 
 // ignore: strict_raw_type

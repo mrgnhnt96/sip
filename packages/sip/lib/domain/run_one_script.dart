@@ -26,8 +26,10 @@ class RunOneScript {
 
     var cmd = 'cd ${command.workingDirectory} && ${command.command}';
 
-    if (command.envFile != null) {
-      cmd = '. ${command.envFile} && $cmd';
+    if (command.envFile.isNotEmpty) {
+      for (final file in command.envFile) {
+        cmd = '. $file && $cmd';
+      }
     }
 
     var printOutput = showOutput;
