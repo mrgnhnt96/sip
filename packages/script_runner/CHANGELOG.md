@@ -1,10 +1,24 @@
+# 0.8.2 | 7/26/2024
+
+## Features
+
+- Support multiple env files
+
+  ```yaml
+    my-script:
+        (command): echo $MY_ENV_VAR
+        (env):
+            - .env
+            - .env.local
+    ```
+
 # 0.8.1 | 7/26/2024
 
 ## Features
 
 - Support env files for scripts
 
-  ```dart
+  ```yaml
   my-script:
     (command): echo $MY_ENV_VAR
     (env): .env
