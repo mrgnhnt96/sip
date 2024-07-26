@@ -27,7 +27,7 @@ class RunOneScript {
     var cmd = 'cd ${command.workingDirectory} && ${command.command}';
 
     if (command.envFile != null) {
-      cmd = 'source ${command.envFile} && $cmd';
+      cmd = '. ${command.envFile} && $cmd';
     }
 
     var printOutput = showOutput;
