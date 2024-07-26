@@ -1,8 +1,9 @@
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:sip_script_runner/domain/script_env.dart';
 import 'package:sip_script_runner/domain/scripts_config.dart';
 import 'package:sip_script_runner/utils/constants.dart';
-import 'package:sip_script_runner/utils/logger.dart';
+import 'package:sip_script_runner/utils/try_read_list_or_string.dart';
 
 part 'script.g.dart';
 
@@ -17,6 +18,7 @@ class Script extends Equatable {
     required this.scripts,
     required this.bail,
     required this.parents,
+    required this.env,
   });
 
   const Script.defaults({
@@ -27,10 +29,11 @@ class Script extends Equatable {
     this.description,
     this.bail = false,
     this.parents,
+    this.env,
   });
 
   factory Script.fromJson(String name, dynamic json, {List<String>? parents}) {
-    final possibleCommands = _tryReadListOrString(json);
+    final possibleCommands = tryReadListOrString(json);
 
     if (possibleCommands != null) {
       return Script.defaults(
@@ -63,13 +66,18 @@ class Script extends Equatable {
     readValue: _retrieveStrings,
   )
   final Set<String> aliases;
+
   @JsonKey(
     name: Keys.bail,
     readValue: _retrieveBool,
   )
   final bool bail;
+
   @JsonKey(name: Keys.description)
   final String? description;
+
+  @JsonKey(name: Keys.env, readValue: _readEnv)
+  final ScriptEnv? env;
 
   @JsonKey(readValue: _readScriptsConfig)
   final ScriptsConfig? scripts;
@@ -140,7 +148,7 @@ bool? _retrieveBool(Map json, String key) {
 
 // ignore: strict_raw_type
 List? _retrieveStrings(Map json, String key) {
-  return _tryReadListOrString(json[key]);
+  return tryReadListOrString(json[key]);
 }
 
 // ignore: strict_raw_type
@@ -150,7 +158,7 @@ Map? _readScriptsConfig(Map json, String key) {
 
   final mutableMap = {...json};
 
-  final removeKeys = {...Keys.values};
+  final removeKeys = {...Keys.scriptParameters};
   // remove all other keys
   mutableMap.removeWhere(
     (key, _) => removeKeys.contains(key),
@@ -168,40 +176,20 @@ Map? _readScriptsConfig(Map json, String key) {
 
 // ignore: strict_raw_type
 List<String>? _readCommand(Map json, String key) {
-  return _tryReadListOrString(json[key]) ??
-      _tryReadListOrString(json[Keys.command]);
+  return tryReadListOrString(json[key]) ??
+      tryReadListOrString(json[Keys.command]);
 }
 
-List<String>? _tryReadListOrString(dynamic json) {
-  if (json is String) {
-    final trimmed = json.trim();
-    if (trimmed.isEmpty) return null;
-
-    return [trimmed];
-  } else if (json is List) {
-    final list = <String>[];
-    for (final e in json) {
-      if (e == null) continue;
-      if (e is Map) {
-        Logger.err(
-          'The script "$e" is not a string or a list of strings',
-        );
-        continue;
-      }
-
-      if (e is! String) {
-        list.add('$e');
-        continue;
-      }
-
-      final trimmed = e.trim();
-      if (trimmed.isEmpty) continue;
-
-      list.add(trimmed);
-    }
-
-    return list;
+// ignore: strict_raw_type
+Map? _readEnv(Map json, String key) {
+  final value = json[key];
+  if (value == null) {
+    return null;
   }
 
-  return null;
+  return switch (value) {
+    String() => {'file': value},
+    Map() => value,
+    _ => null,
+  };
 }

@@ -161,6 +161,7 @@ $ sip format ui
       yield CommandToRun(
         command: command,
         label: command,
+        envFile: script.env?.file,
         runConcurrently: runConcurrently,
         workingDirectory: directory,
         keys: [...?script.parents, script.name],

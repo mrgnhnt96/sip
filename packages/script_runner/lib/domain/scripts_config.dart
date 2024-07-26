@@ -51,7 +51,7 @@ class ScriptsConfig extends Equatable {
         continue;
       }
 
-      if (!allowedKeys.hasMatch(key) && !Keys.values.contains(key)) {
+      if (!allowedKeys.hasMatch(key) && !Keys.scriptParameters.contains(key)) {
         Logger.err(
           'The script name "$key" uses forbidden characters, allowed: '
           '${allowedKeys.pattern} (case insensitive)',

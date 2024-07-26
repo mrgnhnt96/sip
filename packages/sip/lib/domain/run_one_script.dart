@@ -24,7 +24,11 @@ class RunOneScript {
   Future<ExitCode> run() async {
     logger.detail('Setting directory to ${command.workingDirectory}');
 
-    final cmd = 'cd ${command.workingDirectory} && ${command.command}';
+    var cmd = 'cd ${command.workingDirectory} && ${command.command}';
+
+    if (command.envFile != null) {
+      cmd = 'source ${command.envFile} && $cmd';
+    }
 
     var printOutput = showOutput;
     if (logger.level == Level.quiet) {

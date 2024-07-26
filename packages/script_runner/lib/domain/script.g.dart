@@ -14,6 +14,7 @@ extension _$ScriptAutoequal on Script {
         aliases,
         bail,
         description,
+        env,
         scripts,
       ];
 }
@@ -40,6 +41,10 @@ Script _$ScriptFromJson(Map json) => Script.defaults(
       parents: (json['__(parents)__'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList(),
+      env: _readEnv(json, '(env)') == null
+          ? null
+          : ScriptEnv.fromJson(
+              Map<String, dynamic>.from(_readEnv(json, '(env)') as Map)),
     );
 
 Map<String, dynamic> _$ScriptToJson(Script instance) => <String, dynamic>{
@@ -49,5 +54,6 @@ Map<String, dynamic> _$ScriptToJson(Script instance) => <String, dynamic>{
       '(aliases)': instance.aliases.toList(),
       '(bail)': instance.bail,
       '(description)': instance.description,
+      '(env)': instance.env?.toJson(),
       'scripts': instance.scripts?.toJson(),
     };

@@ -125,6 +125,20 @@ scripts.yaml:
           });
         });
 
+        test('can parse empty string command', () {
+          final config = ScriptsConfig.fromJson(const {
+            'test': '',
+          });
+
+          expect(
+            config.scripts,
+            {
+              'test': const Script.defaults(
+                name: 'test',
+              ),
+            },
+          );
+        });
         test('can parse string command', () {
           final config = ScriptsConfig.fromJson(const {
             'test': 'echo "test"',

@@ -1,8 +1,9 @@
+import 'package:sip_script_runner/domain/script_env.dart';
 import 'package:sip_script_runner/sip_script_runner.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('$Script', () {
+  group(Script, () {
     group('#listOut', () {
       test('should list out the description', () {
         const script = Script.defaults(
@@ -150,6 +151,104 @@ void main() {
           for (final script in scripts) {
             expect(script.bail, isFalse);
           }
+        });
+      });
+
+      group('env', () {
+        test('can parse null', () {
+          final script = Script.fromJson(
+            'script',
+            const {
+              Keys.env: null,
+            },
+          );
+
+          expect(script.env, isNull);
+        });
+
+        test('can parse string', () {
+          final script = Script.fromJson(
+            'script',
+            const {
+              Keys.env: '.env',
+            },
+          );
+
+          expect(script.env, isNotNull);
+          expect(script.env, const ScriptEnv(file: '.env'));
+        });
+
+        group('can parse map', () {
+          test('can parse normal input', () {
+            final script = Script.fromJson(
+              'script',
+              const {
+                Keys.env: {
+                  'file': '.env',
+                  'command': 'command',
+                },
+              },
+            );
+
+            expect(script.env, isNotNull);
+            expect(
+              script.env,
+              const ScriptEnv(file: '.env', command: ['command']),
+            );
+          });
+
+          test('can parse when command is not present', () {
+            final script = Script.fromJson(
+              'script',
+              const {
+                Keys.env: {
+                  'file': '.env',
+                },
+              },
+            );
+
+            expect(script.env, isNotNull);
+            expect(
+              script.env,
+              const ScriptEnv(file: '.env'),
+            );
+          });
+
+          test('can parse when command is null', () {
+            final script = Script.fromJson(
+              'script',
+              const {
+                Keys.env: {
+                  'file': '.env',
+                  'command': null,
+                },
+              },
+            );
+
+            expect(script.env, isNotNull);
+            expect(
+              script.env,
+              const ScriptEnv(file: '.env'),
+            );
+          });
+
+          test('can parse when command list', () {
+            final script = Script.fromJson(
+              'script',
+              const {
+                Keys.env: {
+                  'file': '.env',
+                  'command': ['command'],
+                },
+              },
+            );
+
+            expect(script.env, isNotNull);
+            expect(
+              script.env,
+              const ScriptEnv(file: '.env', command: ['command']),
+            );
+          });
         });
       });
 
