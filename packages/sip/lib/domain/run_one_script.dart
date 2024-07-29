@@ -22,15 +22,18 @@ class RunOneScript {
   final int maxAttempts;
 
   Future<ExitCode> run() async {
-    logger.detail('Setting directory to ${command.workingDirectory}');
+    var cmd = command.command;
 
-    var cmd = 'cd ${command.workingDirectory} && ${command.command}';
-
+    // TODO(mrgnhnt): we are source the env file for the command that could
+    // create it... we should probably split that up
     if (command.envFile.isNotEmpty) {
       for (final file in command.envFile) {
+        logger.detail('Sourcing env file $file');
         cmd = '. $file && $cmd';
       }
     }
+    logger.detail('Setting directory to ${command.workingDirectory}');
+    cmd = 'cd ${command.workingDirectory} && $cmd';
 
     var printOutput = showOutput;
     if (logger.level == Level.quiet) {
