@@ -1,3 +1,9 @@
+# 0.8.3 | 7/29/2024
+
+## Fixes
+
+- Change directory to project root before sourcing env files
+
 # 0.8.2 | 7/26/2024
 
 ## Features
