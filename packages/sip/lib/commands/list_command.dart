@@ -1,7 +1,8 @@
 import 'package:args/command_runner.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
+import 'package:sip_cli/domain/scripts_config.dart';
+import 'package:sip_cli/domain/scripts_yaml.dart';
 import 'package:sip_cli/utils/exit_code.dart';
-import 'package:sip_script_runner/sip_script_runner.dart';
 
 /// The command to list all available scripts
 class ListCommand extends Command<ExitCode> {

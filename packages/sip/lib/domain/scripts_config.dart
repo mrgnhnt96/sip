@@ -1,10 +1,11 @@
 import 'package:autoequal/autoequal.dart';
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:mason_logger/mason_logger.dart';
+import 'package:sip_cli/domain/script.dart';
+import 'package:sip_cli/utils/constants.dart';
+
 // ignore_for_file: must_be_immutable
-import 'package:sip_script_runner/domain/script.dart';
-import 'package:sip_script_runner/utils/constants.dart';
-import 'package:sip_script_runner/utils/logger.dart';
 
 part 'scripts_config.g.dart';
 
@@ -31,6 +32,8 @@ class ScriptsConfig extends Equatable {
 
   // ignore: strict_raw_type
   factory ScriptsConfig.fromJson(Map json_) {
+    final logger = Logger();
+
     final json = {...json_};
     final scripts = <String, Script>{};
 
@@ -44,7 +47,7 @@ class ScriptsConfig extends Equatable {
     for (final entry in json.entries) {
       final key = '${entry.key}'.trim();
       if (key.contains(' ')) {
-        Logger.err(
+        logger.err(
           'The script name "$key" contains spaces, '
           'which is not allowed.',
         );
@@ -52,7 +55,7 @@ class ScriptsConfig extends Equatable {
       }
 
       if (!allowedKeys.hasMatch(key) && !Keys.scriptParameters.contains(key)) {
-        Logger.err(
+        logger.err(
           'The script name "$key" uses forbidden characters, allowed: '
           '${allowedKeys.pattern} (case insensitive)',
         );
@@ -75,6 +78,9 @@ class ScriptsConfig extends Equatable {
   @JsonKey(defaultValue: {})
   final Map<String, Script> scripts;
   final List<String>? parents;
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  Logger get logger => Logger();
 
   @ignore
   bool _hasSetupAliases = false;
@@ -119,7 +125,7 @@ class ScriptsConfig extends Equatable {
       }
 
       if (_deactivatedAliases.containsKey(key)) {
-        Logger.err(
+        logger.err(
           'The alias "$key" is deactivated '
           'because duplicates have been found in:'
           '\n${_deactivatedAliases[key]!.map((e) => e).join('\n')}',

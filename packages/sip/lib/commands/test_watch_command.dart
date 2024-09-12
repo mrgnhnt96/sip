@@ -6,15 +6,15 @@ import 'package:file/file.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/commands/test_command/tester_mixin.dart';
+import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/find_file.dart';
+import 'package:sip_cli/domain/pubspec_lock.dart';
+import 'package:sip_cli/domain/pubspec_yaml.dart';
 import 'package:sip_cli/domain/test_scope.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/key_press_listener.dart';
 import 'package:sip_cli/utils/stream_group.dart';
-import 'package:sip_script_runner/domain/bindings.dart';
-import 'package:sip_script_runner/domain/pubspec_lock.dart';
-import 'package:sip_script_runner/domain/pubspec_yaml.dart';
 
 class TestWatchCommand extends Command<ExitCode> with TesterMixin {
   TestWatchCommand({

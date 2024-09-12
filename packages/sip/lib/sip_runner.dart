@@ -12,11 +12,16 @@ import 'package:sip_cli/commands/pub_command.dart';
 import 'package:sip_cli/commands/script_run_command.dart';
 import 'package:sip_cli/commands/test_command/test_command.dart';
 import 'package:sip_cli/commands/update_command.dart';
+import 'package:sip_cli/domain/bindings.dart';
+import 'package:sip_cli/domain/cwd.dart';
 import 'package:sip_cli/domain/domain.dart';
+import 'package:sip_cli/domain/pubspec_lock.dart';
+import 'package:sip_cli/domain/pubspec_yaml.dart';
+import 'package:sip_cli/domain/scripts_yaml.dart';
+import 'package:sip_cli/domain/variables.dart';
 import 'package:sip_cli/src/version.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/key_press_listener.dart';
-import 'package:sip_script_runner/sip_script_runner.dart';
 
 /// The command runner for the sip command line application
 class SipRunner extends CommandRunner<ExitCode> {

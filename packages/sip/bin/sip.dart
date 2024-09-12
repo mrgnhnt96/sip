@@ -5,10 +5,10 @@ import 'dart:io';
 import 'package:file/local.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:pub_updater/pub_updater.dart';
+import 'package:sip_cli/domain/bindings_impl.dart';
 import 'package:sip_cli/domain/domain.dart';
+import 'package:sip_cli/domain/variables.dart';
 import 'package:sip_cli/sip_runner.dart';
-import 'package:sip_script_runner/sip_script_runner.dart';
-import 'package:sip_script_runner/utils/logger.dart' as script_runner;
 
 void main(List<String> _) async {
   final args = List<String>.from(_);
@@ -35,13 +35,6 @@ void main(List<String> _) async {
   const scriptsYaml = ScriptsYamlImpl(fs: fs);
   const pubspecYaml = PubspecYamlImpl(fs: fs);
   const cwd = CWDImpl(fs: fs);
-
-  script_runner.Logger.setup(
-    detail: logger.detail,
-    err: logger.err,
-    warn: logger.warn,
-    write: logger.write,
-  );
 
   final exitCode = await SipRunner(
     bindings: const BindingsImpl(),

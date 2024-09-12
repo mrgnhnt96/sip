@@ -1,6 +1,6 @@
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/domain/find_yaml.dart';
-import 'package:sip_script_runner/sip_script_runner.dart';
+import 'package:sip_cli/domain/pubspec_yaml.dart';
 
 class PubspecYamlImpl extends FindYaml implements PubspecYaml {
   const PubspecYamlImpl({

@@ -1,6 +1,8 @@
-import 'package:sip_script_runner/utils/logger.dart';
+import 'package:mason_logger/mason_logger.dart';
 
 List<String>? tryReadListOrString(dynamic json) {
+  final logger = Logger();
+
   if (json is String) {
     final trimmed = json.trim();
     if (trimmed.isEmpty) return [];
@@ -11,7 +13,7 @@ List<String>? tryReadListOrString(dynamic json) {
     for (final e in json) {
       if (e == null) continue;
       if (e is Map) {
-        Logger.err(
+        logger.err(
           'The script "$e" is not a string or a list of strings',
         );
         continue;

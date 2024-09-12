@@ -1,5 +1,6 @@
 import 'package:sip_cli/domain/find_yaml.dart';
-import 'package:sip_script_runner/sip_script_runner.dart';
+import 'package:sip_cli/domain/scripts_yaml.dart';
+import 'package:sip_cli/utils/constants.dart';
 
 class ScriptsYamlImpl extends FindYaml implements ScriptsYaml {
   const ScriptsYamlImpl({

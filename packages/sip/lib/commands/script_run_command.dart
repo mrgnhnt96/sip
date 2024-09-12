@@ -4,13 +4,17 @@ import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:sip_cli/domain/any_arg_parser.dart';
+import 'package:sip_cli/domain/bindings.dart';
+import 'package:sip_cli/domain/command_to_run.dart';
+import 'package:sip_cli/domain/cwd.dart';
 import 'package:sip_cli/domain/run_many_scripts.dart';
 import 'package:sip_cli/domain/run_one_script.dart';
+import 'package:sip_cli/domain/scripts_yaml.dart';
+import 'package:sip_cli/domain/variables.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/exit_code_extensions.dart';
 import 'package:sip_cli/utils/run_script_helper.dart';
 import 'package:sip_cli/utils/stopwatch_extensions.dart';
-import 'package:sip_script_runner/sip_script_runner.dart';
 
 /// The command to run a script
 class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {

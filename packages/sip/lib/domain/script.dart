@@ -1,9 +1,9 @@
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
-import 'package:sip_script_runner/domain/script_env.dart';
-import 'package:sip_script_runner/domain/scripts_config.dart';
-import 'package:sip_script_runner/utils/constants.dart';
-import 'package:sip_script_runner/utils/try_read_list_or_string.dart';
+import 'package:sip_cli/domain/script_env.dart';
+import 'package:sip_cli/domain/scripts_config.dart';
+import 'package:sip_cli/utils/constants.dart';
+import 'package:sip_cli/utils/try_read_list_or_string.dart';
 
 part 'script.g.dart';
 

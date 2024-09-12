@@ -1,5 +1,5 @@
 import 'package:file/file.dart';
-import 'package:sip_script_runner/domain/cwd.dart';
+import 'package:sip_cli/domain/cwd.dart';
 
 class CWDImpl implements CWD {
   const CWDImpl({

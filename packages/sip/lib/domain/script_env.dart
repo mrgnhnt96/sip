@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
-import 'package:sip_script_runner/utils/try_read_list_or_string.dart';
+import 'package:sip_cli/utils/try_read_list_or_string.dart';
 
 part 'script_env.g.dart';
 

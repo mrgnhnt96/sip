@@ -1,9 +1,10 @@
 import 'dart:async';
 
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
+import 'package:sip_cli/domain/bindings.dart';
+import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/domain/run_one_script.dart';
 import 'package:sip_cli/utils/exit_code.dart';
-import 'package:sip_script_runner/sip_script_runner.dart';
 
 class RunManyScripts {
   const RunManyScripts({

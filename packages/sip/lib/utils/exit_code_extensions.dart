@@ -1,6 +1,6 @@
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
+import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/utils/exit_code.dart';
-import 'package:sip_script_runner/sip_script_runner.dart';
 
 extension ListExitCodeX on List<ExitCode> {
   void printErrors(Iterable<CommandToRun> commands_, Logger logger) {

@@ -6,10 +6,12 @@ import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:sip_cli/commands/test_clean_command.dart';
 import 'package:sip_cli/commands/test_run_command.dart';
 import 'package:sip_cli/commands/test_watch_command.dart';
+import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/find_file.dart';
+import 'package:sip_cli/domain/pubspec_lock.dart';
+import 'package:sip_cli/domain/pubspec_yaml.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/key_press_listener.dart';
-import 'package:sip_script_runner/sip_script_runner.dart';
 
 class TestCommand extends Command<ExitCode> {
   TestCommand({

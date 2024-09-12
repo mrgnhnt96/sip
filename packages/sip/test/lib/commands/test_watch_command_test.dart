@@ -3,12 +3,12 @@ import 'package:file/memory.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:sip_cli/commands/test_watch_command.dart';
+import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/pubspec_lock_impl.dart';
 import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/key_press_listener.dart';
-import 'package:sip_script_runner/sip_script_runner.dart';
 import 'package:test/test.dart';
 
 class _MockBindings extends Mock implements Bindings {}

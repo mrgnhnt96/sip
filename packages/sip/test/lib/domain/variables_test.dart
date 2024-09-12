@@ -2,13 +2,15 @@ import 'package:file/file.dart';
 import 'package:file/memory.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/domain/cwd_impl.dart';
+import 'package:sip_cli/domain/pubspec_yaml.dart';
 import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
+import 'package:sip_cli/domain/scripts_yaml.dart';
 import 'package:sip_cli/domain/scripts_yaml_impl.dart';
-import 'package:sip_script_runner/sip_script_runner.dart';
+import 'package:sip_cli/domain/variables.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('$Variables', () {
+  group(Variables, () {
     late Variables variables;
     late FileSystem fs;
 

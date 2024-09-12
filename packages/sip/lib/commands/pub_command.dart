@@ -3,9 +3,11 @@ import 'package:file/file.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:sip_cli/commands/pub_get_command.dart';
 import 'package:sip_cli/commands/pub_upgrade_command.dart';
+import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/find_file.dart';
+import 'package:sip_cli/domain/pubspec_lock.dart';
+import 'package:sip_cli/domain/pubspec_yaml.dart';
 import 'package:sip_cli/utils/exit_code.dart';
-import 'package:sip_script_runner/sip_script_runner.dart';
 
 /// The `pub` command.
 class PubCommand extends Command<ExitCode> {

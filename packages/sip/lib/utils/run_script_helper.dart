@@ -5,8 +5,15 @@ import 'package:args/command_runner.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/commands/list_command.dart';
+import 'package:sip_cli/domain/command_to_run.dart';
+import 'package:sip_cli/domain/cwd.dart';
+import 'package:sip_cli/domain/optional_flags.dart';
+import 'package:sip_cli/domain/script.dart';
+import 'package:sip_cli/domain/scripts_config.dart';
+import 'package:sip_cli/domain/scripts_yaml.dart';
+import 'package:sip_cli/domain/variables.dart';
+import 'package:sip_cli/utils/constants.dart';
 import 'package:sip_cli/utils/exit_code.dart';
-import 'package:sip_script_runner/sip_script_runner.dart';
 
 mixin RunScriptHelper on Command<ExitCode> {
   ScriptsYaml get scriptsYaml;

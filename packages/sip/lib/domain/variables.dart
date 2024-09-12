@@ -1,12 +1,12 @@
+import 'package:mason_logger/mason_logger.dart';
 import 'package:path/path.dart' as path;
-import 'package:sip_script_runner/domain/cwd.dart';
-import 'package:sip_script_runner/domain/optional_flags.dart';
-import 'package:sip_script_runner/domain/pubspec_yaml.dart';
-import 'package:sip_script_runner/domain/script.dart';
-import 'package:sip_script_runner/domain/scripts_config.dart';
-import 'package:sip_script_runner/domain/scripts_yaml.dart';
-import 'package:sip_script_runner/utils/constants.dart';
-import 'package:sip_script_runner/utils/logger.dart';
+import 'package:sip_cli/domain/cwd.dart';
+import 'package:sip_cli/domain/optional_flags.dart';
+import 'package:sip_cli/domain/pubspec_yaml.dart';
+import 'package:sip_cli/domain/script.dart';
+import 'package:sip_cli/domain/scripts_config.dart';
+import 'package:sip_cli/domain/scripts_yaml.dart';
+import 'package:sip_cli/utils/constants.dart';
 
 /// The variables that can be used in the scripts
 class Variables {
@@ -19,6 +19,8 @@ class Variables {
   final PubspecYaml pubspecYaml;
   final ScriptsYaml scriptsYaml;
   final CWD cwd;
+
+  Logger get logger => Logger();
 
   Map<String, String?> populate() {
     final variables = <String, String?>{};
@@ -36,12 +38,12 @@ class Variables {
     final definedVariables = scriptsYaml.variables();
     for (final MapEntry(:key, :value) in (definedVariables ?? {}).entries) {
       if (value is! String) {
-        Logger.warn('Variable $key is not a string');
+        logger.warn('Variable $key is not a string');
         continue;
       }
 
       if (Vars.values.contains(key)) {
-        Logger.warn('Variable $key is a reserved keyword');
+        logger.warn('Variable $key is a reserved keyword');
         continue;
       }
 
@@ -66,12 +68,12 @@ class Variables {
         final wholeMatch = match.group(0)!;
 
         if (referencedVariable == null) {
-          Logger.warn('Variable $referencedVariable is not defined');
+          logger.warn('Variable $referencedVariable is not defined');
           return null;
         }
 
         if (referencedVariable.startsWith(r'$')) {
-          Logger.warn(
+          logger.warn(
             'Variable $key is referencing a script, this is forbidden',
           );
           return null;
@@ -86,7 +88,7 @@ class Variables {
         final referencedValue = variables[referencedVariable];
 
         if (referencedValue == null) {
-          Logger.warn('Variable $referencedVariable is not defined');
+          logger.warn('Variable $referencedVariable is not defined');
           return null;
         }
 
@@ -96,7 +98,7 @@ class Variables {
           for (final match in variablePattern.allMatches(almostResolved)) {
             // check for circular references
             if (keyToCheckForCircular.contains(match.group(1))) {
-              Logger.warn('Circular reference detected for variable $key');
+              logger.warn('Circular reference detected for variable $key');
               return null;
             }
 
@@ -145,8 +147,8 @@ class Variables {
     }
 
     final commands = <String>[
-      if (script.env?.command case final commands?)
-        for (final command in commands) ...resolve(command),
+      if (script.env?.command case final commands)
+        for (final command in commands ?? <String>[]) ...resolve(command),
     ];
 
     for (final command in script.commands) {
