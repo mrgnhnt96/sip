@@ -1,3 +1,4 @@
+// ignore_for_file: one_member_abstracts
 import 'package:sip_cli/domain/command_result.dart';
 
 /// The bindings for the script runner

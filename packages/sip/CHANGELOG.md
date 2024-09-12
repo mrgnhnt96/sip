@@ -1,3 +1,14 @@
+# 0.9.0 | 9/11/2024
+
+## Breaking Changes
+
+- Deprecate script_runner package, in favor of dart's processes for more control over running commands
+  - This will allow for better control over running commands and better error handling
+
+## Features
+
+- Print the output when a script fails during concurrency
+
 # 0.8.3 | 7/29/2024
 
 ## Fixes

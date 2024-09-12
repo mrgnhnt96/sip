@@ -4,11 +4,8 @@ install:
   (aliases):
     - i
 
-compile-blob: sh packages/script_runner/scripts/compile_blob.sh {--platform} {--arch}
-
 _packages:
   - cd packages/sip &&
-  - cd packages/script_runner &&
 
 pana: "{$_packages} dart pub run pana"
 
