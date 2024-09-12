@@ -13,13 +13,18 @@ class BindingsImpl implements Bindings {
     String script, {
     bool showOutput = true,
   }) async {
+    final [command, arg] = switch (Platform.operatingSystem) {
+      'linux' => ['bash', '-c'],
+      'macos' => ['bash', '-c'],
+      'windows' => ['cmd', '/c'],
+      _ => throw UnsupportedError('Unsupported platform'),
+    };
     final process = await Process.start(
-      'bash',
-      ['-c', script],
+      command,
+      [arg, script],
       runInShell: true,
+      mode: ProcessStartMode.inheritStdio,
     );
-
-    stdout.hasTerminal;
 
     final outputBuffer = StringBuffer();
     final errorBuffer = StringBuffer();
