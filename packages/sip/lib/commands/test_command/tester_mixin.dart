@@ -408,8 +408,8 @@ abstract mixin class TesterMixin {
         ..info('Finished in ${cyan.wrap(time)}')
         ..write('\n');
 
-      if (result != ExitCode.success) {
-        exitCode = result;
+      if (result.exitCodeReason != ExitCode.success) {
+        exitCode = result.exitCodeReason;
 
         if (bail) {
           return exitCode;

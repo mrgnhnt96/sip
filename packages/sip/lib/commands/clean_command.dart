@@ -110,7 +110,7 @@ class CleanCommand extends Command<ExitCode> {
       commands.add(command);
     }
 
-    ExitCode result;
+    ExitCode exitCode;
 
     if (isConcurrent) {
       final runner = RunManyScripts(
@@ -123,9 +123,9 @@ class CleanCommand extends Command<ExitCode> {
 
       results.printErrors(commands, logger);
 
-      result = results.exitCode(logger);
+      exitCode = results.exitCode(logger);
     } else {
-      result = ExitCode.success;
+      exitCode = ExitCode.success;
 
       for (final command in commands) {
         final runner = RunOneScript(
@@ -135,16 +135,16 @@ class CleanCommand extends Command<ExitCode> {
           showOutput: true,
         );
 
-        final exitCode = await runner.run();
+        final result = await runner.run();
 
-        exitCode.printError(command, logger);
+        result.printError(command, logger);
 
-        if (exitCode != ExitCode.success) {
-          result = exitCode;
+        if (result.exitCodeReason != ExitCode.success) {
+          exitCode = result.exitCodeReason;
         }
       }
     }
 
-    return result;
+    return exitCode;
   }
 }

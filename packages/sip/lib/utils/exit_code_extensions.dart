@@ -1,8 +1,9 @@
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
+import 'package:sip_cli/domain/command_result.dart';
 import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 
-extension ListExitCodeX on List<ExitCode> {
+extension ListExitCodeX on List<CommandResult> {
   void printErrors(Iterable<CommandToRun> commands_, Logger logger) {
     final commands = commands_.toList();
 
@@ -16,7 +17,7 @@ extension ListExitCodeX on List<ExitCode> {
   }
 
   ExitCode exitCode(Logger logger) {
-    final mapped = asMap().map((key, value) => MapEntry(value.code, value))
+    final mapped = asMap().map((key, value) => MapEntry(value.exitCode, value))
       ..remove(ExitCode.success.code);
 
     if (mapped.isEmpty) {
@@ -26,7 +27,7 @@ extension ListExitCodeX on List<ExitCode> {
 
     if (mapped.length == 1) {
       logger.detail('Many exit codes: $this, returning ${mapped.values.first}');
-      return mapped.values.first;
+      return mapped.values.first.exitCodeReason;
     }
 
     logger.detail('Many exit codes: $this, returning unavailable');
@@ -34,13 +35,13 @@ extension ListExitCodeX on List<ExitCode> {
   }
 }
 
-extension ExitCodeX on ExitCode {
+extension CommandResultX on CommandResult {
   void _printError({
     required int? index,
     required String label,
     required Logger logger,
   }) {
-    if (this == ExitCode.success) return;
+    if (exitCodeReason == ExitCode.success) return;
 
     logger.write(
       '${red.wrap('✗')}  Script ${lightCyan.wrap(label)} '
@@ -49,7 +50,7 @@ extension ExitCodeX on ExitCode {
   }
 
   void printError(CommandToRun command, Logger logger) {
-    if (this == ExitCode.success) return;
+    if (exitCodeReason == ExitCode.success) return;
 
     _printError(
       index: null,

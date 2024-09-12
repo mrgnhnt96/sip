@@ -239,13 +239,13 @@ abstract class APubCommand extends Command<ExitCode> {
         retryAfter: tool.isDart ? retryAfter?.dart : retryAfter?.flutter,
       ).run();
 
-      if (result != ExitCode.success) {
+      if (result.exitCodeReason != ExitCode.success) {
         if (exitCode != ExitCode.success) {
-          exitCode = result;
+          exitCode = result.exitCodeReason;
         }
 
         if (bail) {
-          exitCode.printError(command, logger);
+          result.printError(command, logger);
           return exitCode;
         }
       }

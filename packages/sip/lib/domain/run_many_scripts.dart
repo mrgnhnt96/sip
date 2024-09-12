@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:sip_cli/domain/bindings.dart';
+import 'package:sip_cli/domain/command_result.dart';
 import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/domain/run_one_script.dart';
 import 'package:sip_cli/utils/exit_code.dart';
@@ -30,7 +31,7 @@ class RunManyScripts {
   final Duration? retryAfter;
   final int maxAttempts;
 
-  Future<List<ExitCode>> run({
+  Future<List<CommandResult>> run({
     required bool bail,
     String label = 'Running ',
   }) async {
@@ -39,7 +40,7 @@ class RunManyScripts {
       bail: bail,
     );
 
-    final exitCodes = <ExitCode>[];
+    final results = <CommandResult>[];
 
     logger.write('\n');
 
@@ -47,7 +48,7 @@ class RunManyScripts {
       Iterable<String> create() sync* {
         yield label;
         yield darkGray.wrap('| ')!;
-        yield magenta.wrap('${exitCodes.length}/${commands.length}')!;
+        yield magenta.wrap('${results.length}/${commands.length}')!;
       }
 
       return create().join();
@@ -55,13 +56,13 @@ class RunManyScripts {
 
     final done = logger.progress(getLabel());
 
-    await for (final exitCode in runner) {
-      exitCodes.add(exitCode);
-      if (exitCode != ExitCode.success && bail) {
+    await for (final result in runner) {
+      results.add(result);
+      if (result.exitCodeReason != ExitCode.success && bail) {
         break;
       }
 
-      if (exitCodes.length < commands.length) {
+      if (results.length < commands.length) {
         done.update(getLabel());
       } else {
         done.update(getLabel());
@@ -69,22 +70,22 @@ class RunManyScripts {
       }
     }
 
-    if (exitCodes.any((code) => code != ExitCode.success)) {
+    if (results.any((e) => e.exitCodeReason != ExitCode.success)) {
       done.fail();
     } else {
       done.complete();
     }
 
-    return exitCodes;
+    return results;
   }
 
-  Stream<ExitCode> _run(
+  Stream<CommandResult> _run(
     Iterable<CommandToRun> commands, {
     required bool bail,
   }) async* {
     logger.write('\n');
 
-    final controller = StreamController<ExitCode>();
+    final controller = StreamController<CommandResult>();
 
     if (sequentially) {
       for (final command in commands) {

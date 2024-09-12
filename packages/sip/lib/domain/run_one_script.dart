@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:sip_cli/domain/bindings.dart';
+import 'package:sip_cli/domain/command_result.dart';
 import 'package:sip_cli/domain/command_to_run.dart';
-import 'package:sip_cli/utils/exit_code.dart';
 
 class RunOneScript {
   const RunOneScript({
@@ -22,7 +22,7 @@ class RunOneScript {
   final Duration? retryAfter;
   final int maxAttempts;
 
-  Future<ExitCode> run() async {
+  Future<CommandResult> run() async {
     var cmd = command.command;
 
     // TODO(mrgnhnt): we are source the env file for the command that could
@@ -49,13 +49,13 @@ ${command.command}
 
     final runScript = bindings.runScript(cmd, showOutput: printOutput);
 
-    int? codeResult;
+    CommandResult codeResult;
     final retryAfter = this.retryAfter;
     if (retryAfter == null) {
       logger.detail('Not retrying');
       final result = await runScript;
 
-      codeResult = result.exitCode;
+      codeResult = result;
     } else {
       logger.detail('Retrying command after $retryAfter');
       var hasExited = false;
@@ -64,7 +64,7 @@ ${command.command}
       while (!hasExited && attempt < maxAttempts) {
         attempt++;
 
-        final controller = StreamController<int?>();
+        final controller = StreamController<CommandResult?>();
 
         final wait = retryAfter + (retryAfter * (.1 * attempt));
 
@@ -72,7 +72,7 @@ ${command.command}
 
         final timer = Timer(wait, () => controller.add(null));
 
-        runScript.then((e) => controller.add(e.exitCode)).ignore();
+        runScript.then(controller.add).ignore();
 
         final exitCode = await controller.stream.first;
 
@@ -93,29 +93,11 @@ ${command.command}
 
       final result = await runScript;
 
-      codeResult = result.exitCode;
+      codeResult = result;
     }
 
     logger.detail('Native exited with $codeResult');
 
-    final codes = {
-      ExitCode.success.code: ExitCode.success,
-      ExitCode.usage.code: ExitCode.usage,
-      ExitCode.data.code: ExitCode.data,
-      ExitCode.noInput.code: ExitCode.noInput,
-      ExitCode.noUser.code: ExitCode.noUser,
-      ExitCode.noHost.code: ExitCode.noHost,
-      ExitCode.unavailable.code: ExitCode.unavailable,
-      ExitCode.software.code: ExitCode.software,
-      ExitCode.osError.code: ExitCode.osError,
-      ExitCode.osFile.code: ExitCode.osFile,
-      ExitCode.cantCreate.code: ExitCode.cantCreate,
-      ExitCode.ioError.code: ExitCode.ioError,
-      ExitCode.tempFail.code: ExitCode.tempFail,
-      ExitCode.noPerm.code: ExitCode.noPerm,
-      ExitCode.config.code: ExitCode.config,
-    };
-
-    return codes[codeResult] ?? ExitCode.unknown(codeResult);
+    return codeResult;
   }
 }

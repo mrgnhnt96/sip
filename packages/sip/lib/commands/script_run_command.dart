@@ -5,6 +5,7 @@ import 'package:args/command_runner.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:sip_cli/domain/any_arg_parser.dart';
 import 'package:sip_cli/domain/bindings.dart';
+import 'package:sip_cli/domain/command_result.dart';
 import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/domain/cwd.dart';
 import 'package:sip_cli/domain/run_many_scripts.dart';
@@ -176,7 +177,8 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
 
     ExitCode? failureExitCode;
 
-    ExitCode? tryBail(List<ExitCode> exitCodes, List<CommandToRun> commands) {
+    ExitCode? tryBail(
+        List<CommandResult> exitCodes, List<CommandToRun> commands) {
       logger.detail('Checking for bail ($bail), bail: $exitCodes');
 
       final exitCode = exitCodes.exitCode(logger);
