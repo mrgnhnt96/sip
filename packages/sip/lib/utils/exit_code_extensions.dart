@@ -45,20 +45,20 @@ extension CommandResultX on CommandResult {
 
     if (output.trim().isNotEmpty) {
       logger
-        ..write(darkGray.wrap('--- OUTPUT ---\n'))
+        ..write(darkGray.wrap('\n--- OUTPUT ---\n'))
         ..write(output)
-        ..write('---\n\n');
+        ..write(darkGray.wrap('--- OUTPUT ---\n'));
     }
 
     if (error.trim().isNotEmpty) {
       logger
-        ..write(darkGray.wrap('--- ERROR ---\n'))
+        ..write(darkGray.wrap('\n--- ERROR ---\n'))
         ..write(error)
-        ..write('---\n\n');
+        ..write(darkGray.wrap('--- ERROR ---\n'));
     }
 
     logger.write(
-      '${red.wrap('✗')}  Script ${lightCyan.wrap('sip run $label')} '
+      '\n${red.wrap('✗')}  Script ${lightCyan.wrap('sip run $label')} '
       'failed with exit code ${lightRed.wrap(exitCodeReason.toString())}\n',
     );
   }
