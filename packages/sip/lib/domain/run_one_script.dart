@@ -49,11 +49,13 @@ ${command.command}
 
     final runScript = bindings.runScript(cmd, showOutput: printOutput);
 
-    int? result;
+    int? codeResult;
     final retryAfter = this.retryAfter;
     if (retryAfter == null) {
       logger.detail('Not retrying');
-      result = await runScript;
+      final result = await runScript;
+
+      codeResult = result.exitCode;
     } else {
       logger.detail('Retrying command after $retryAfter');
       var hasExited = false;
@@ -70,7 +72,7 @@ ${command.command}
 
         final timer = Timer(wait, () => controller.add(null));
 
-        runScript.then(controller.add).ignore();
+        runScript.then((e) => controller.add(e.exitCode)).ignore();
 
         final exitCode = await controller.stream.first;
 
@@ -80,7 +82,7 @@ ${command.command}
           continue;
         }
 
-        result = exitCode;
+        codeResult = exitCode;
         hasExited = true;
       }
 
@@ -89,10 +91,12 @@ ${command.command}
         'running without retries',
       );
 
-      result = await runScript;
+      final result = await runScript;
+
+      codeResult = result.exitCode;
     }
 
-    logger.detail('Native exited with $result');
+    logger.detail('Native exited with $codeResult');
 
     final codes = {
       ExitCode.success.code: ExitCode.success,
@@ -112,6 +116,6 @@ ${command.command}
       ExitCode.config.code: ExitCode.config,
     };
 
-    return codes[result] ?? ExitCode.unknown(result);
+    return codes[codeResult] ?? ExitCode.unknown(codeResult);
   }
 }

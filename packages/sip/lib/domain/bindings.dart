@@ -1,3 +1,5 @@
+import 'package:sip_cli/domain/command_result.dart';
+
 /// The bindings for the script runner
 ///
 /// This is the interface that the script runner
@@ -5,5 +7,5 @@
 abstract interface class Bindings {
   const Bindings();
 
-  Future<int> runScript(String script, {bool showOutput});
+  Future<CommandResult> runScript(String script, {bool showOutput});
 }

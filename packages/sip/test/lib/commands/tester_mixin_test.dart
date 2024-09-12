@@ -4,6 +4,7 @@ import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:mocktail/mocktail.dart';
 import 'package:sip_cli/commands/test_command/tester_mixin.dart';
 import 'package:sip_cli/domain/bindings.dart';
+import 'package:sip_cli/domain/command_result.dart';
 import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/domain/domain.dart';
 import 'package:sip_cli/domain/pubspec_lock.dart';
@@ -91,6 +92,9 @@ class _FakeDetermineFlutterOrDart extends Fake
 }
 
 void main() {
+  const success = CommandResult(exitCode: 0, output: 'output', error: 'error');
+  const failure = CommandResult(exitCode: 1, output: 'output', error: 'error');
+
   group('$TesterMixin', () {
     late _Tester tester;
     late FileSystem fs;
@@ -592,7 +596,7 @@ void main() {
             any(),
             showOutput: any(named: 'showOutput'),
           ),
-        ).thenAnswer((_) => Future.value(0));
+        ).thenAnswer((_) => Future.value(success));
 
         final commands = [
           const CommandToRun(
@@ -617,7 +621,7 @@ void main() {
             any(),
             showOutput: any(named: 'showOutput'),
           ),
-        ).thenAnswer((_) => Future.value(1));
+        ).thenAnswer((_) => Future.value(failure));
 
         final commands = [
           const CommandToRun(
@@ -654,7 +658,7 @@ void main() {
               any(),
               showOutput: any(named: 'showOutput'),
             ),
-          ).thenAnswer((_) => Future.value(0));
+          ).thenAnswer((_) => Future.value(success));
 
           final commands = [
             const CommandToRun(
@@ -690,7 +694,7 @@ void main() {
               any(),
               showOutput: any(named: 'showOutput'),
             ),
-          ).thenAnswer((_) => Future.value(0));
+          ).thenAnswer((_) => Future.value(success));
 
           final commands = [
             const CommandToRun(
