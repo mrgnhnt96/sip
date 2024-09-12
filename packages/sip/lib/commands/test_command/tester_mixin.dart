@@ -355,6 +355,7 @@ abstract mixin class TesterMixin {
     return CommandToRun(
       command: script,
       workingDirectory: projectRoot,
+      keys: ['dart', 'test', ...tests, ...toolArgs],
       label: label,
     );
   }

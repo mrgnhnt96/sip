@@ -10,7 +10,7 @@ extension ListExitCodeX on List<CommandResult> {
     for (var i = 0; i < length; i++) {
       this[i]._printError(
         index: i,
-        label: commands[i].label,
+        label: commands[i].keys.join(' '),
         logger: logger,
       );
     }
@@ -43,9 +43,23 @@ extension CommandResultX on CommandResult {
   }) {
     if (exitCodeReason == ExitCode.success) return;
 
+    if (output.trim().isNotEmpty) {
+      logger
+        ..write(darkGray.wrap('--- OUTPUT ---\n'))
+        ..write(output)
+        ..write('---\n\n');
+    }
+
+    if (error.trim().isNotEmpty) {
+      logger
+        ..write(darkGray.wrap('--- ERROR ---\n'))
+        ..write(error)
+        ..write('---\n\n');
+    }
+
     logger.write(
-      '${red.wrap('✗')}  Script ${lightCyan.wrap(label)} '
-      'failed with exit code ${lightRed.wrap(toString())}\n',
+      '${red.wrap('✗')}  Script ${lightCyan.wrap('sip run $label')} '
+      'failed with exit code ${lightRed.wrap(exitCodeReason.toString())}\n',
     );
   }
 
@@ -54,7 +68,7 @@ extension CommandResultX on CommandResult {
 
     _printError(
       index: null,
-      label: command.label,
+      label: command.keys.join(' '),
       logger: logger,
     );
   }

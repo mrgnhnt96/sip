@@ -7,5 +7,5 @@ import 'package:sip_cli/domain/command_result.dart';
 abstract interface class Bindings {
   const Bindings();
 
-  Future<CommandResult> runScript(String script, {bool showOutput});
+  Future<CommandResult> runScript(String script, {required bool showOutput});
 }

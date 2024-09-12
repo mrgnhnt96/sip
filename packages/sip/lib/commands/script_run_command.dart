@@ -178,7 +178,9 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     ExitCode? failureExitCode;
 
     ExitCode? tryBail(
-        List<CommandResult> exitCodes, List<CommandToRun> commands) {
+      List<CommandResult> exitCodes,
+      List<CommandToRun> commands,
+    ) {
       logger.detail('Checking for bail ($bail), bail: $exitCodes');
 
       final exitCode = exitCodes.exitCode(logger);

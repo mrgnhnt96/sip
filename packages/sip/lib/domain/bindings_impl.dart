@@ -11,7 +11,7 @@ class BindingsImpl implements Bindings {
   @override
   Future<CommandResult> runScript(
     String script, {
-    bool showOutput = true,
+    required bool showOutput,
   }) async {
     final [command, arg] = switch (Platform.operatingSystem) {
       'linux' => ['bash', '-c'],
@@ -23,7 +23,6 @@ class BindingsImpl implements Bindings {
       command,
       [arg, script],
       runInShell: true,
-      mode: ProcessStartMode.inheritStdio,
     );
 
     final outputBuffer = StringBuffer();
@@ -32,8 +31,8 @@ class BindingsImpl implements Bindings {
     final outputController = StreamController<List<int>>();
     final errorController = StreamController<List<int>>();
 
-    process.stdout.listen(outputController.add);
-    process.stderr.listen(errorController.add);
+    final stdoutSubscription = process.stdout.listen(outputController.add);
+    final stderrSubscription = process.stderr.listen(errorController.add);
 
     final outputStream = outputController.stream.asBroadcastStream();
     final errorStream = errorController.stream.asBroadcastStream();
@@ -47,6 +46,11 @@ class BindingsImpl implements Bindings {
     }
 
     final code = await process.exitCode;
+
+    await outputController.close();
+    await errorController.close();
+    await stdoutSubscription.cancel();
+    await stderrSubscription.cancel();
 
     return CommandResult(
       exitCode: code,

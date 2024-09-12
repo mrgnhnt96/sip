@@ -104,6 +104,7 @@ class CleanCommand extends Command<ExitCode> {
         command: removeCommands.join(' && '),
         workingDirectory: package.directory(),
         runConcurrently: isConcurrent,
+        keys: const ['clean'],
         label: label,
       );
 

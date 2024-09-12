@@ -168,6 +168,7 @@ abstract class APubCommand extends Command<ExitCode> {
       final command = CommandToRun(
         command: '$tool pub $name ${pubFlags.join(' ')}',
         workingDirectory: project,
+        keys: ['dart', 'pub', name, ...pubFlags],
         label: label,
       );
 
