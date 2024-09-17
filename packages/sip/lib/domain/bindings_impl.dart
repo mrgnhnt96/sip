@@ -3,16 +3,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 
-import 'package:mason_logger/mason_logger.dart';
 import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/command_result.dart';
 
 class BindingsImpl implements Bindings {
   const BindingsImpl();
-
-  Logger get logger => Logger(
-        level: Level.debug,
-      );
 
   @override
   Future<CommandResult> runScript(
@@ -54,13 +49,7 @@ Future<void> _runScript(SendPort sendPort) async {
 
   sendPort.send(port.sendPort);
 
-  final logger = Logger(
-    level: Level.debug,
-  );
-
   Future<CommandResult> run(String script, {required bool showOutput}) async {
-    logger.detail('Starting script');
-
     final [command, arg] = switch (Platform.operatingSystem) {
       'linux' => ['bash', '-c'],
       'macos' => ['bash', '-c'],
@@ -71,7 +60,8 @@ Future<void> _runScript(SendPort sendPort) async {
       command,
       [arg, script],
       runInShell: true,
-      mode: ProcessStartMode.inheritStdio,
+      mode:
+          showOutput ? ProcessStartMode.inheritStdio : ProcessStartMode.normal,
     );
 
     final outputBuffer = StringBuffer();
@@ -86,20 +76,14 @@ Future<void> _runScript(SendPort sendPort) async {
     outputStream.transform(utf8.decoder).listen(outputBuffer.write);
     errorStream.transform(utf8.decoder).listen(errorBuffer.write);
 
-    if (showOutput) {
-      logger.detail('Showing output');
-      // outputStream.listen(stdout.add);
-      // errorStream.listen(stderr.add);
+    if (!showOutput) {
+      process.stdout.listen(outputController.add);
+      process.stderr.listen(errorController.add);
     }
 
-    logger.detail('Waiting for process to exit');
     final code = await process.exitCode;
 
-    logger.detail('Killing process');
-
     process.kill();
-
-    logger.detail('Script completed');
 
     return CommandResult(
       exitCode: code,
