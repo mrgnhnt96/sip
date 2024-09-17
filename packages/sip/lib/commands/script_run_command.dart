@@ -162,7 +162,6 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
         bindings: bindings,
         logger: logger,
       ).run(
-        label: 'Running ',
         bail: bail,
       );
 
