@@ -162,7 +162,7 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
         bindings: bindings,
         logger: logger,
       ).run(
-        label: 'Running ${commands.length} scripts concurrently',
+        label: 'Running ',
         bail: bail,
       );
 
