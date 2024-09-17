@@ -1,5 +1,9 @@
+import 'package:json_annotation/json_annotation.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 
+part 'command_result.g.dart';
+
+@JsonSerializable()
 class CommandResult {
   const CommandResult({
     required this.exitCode,
@@ -11,9 +15,14 @@ class CommandResult {
         output = '',
         error = '';
 
+  factory CommandResult.fromJson(Map<dynamic, dynamic> json) =>
+      _$CommandResultFromJson(json);
+
   final int exitCode;
   final String output;
   final String error;
+
+  Map<String, dynamic> toJson() => _$CommandResultToJson(this);
 
   ExitCode get exitCodeReason {
     final codes = {

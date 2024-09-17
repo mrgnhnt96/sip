@@ -96,7 +96,7 @@ ${command.command}
       codeResult = result;
     }
 
-    logger.detail('Native exited with $codeResult');
+    logger.detail('Native exited with ${codeResult.exitCode}');
 
     return codeResult;
   }
