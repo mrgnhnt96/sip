@@ -24,6 +24,7 @@ void main() {
       final content = writeOptimizedTestFile(
         testables,
         isFlutterPackage: false,
+        barrelFile: null,
       );
 
       final namespacesPattern = RegExp(r"import \'.*\' as (.*)\;");
@@ -34,6 +35,26 @@ void main() {
 
       expect(namespaces.length, 2);
       expect(namespaces.length, uniqueNamespaces.length);
+    });
+
+    test('includes barrel file when provided', () {
+      final content = writeOptimizedTestFile(
+        testables,
+        isFlutterPackage: false,
+        barrelFile: (packageName: 'domain', barrelFile: 'domain.dart'),
+      );
+
+      expect(content, contains("import 'package:domain/domain.dart';"));
+    });
+
+    test('does not include barrel file when not provided', () {
+      final content = writeOptimizedTestFile(
+        testables,
+        isFlutterPackage: false,
+        barrelFile: null,
+      );
+
+      expect(content, isNot(contains("import 'package:domain/domain.dart';")));
     });
   });
 }

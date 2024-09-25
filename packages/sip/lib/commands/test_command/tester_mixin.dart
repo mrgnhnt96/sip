@@ -10,6 +10,7 @@ import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/pubspec_lock.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
+import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
 import 'package:sip_cli/domain/run_many_scripts.dart';
 import 'package:sip_cli/domain/run_one_script.dart';
 import 'package:sip_cli/domain/testable.dart';
@@ -217,6 +218,25 @@ abstract mixin class TesterMixin {
   }) {
     final optimizedFiles = <String, DetermineFlutterOrDart>{};
 
+    final projectName = fs.currentDirectory.basename;
+    ({String packageName, String barrelFile})? exportFile;
+
+    if (path.join('lib', '$projectName.dart') case final path
+        when fs.file(path).existsSync()) {
+      if (PubspecYamlImpl(fs: fs).parse() case final pubspec?) {
+        final packageName = pubspec['name'] as String;
+        exportFile =
+            (packageName: packageName, barrelFile: '$projectName.dart');
+      }
+    } else if (PubspecYamlImpl(fs: fs).parse() case final pubspec?) {
+      final packageName = pubspec['name'] as String;
+      if (path.join('lib', '$packageName.dart') case final path
+          when fs.file(path).existsSync()) {
+        exportFile =
+            (packageName: packageName, barrelFile: '$packageName.dart');
+      }
+    }
+
     for (final MapEntry(key: type, value: testFiles) in files.entries) {
       final optimizedPath = path.join(testDir, optimizedTestFileName(type));
       fs.file(optimizedPath).createSync(recursive: true);
@@ -229,8 +249,11 @@ abstract mixin class TesterMixin {
         ),
       );
 
-      final content =
-          writeOptimizedTestFile(testDirs, isFlutterPackage: tool.isFlutter);
+      final content = writeOptimizedTestFile(
+        testDirs,
+        isFlutterPackage: tool.isFlutter,
+        barrelFile: exportFile,
+      );
 
       fs.file(optimizedPath).writeAsStringSync(content);
 
