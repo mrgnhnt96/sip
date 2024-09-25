@@ -1,3 +1,13 @@
+# 0.10.0 | 9/25/2024
+
+## Features
+
+- Search for barrel file to include in optimized test files
+  - This is to better support coverage reports
+  - By including this import statement, files without tests will be included in the coverage report
+  - The barrel file must be named after the project directory or package name and reside in the `lib` directory
+    - eg. `domain/lib/domain.dart` or `lib/my_package.dart`
+
 # 0.9.1 | 9/11/2024
 
 ## Breaking Changes
