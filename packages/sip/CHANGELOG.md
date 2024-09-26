@@ -1,3 +1,9 @@
+# 0.11.0 | 9/26/2024
+
+## Breaking Changes
+
+- Remove test optimization for Flutter tests
+
 # 0.10.0 | 9/25/2024
 
 ## Features
