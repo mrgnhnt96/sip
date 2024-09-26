@@ -7,95 +7,18 @@ import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/command_result.dart';
 import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/domain/domain.dart';
+import 'package:sip_cli/domain/package_to_test.dart';
 import 'package:sip_cli/domain/pubspec_lock.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:test/test.dart';
 
-class _Tester extends TesterMixin {
-  const _Tester({
-    required this.bindings,
-    required this.findFile,
-    required this.fs,
-    required this.logger,
-    required this.pubspecLock,
-    required this.pubspecYaml,
-  });
-  @override
-  final Bindings bindings;
-
-  @override
-  final FindFile findFile;
-
-  @override
-  final FileSystem fs;
-
-  @override
-  final Logger logger;
-
-  @override
-  final PubspecLock pubspecLock;
-
-  @override
-  final PubspecYaml pubspecYaml;
-}
-
-class _MockBindings extends Mock implements Bindings {}
-
-class _MockLogger extends Mock implements Logger {
-  @override
-  Progress progress(String message, {ProgressOptions? options}) {
-    return _MockProgress();
-  }
-
-  @override
-  Level get level => Level.quiet;
-}
-
-class _MockProgress extends Mock implements Progress {}
-
-class _FakeDetermineFlutterOrDart extends Fake
-    implements DetermineFlutterOrDart {
-  _FakeDetermineFlutterOrDart.flutter()
-      : _isFlutter = true,
-        _isDart = false;
-
-  _FakeDetermineFlutterOrDart.dart()
-      : _isFlutter = false,
-        _isDart = true;
-
-  final bool _isFlutter;
-  final bool _isDart;
-
-  @override
-  bool get isDart => _isDart;
-  @override
-  bool get isFlutter => _isFlutter;
-
-  @override
-  DetermineFlutterOrDart setTestType(String _) => this;
-
-  @override
-  String get testType => 'dart';
-
-  @override
-  String tool() {
-    if (_isFlutter) {
-      return 'flutter';
-    } else if (_isDart) {
-      return 'dart';
-    } else {
-      return 'unknown';
-    }
-  }
-}
-
 void main() {
   const success = CommandResult(exitCode: 0, output: 'output', error: 'error');
   const failure = CommandResult(exitCode: 1, output: 'output', error: 'error');
 
-  group('$TesterMixin', () {
+  group(TesterMixin, () {
     late _Tester tester;
     late FileSystem fs;
     late Bindings mockBindings;
@@ -297,19 +220,19 @@ void main() {
           final optimizedFiles =
               tester.prepareOptimizedFilesFromDirs(testables, testableTools);
 
-          expect(optimizedFiles.length, 1);
-          expect(optimizedFiles.entries.first.value.isDart, isTrue);
+          expect(optimizedFiles, hasLength(1));
+          expect(optimizedFiles.first.tool.isDart, isTrue);
 
           expect(
             fs
-                .file('test/${TesterMixin.optimizedTestFileName('dart')}')
+                .file('test/${TesterMixin.optimizedTestBasename}.dart')
                 .existsSync(),
             isTrue,
           );
         });
       });
 
-      group('should write optimized files for flutter', () {
+      group('should not write optimized files for flutter', () {
         test('when test files exist', () {
           fs.file('test/nest/automated_test.dart')
             ..createSync(recursive: true)
@@ -332,22 +255,12 @@ void main() {
           final optimizedFiles =
               tester.prepareOptimizedFilesFromDirs(testables, testableTools);
 
-          expect(optimizedFiles.length, 4);
-          expect(optimizedFiles.entries.first.value.isFlutter, isTrue);
+          expect(optimizedFiles, hasLength(1));
+          expect(optimizedFiles.first.tool.isFlutter, isTrue);
 
           final files = fs.directory('test').listSync().whereType<File>();
 
-          expect(files.length, 4);
-          final tests = {
-            TesterMixin.optimizedTestFileName('automated'),
-            TesterMixin.optimizedTestFileName('test'),
-            TesterMixin.optimizedTestFileName('live'),
-            TesterMixin.optimizedTestFileName('flutter'),
-          };
-
-          for (final file in files) {
-            expect(tests.contains(file.basename), isTrue);
-          }
+          expect(files, hasLength(0));
         });
       });
 
@@ -357,7 +270,7 @@ void main() {
 
         test('should not include optimized file import', () {
           final optimizedFile =
-              'test/${TesterMixin.optimizedTestFileName('dart')}';
+              'test/${TesterMixin.optimizedTestBasename}.dart';
 
           fs.file('test/some_test.dart').createSync(recursive: true);
           fs.file(optimizedFile).createSync();
@@ -367,7 +280,9 @@ void main() {
             testables.first: _FakeDetermineFlutterOrDart.dart(),
           };
 
-          tester.prepareOptimizedFilesFromDirs(testables, testableTools);
+          tester
+              .prepareOptimizedFilesFromDirs(testables, testableTools)
+              .toList();
 
           final optimizedFileContent =
               fs.file(optimizedFile).readAsStringSync();
@@ -386,10 +301,12 @@ void main() {
             testables.first: _FakeDetermineFlutterOrDart.dart(),
           };
 
-          tester.prepareOptimizedFilesFromDirs(testables, testableTools);
+          tester
+              .prepareOptimizedFilesFromDirs(testables, testableTools)
+              .toList();
 
           final optimizedFileContent = fs
-              .file('test/${TesterMixin.optimizedTestFileName('dart')}')
+              .file('test/${TesterMixin.optimizedTestBasename}.dart')
               .readAsStringSync();
 
           final imports = importPattern.allMatches(optimizedFileContent);
@@ -410,7 +327,7 @@ void main() {
           final optimizedFiles =
               tester.prepareOptimizedFilesFromDirs(testables, testableTools);
 
-          expect(optimizedFiles.length, 0);
+          expect(optimizedFiles, hasLength(0));
         });
       });
     });
@@ -419,12 +336,13 @@ void main() {
       test('should set cwd to project root when not optimizing', () {
         fs.file('test/some_test.dart').createSync(recursive: true);
 
-        final testableTools = {
-          'test': _FakeDetermineFlutterOrDart.dart(),
-        };
+        final testableTools = PackageToTest(
+          tool: _FakeDetermineFlutterOrDart.dart(),
+          packagePath: '.',
+        );
 
         final commands = tester.getCommandsToRun(
-          testableTools,
+          [testableTools],
           flutterArgs: [],
           dartArgs: [],
         );
@@ -436,12 +354,14 @@ void main() {
       test('should set cwd to project root when optimizing', () {
         fs.file('test/.optimized_test.dart').createSync(recursive: true);
 
-        final testableTools = {
-          'test/.optimized_test.dart': _FakeDetermineFlutterOrDart.dart(),
-        };
+        final testableTools = PackageToTest(
+          tool: _FakeDetermineFlutterOrDart.dart(),
+          packagePath: '.',
+          optimizedPath: 'test/.optimized_test.dart',
+        );
 
         final commands = tester.getCommandsToRun(
-          testableTools,
+          [testableTools],
           flutterArgs: [],
           dartArgs: [],
         );
@@ -453,12 +373,14 @@ void main() {
       test('should return dart commands to run', () {
         fs.file('test/.optimized_test.dart').createSync(recursive: true);
 
-        final testableTools = {
-          'test/.optimized_test.dart': _FakeDetermineFlutterOrDart.dart(),
-        };
+        final testableTools = PackageToTest(
+          tool: _FakeDetermineFlutterOrDart.dart(),
+          packagePath: '',
+          optimizedPath: 'test/.optimized_test.dart',
+        );
 
         final commands = tester.getCommandsToRun(
-          testableTools,
+          [testableTools],
           flutterArgs: [],
           dartArgs: [],
         );
@@ -473,12 +395,14 @@ void main() {
       test('should return flutter commands to run', () {
         fs.file('test/.optimized_test.dart').createSync(recursive: true);
 
-        final testableTools = {
-          'test/.optimized_test.dart': _FakeDetermineFlutterOrDart.flutter(),
-        };
+        final testableTools = PackageToTest(
+          tool: _FakeDetermineFlutterOrDart.flutter(),
+          packagePath: '',
+          optimizedPath: 'test/.optimized_test.dart',
+        );
 
         final commands = tester.getCommandsToRun(
-          testableTools,
+          [testableTools],
           flutterArgs: [],
           dartArgs: [],
         );
@@ -486,7 +410,7 @@ void main() {
         expect(commands.length, 1);
         expect(
           commands.first.command.trim(),
-          'flutter test test/.optimized_test.dart',
+          'flutter test',
         );
       });
 
@@ -495,12 +419,14 @@ void main() {
         () {
           fs.file('test/.optimized_test.dart').createSync(recursive: true);
 
-          final testableTools = {
-            'test/.optimized_test.dart': _FakeDetermineFlutterOrDart.flutter(),
-          };
+          final testableTools = PackageToTest(
+            tool: _FakeDetermineFlutterOrDart.flutter(),
+            packagePath: '',
+            optimizedPath: 'test/.optimized_test.dart',
+          );
 
           final commands = tester.getCommandsToRun(
-            testableTools,
+            [testableTools],
             flutterArgs: ['--flutter'],
             dartArgs: ['--dart'],
           );
@@ -508,7 +434,7 @@ void main() {
           expect(commands.length, 1);
           expect(
             commands.first.command.trim(),
-            'flutter test test/.optimized_test.dart --flutter',
+            'flutter test --flutter',
           );
         },
       );
@@ -518,12 +444,14 @@ void main() {
         () {
           fs.file('test/.optimized_test.dart').createSync(recursive: true);
 
-          final testableTools = {
-            'test/.optimized_test.dart': _FakeDetermineFlutterOrDart.dart(),
-          };
+          final testableTools = PackageToTest(
+            tool: _FakeDetermineFlutterOrDart.dart(),
+            packagePath: '',
+            optimizedPath: 'test/.optimized_test.dart',
+          );
 
           final commands = tester.getCommandsToRun(
-            testableTools,
+            [testableTools],
             flutterArgs: ['--flutter'],
             dartArgs: ['--dart'],
           );
@@ -541,7 +469,7 @@ void main() {
       test('should return optimized tests when optimizing', () {
         fs.file('test/some_test.dart').createSync(recursive: true);
 
-        final (tests, exitCode) = tester.getTestsFromDirs(
+        final (tests, exitCode) = tester.getPackagesToTest(
           ['test'],
           {'test': _FakeDetermineFlutterOrDart.dart()},
           optimize: true,
@@ -553,15 +481,15 @@ void main() {
 
         expect(tests.length, 1);
         expect(
-          tests.keys.first,
-          'test/${TesterMixin.optimizedTestFileName('dart')}',
+          tests.first.optimizedPath,
+          'test/${TesterMixin.optimizedTestBasename}.dart',
         );
       });
 
       test('should return all tests when not optimizing', () {
         fs.file('test/some_test.dart').createSync(recursive: true);
 
-        final (tests, exitCode) = tester.getTestsFromDirs(
+        final (tests, exitCode) = tester.getPackagesToTest(
           ['test'],
           {'test': _FakeDetermineFlutterOrDart.dart()},
           optimize: false,
@@ -572,13 +500,13 @@ void main() {
         tests!;
 
         expect(tests.length, 1);
-        expect(tests.keys.first, 'test');
+        expect(tests.first.packagePath, 'test');
       });
 
       test(
           'should return exit code when no '
           'tests are found and not optimizing', () {
-        final (tests, exitCode) = tester.getTestsFromDirs(
+        final (tests, exitCode) = tester.getPackagesToTest(
           ['test'],
           {'test': _FakeDetermineFlutterOrDart.dart()},
           optimize: false,
@@ -745,4 +673,76 @@ void main() {
       });
     });
   });
+}
+
+class _Tester extends TesterMixin {
+  const _Tester({
+    required this.bindings,
+    required this.findFile,
+    required this.fs,
+    required this.logger,
+    required this.pubspecLock,
+    required this.pubspecYaml,
+  });
+  @override
+  final Bindings bindings;
+
+  @override
+  final FindFile findFile;
+
+  @override
+  final FileSystem fs;
+
+  @override
+  final Logger logger;
+
+  @override
+  final PubspecLock pubspecLock;
+
+  @override
+  final PubspecYaml pubspecYaml;
+}
+
+class _MockBindings extends Mock implements Bindings {}
+
+class _MockLogger extends Mock implements Logger {
+  @override
+  Progress progress(String message, {ProgressOptions? options}) {
+    return _MockProgress();
+  }
+
+  @override
+  Level get level => Level.quiet;
+}
+
+class _MockProgress extends Mock implements Progress {}
+
+class _FakeDetermineFlutterOrDart extends Fake
+    implements DetermineFlutterOrDart {
+  _FakeDetermineFlutterOrDart.flutter()
+      : _isFlutter = true,
+        _isDart = false;
+
+  _FakeDetermineFlutterOrDart.dart()
+      : _isFlutter = false,
+        _isDart = true;
+
+  final bool _isFlutter;
+  final bool _isDart;
+
+  @override
+  bool get isDart => _isDart;
+  @override
+  bool get isFlutter => _isFlutter;
+
+  @override
+  String tool() {
+    if (_isFlutter) {
+      return 'flutter';
+    } else if (_isDart) {
+      return 'dart';
+    } else {
+      return 'unknown';
+    }
+  }
 }

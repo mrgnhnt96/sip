@@ -63,7 +63,7 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
       )
       ..addFlag(
         'optimize',
-        help: 'Whether to create optimized test files',
+        help: 'Whether to create optimized test files (Dart only)',
         defaultsTo: true,
       );
   }
@@ -184,76 +184,45 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
         findFile: findFile,
       );
 
-      if (optimize) {
-        final entities = testsToRun.map((e) => fs.file(e)).toList();
+      final command = createTestCommand(
+        projectRoot: tool.directory(),
+        relativeProjectRoot: path.relative(tool.directory()),
+        tool: tool,
+        flutterArgs: flutterArgs,
+        dartArgs: dartArgs,
+        tests: testsToRun,
+      );
 
-        final testFiles =
-            separateTestFiles(entities, isFlutter: tool.isFlutter);
-
-        logger.detail('Optimizing provided test files, $testFiles');
-
-        final tests = writeOptimizedFiles(
-          testFiles,
-          testDir: path.join(tool.directory(), 'test'),
-          tool: tool,
-        );
-
-        logger.detail('Got tests, $tests');
-
-        commandsToRun.addAll(
-          getCommandsToRun(
-            tests,
-            flutterArgs: flutterArgs,
-            dartArgs: dartArgs,
-          ),
-        );
-
-        cleanUp = () => cleanUpOptimizedFiles(tests.keys);
-      } else {
-        final command = createTestCommand(
-          projectRoot: tool.directory(),
-          relativeProjectRoot: path.relative(tool.directory()),
-          tool: tool,
-          flutterArgs: flutterArgs,
-          dartArgs: dartArgs,
-          tests: testsToRun,
-        );
-
-        commandsToRun.add(command);
-      }
+      commandsToRun.add(command);
     } else {
-      final testDirsResult = getTestDirs(
+      final (dirs, dirExitCode) = getTestDirs(
         pubspecs,
         isFlutterOnly: isFlutterOnly,
         isDartOnly: isDartOnly,
       );
 
       // exit code is not null
-      if (testDirsResult.$2 case final ExitCode exitCode) {
+      if (dirExitCode case final ExitCode exitCode) {
         return exitCode;
+      } else if (dirs == null) {
+        logger.err('No tests found');
+        return ExitCode.unavailable;
       }
 
-      final (testDirs, dirTools) = testDirsResult.$1!;
-
-      final result = getTestsFromDirs(
+      final (testDirs, dirTools) = dirs;
+      final (tests, testsExitCode) = getPackagesToTest(
         testDirs,
         dirTools,
         optimize: optimize,
       );
 
       // exit code is not null
-      if (result.$2 case final ExitCode exitCode) {
+      if (testsExitCode case final ExitCode exitCode) {
         return exitCode;
-      }
-
-      final possibleTests = result.$1;
-
-      if (possibleTests == null) {
+      } else if (tests == null) {
         logger.err('No tests found');
         return ExitCode.unavailable;
       }
-
-      final tests = possibleTests;
 
       commandsToRun.addAll(
         getCommandsToRun(
@@ -263,7 +232,7 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
         ),
       );
 
-      cleanUp = () => cleanUpOptimizedFiles(tests.keys);
+      cleanUp = () => cleanUpOptimizedFiles(tests.map((e) => e.optimizedPath));
     }
 
     logger.info('ARGS:');

@@ -10,12 +10,10 @@ void main() {
         Testable(
           optimizedPath: './test/.optimized_test.dart',
           absolute: './test/lib/core_1/test1_test.dart',
-          testType: null,
         ),
         Testable(
           optimizedPath: './test/.optimized_test.dart',
           absolute: './test/lib/core/test1_test.dart',
-          testType: null,
         ),
       ];
     });
@@ -23,7 +21,6 @@ void main() {
     test('does not duplicate name imports', () {
       final content = writeOptimizedTestFile(
         testables,
-        isFlutterPackage: false,
         barrelFile: null,
       );
 
@@ -40,7 +37,6 @@ void main() {
     test('includes barrel file when provided', () {
       final content = writeOptimizedTestFile(
         testables,
-        isFlutterPackage: false,
         barrelFile: (packageName: 'domain', barrelFile: 'domain.dart'),
       );
 
@@ -50,7 +46,6 @@ void main() {
     test('does not include barrel file when not provided', () {
       final content = writeOptimizedTestFile(
         testables,
-        isFlutterPackage: false,
         barrelFile: null,
       );
 

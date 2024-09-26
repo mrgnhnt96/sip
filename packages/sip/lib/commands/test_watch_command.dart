@@ -8,10 +8,10 @@ import 'package:path/path.dart' as path;
 import 'package:sip_cli/commands/test_command/tester_mixin.dart';
 import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/find_file.dart';
+import 'package:sip_cli/domain/package_to_test.dart';
 import 'package:sip_cli/domain/pubspec_lock.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
 import 'package:sip_cli/domain/test_scope.dart';
-import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/key_press_listener.dart';
 import 'package:sip_cli/utils/stream_group.dart';
@@ -69,7 +69,7 @@ class TestWatchCommand extends Command<ExitCode> with TesterMixin {
       )
       ..addFlag(
         'optimize',
-        help: 'Whether to create optimized test files',
+        help: 'Whether to create optimized test files (Dart only)',
         defaultsTo: true,
       );
   }
@@ -169,7 +169,7 @@ ${darkGray.wrap('Press `q` to exit')}
 
     final (testDirs, dirTools) = testDirsResult.$1!;
 
-    final testsResult = getTestsFromDirs(
+    final testsResult = getPackagesToTest(
       testDirs,
       dirTools,
       optimize: optimize,
@@ -201,7 +201,7 @@ ${darkGray.wrap('Press `q` to exit')}
     var runType = runTestType;
     var runConcurrently = concurrent;
 
-    Map<String, DetermineFlutterOrDart>? lastTests;
+    Iterable<PackageToTest>? lastTests;
 
     // This setup up will not include any new packages created,
     // only the ones that exist when the command is run
@@ -241,7 +241,7 @@ ${darkGray.wrap('Press `q` to exit')}
         continue;
       }
 
-      final testsToRun = <String, DetermineFlutterOrDart>{};
+      final testsToRun = <PackageToTest>{};
 
       if (!event.isRun) {
         if (file == null) {
@@ -273,21 +273,20 @@ ${darkGray.wrap('Press `q` to exit')}
 
         testsToRun.addAll(lastTests);
       } else {
-        final testResult = await findTest(
+        final packageToTest = await findTest(
           tests,
           file,
           returnTestFile: runType.isModified,
         );
 
-        if (testResult == null) {
+        if (packageToTest == null) {
           logger.detail('No test found for $file, waiting for changes...');
           continue;
         }
 
         logger.info('Running tests for ${path.relative(file)}');
 
-        final (test, tool) = testResult;
-        testsToRun[test] = tool;
+        testsToRun.add(packageToTest);
       }
 
       lastTests = testsToRun;
@@ -316,7 +315,7 @@ ${darkGray.wrap('Press `q` to exit')}
     if (optimize && clean) {
       final done = logger.progress('Cleaning up optimized test files');
 
-      cleanUpOptimizedFiles(tests.keys);
+      cleanUpOptimizedFiles(tests.map((e) => e.optimizedPath));
 
       done.complete('Optimized test files cleaned!');
     }
@@ -324,37 +323,34 @@ ${darkGray.wrap('Press `q` to exit')}
     return ExitCode.success;
   }
 
-  Future<(String test, DetermineFlutterOrDart tool)?> findTest(
-    Map<String, DetermineFlutterOrDart> tests,
+  Future<PackageToTest?> findTest(
+    Iterable<PackageToTest> packagesToTest,
     String modifiedFile, {
     required bool returnTestFile,
   }) async {
-    // {<directory>, <key>}
-    final keys = <String, String>{};
+    PackageToTest? testResult;
 
-    for (final test in tests.keys) {
-      if (fs.isFileSync(test)) {
-        keys[fs.file(test).parent.path] = test;
-      } else {
-        keys[test] = test;
-      }
-    }
+    final sorted = [...packagesToTest]
+      ..sort((a, b) => b.packagePath.length.compareTo(a.packagePath.length));
 
-    (String, DetermineFlutterOrDart)? testResult;
+    for (final packageToTest in sorted) {
+      if (modifiedFile.startsWith(packageToTest.packagePath)) {
+        final libSegments = path.split(packageToTest.packagePath);
+        final modifiedSegments = path.split(modifiedFile);
 
-    for (final MapEntry(key: directory, value: test) in keys.entries) {
-      // check if the modified file is in the test directory
-      if (modifiedFile.startsWith(directory)) {
-        testResult = (directory, tests[test]!);
-        break;
-      }
+        if (libSegments.length > modifiedSegments.length) {
+          continue;
+        }
 
-      // check if the modified file is in the lib directory
-      // associated with the test directory
-      // eg. lib/foo.dart -> test/foo_test.dart
-      final libDir = directory.replaceAll(RegExp(r'test$'), 'lib');
-      if (modifiedFile.startsWith(libDir)) {
-        testResult = (directory, tests[test]!);
+        final segments = modifiedSegments.skip(libSegments.length).toList();
+
+        final libIndex = segments.indexOf('lib');
+        final testIndex = segments.indexOf('test');
+        if ((libIndex != 0) & (testIndex != 0)) {
+          continue;
+        }
+
+        testResult = packageToTest;
         break;
       }
     }
@@ -371,20 +367,21 @@ ${darkGray.wrap('Press `q` to exit')}
     final base = path.basenameWithoutExtension(modifiedFile);
     final nameOfTest =
         base.endsWith('_test') ? '$base.dart' : '${base}_test.dart';
-    final possibleFiles =
-        await findFile.childrenOf(nameOfTest, directoryPath: testResult.$1);
+    final possibleFiles = await findFile.childrenOf(nameOfTest,
+        directoryPath: path.join(testResult.packagePath, 'test'));
 
     if (possibleFiles.isEmpty) {
       return null;
     }
 
     if (possibleFiles.length == 1) {
-      return (possibleFiles.first, testResult.$2);
+      testResult.optimizedPath = possibleFiles.first;
+      return testResult;
     }
 
-    final libPath = testResult.$1.replaceAll(RegExp(r'.*.?test$'), 'lib');
+    final libPath = path.join(testResult.packagePath, 'lib');
     final modifiedFileInLib = modifiedFile
-        .replaceAll(libPath, 'test')
+        .replaceAll(libPath, path.join(testResult.packagePath, 'test'))
         .replaceAll(path.basename(modifiedFile), nameOfTest);
     final segments = path.split(modifiedFileInLib);
 
@@ -400,7 +397,8 @@ ${darkGray.wrap('Press `q` to exit')}
         }
 
         if (i == segments.length - 1) {
-          return (test, testResult.$2);
+          testResult.optimizedPath = test;
+          return testResult;
         }
       }
     }

@@ -5,41 +5,15 @@ import 'package:mocktail/mocktail.dart';
 import 'package:sip_cli/commands/test_watch_command.dart';
 import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/find_file.dart';
+import 'package:sip_cli/domain/package_to_test.dart';
 import 'package:sip_cli/domain/pubspec_lock_impl.dart';
 import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/key_press_listener.dart';
 import 'package:test/test.dart';
 
-class _MockBindings extends Mock implements Bindings {}
-
-class _MockLogger extends Mock implements Logger {
-  @override
-  Progress progress(String message, {ProgressOptions? options}) {
-    return _MockProgress();
-  }
-
-  @override
-  Level get level => Level.quiet;
-}
-
-class _MockProgress extends Mock implements Progress {}
-
-class _FakeDetermineFlutterOrDart extends Fake
-    implements DetermineFlutterOrDart {
-  @override
-  bool get isDart => true;
-  @override
-  bool get isFlutter => false;
-
-  @override
-  String tool() {
-    return 'dart';
-  }
-}
-
 void main() {
-  group('$TestWatchCommand', () {
+  group(TestWatchCommand, () {
     late TestWatchCommand testWatchCommand;
     late FileSystem fs;
     late _MockLogger mockLogger;
@@ -66,46 +40,42 @@ void main() {
           test(
             'and modified is in lib',
             () async {
-              final testDirs = {
-                'test': _FakeDetermineFlutterOrDart(),
-              };
+              final testDirs = PackageToTest(
+                tool: _FakeDetermineFlutterOrDart(),
+                packagePath: '',
+              );
 
               const modifiedFile = 'lib/foo.dart';
 
               final result = await testWatchCommand.findTest(
-                testDirs,
+                [testDirs],
                 modifiedFile,
                 returnTestFile: false,
               );
 
               expect(result, isNotNull);
-
-              final (dir, _) = result!;
-
-              expect(dir, 'test');
+              expect(result?.packagePath, '');
             },
           );
 
           test(
             'and modified is in test',
             () async {
-              final testDirs = {
-                'test': _FakeDetermineFlutterOrDart(),
-              };
+              final testDirs = PackageToTest(
+                tool: _FakeDetermineFlutterOrDart(),
+                packagePath: '',
+              );
 
               const modifiedFile = 'test/foo_test.dart';
 
               final result = await testWatchCommand.findTest(
-                testDirs,
+                [testDirs],
                 modifiedFile,
                 returnTestFile: false,
               );
 
               expect(result, isNotNull);
-
-              final (dir, _) = result!;
-
-              expect(dir, 'test');
+              expect(result?.packagePath, '');
             },
           );
         });
@@ -115,8 +85,14 @@ void main() {
             'and modified is in lib',
             () async {
               final testDirs = {
-                'test': _FakeDetermineFlutterOrDart(),
-                'packages/foo/test': _FakeDetermineFlutterOrDart(),
+                PackageToTest(
+                  tool: _FakeDetermineFlutterOrDart(),
+                  packagePath: '',
+                ),
+                PackageToTest(
+                  tool: _FakeDetermineFlutterOrDart(),
+                  packagePath: 'packages/foo',
+                ),
               };
 
               const modifiedFile = 'packages/foo/lib/foo.dart';
@@ -128,20 +104,23 @@ void main() {
               );
 
               expect(result, isNotNull);
-
-              final (dir, _) = result!;
-
-              expect(dir, 'packages/foo/test');
+              expect(result?.packagePath, 'packages/foo');
             },
           );
 
           test(
             'and modified is in test',
             () async {
-              final testDirs = {
-                'test': _FakeDetermineFlutterOrDart(),
-                'packages/foo/test': _FakeDetermineFlutterOrDart(),
-              };
+              final testDirs = [
+                PackageToTest(
+                  tool: _FakeDetermineFlutterOrDart(),
+                  packagePath: '',
+                ),
+                PackageToTest(
+                  tool: _FakeDetermineFlutterOrDart(),
+                  packagePath: 'packages/foo',
+                ),
+              ];
 
               const modifiedFile = 'packages/foo/test/foo_test.dart';
 
@@ -152,18 +131,24 @@ void main() {
               );
 
               expect(result, isNotNull);
-
-              final (dir, _) = result!;
-
-              expect(dir, 'packages/foo/test');
+              expect(result?.packagePath, 'packages/foo');
             },
           );
 
           test('when there are similar starting paths', () async {
             final testDirs = {
-              'test': _FakeDetermineFlutterOrDart(),
-              'packages/foo/test': _FakeDetermineFlutterOrDart(),
-              'packages/foo/bar/test': _FakeDetermineFlutterOrDart(),
+              PackageToTest(
+                tool: _FakeDetermineFlutterOrDart(),
+                packagePath: '',
+              ),
+              PackageToTest(
+                tool: _FakeDetermineFlutterOrDart(),
+                packagePath: 'packages/foo',
+              ),
+              PackageToTest(
+                tool: _FakeDetermineFlutterOrDart(),
+                packagePath: 'packages/foo/bar',
+              ),
             };
 
             const modifiedFile = 'packages/foo/bar/test/foo_test.dart';
@@ -175,10 +160,7 @@ void main() {
             );
 
             expect(result, isNotNull);
-
-            final (dir, _) = result!;
-
-            expect(dir, 'packages/foo/bar/test');
+            expect(result?.packagePath, 'packages/foo/bar');
           });
         });
       });
@@ -188,89 +170,88 @@ void main() {
           test('and modified is in lib', () async {
             fs.file('test/foo_test.dart').createSync(recursive: true);
 
-            final testDirs = {
-              'test': _FakeDetermineFlutterOrDart(),
-            };
+            final testDirs = PackageToTest(
+              tool: _FakeDetermineFlutterOrDart(),
+              packagePath: '',
+            );
 
             const modifiedFile = 'lib/foo.dart';
 
             final result = await testWatchCommand.findTest(
-              testDirs,
+              [testDirs],
               modifiedFile,
               returnTestFile: true,
             );
 
             expect(result, isNotNull);
-
-            final (test, _) = result!;
-
-            expect(test, 'test/foo_test.dart');
+            expect(result?.optimizedPath, 'test/foo_test.dart');
           });
 
           test('and modified is in test', () async {
             fs.file('test/foo_test.dart').createSync(recursive: true);
 
-            final testDirs = {
-              'test': _FakeDetermineFlutterOrDart(),
-            };
+            final testDirs = PackageToTest(
+              tool: _FakeDetermineFlutterOrDart(),
+              packagePath: '',
+            );
 
             const modifiedFile = 'test/foo_test.dart';
 
             final result = await testWatchCommand.findTest(
-              testDirs,
+              [testDirs],
               modifiedFile,
               returnTestFile: true,
             );
 
             expect(result, isNotNull);
-
-            final (test, _) = result!;
-
-            expect(test, 'test/foo_test.dart');
+            expect(result?.optimizedPath, 'test/foo_test.dart');
           });
         });
 
         test('finds the right file when many files are found', () async {
-          fs.file('test/foo_test.dart').createSync(recursive: true);
-          fs.file('test/utils/foo_test.dart').createSync(recursive: true);
+          fs.file('my_project/test/foo_test.dart').createSync(recursive: true);
           fs
-              .file('test/something/else/foo_test.dart')
+              .file('my_project/test/utils/foo_test.dart')
+              .createSync(recursive: true);
+          fs
+              .file('my_project/test/something/else/foo_test.dart')
               .createSync(recursive: true);
 
-          final testDirs = {
-            'test': _FakeDetermineFlutterOrDart(),
-          };
+          final testDirs = PackageToTest(
+            tool: _FakeDetermineFlutterOrDart(),
+            packagePath: 'my_project',
+          );
 
           const expected = {
-            'lib/foo.dart': 'test/foo_test.dart',
-            'lib/utils/foo.dart': 'test/utils/foo_test.dart',
-            'lib/something/else/foo.dart': 'test/something/else/foo_test.dart',
+            'my_project/lib/foo.dart': 'my_project/test/foo_test.dart',
+            'my_project/lib/utils/foo.dart':
+                'my_project/test/utils/foo_test.dart',
+            'my_project/lib/something/else/foo.dart':
+                'my_project/test/something/else/foo_test.dart',
           };
 
           for (final entry in expected.entries) {
             final result = await testWatchCommand.findTest(
-              testDirs,
+              [testDirs],
               entry.key,
               returnTestFile: true,
             );
 
             expect(result, isNotNull);
-
-            final (test, _) = result!;
-
-            expect(test, entry.value);
+            expect(result?.optimizedPath, entry.value);
           }
         });
 
         test('does not return test file when nothing found', () async {
-          final testDirs = {
-            'test': _FakeDetermineFlutterOrDart(),
-          };
+          final testDirs = PackageToTest(
+            tool: _FakeDetermineFlutterOrDart(),
+            packagePath: '',
+          );
 
           const modifiedFile = 'lib/foo.dart';
 
           final result = await testWatchCommand.findTest(
-            testDirs,
+            [testDirs],
             modifiedFile,
             returnTestFile: true,
           );
@@ -279,14 +260,15 @@ void main() {
         });
 
         test('does not return test dir when nothing found', () async {
-          final testDirs = <String, DetermineFlutterOrDart>{
-            'test': _FakeDetermineFlutterOrDart(),
-          };
+          final testDirs = PackageToTest(
+            tool: _FakeDetermineFlutterOrDart(),
+            packagePath: '',
+          );
 
           const modifiedFile = 'packages/ui/lib/foo.dart';
 
           final result = await testWatchCommand.findTest(
-            testDirs,
+            [testDirs],
             modifiedFile,
             returnTestFile: false,
           );
@@ -296,4 +278,31 @@ void main() {
       });
     });
   });
+}
+
+class _MockBindings extends Mock implements Bindings {}
+
+class _MockLogger extends Mock implements Logger {
+  @override
+  Progress progress(String message, {ProgressOptions? options}) {
+    return _MockProgress();
+  }
+
+  @override
+  Level get level => Level.quiet;
+}
+
+class _MockProgress extends Mock implements Progress {}
+
+class _FakeDetermineFlutterOrDart extends Fake
+    implements DetermineFlutterOrDart {
+  @override
+  bool get isDart => true;
+  @override
+  bool get isFlutter => false;
+
+  @override
+  String tool() {
+    return 'dart';
+  }
 }
