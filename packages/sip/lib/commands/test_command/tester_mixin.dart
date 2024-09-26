@@ -286,7 +286,10 @@ abstract mixin class TesterMixin {
         tests: [
           if (packageToTest.optimizedPath case final test?
               when packageToTest.tool.isDart)
-            path.relative(test, from: packageToTest.packagePath)
+            path.relative(
+              test,
+              from: packageToTest.packagePath,
+            ),
         ],
       );
     }
@@ -306,8 +309,8 @@ abstract mixin class TesterMixin {
 
     final script = [
       '$command test',
-      if (tests.isNotEmpty) '${tests.join(' ')}',
-      if (toolArgs.isNotEmpty) '${toolArgs.join(' ')}'
+      if (tests.isNotEmpty) tests.join(' '),
+      if (toolArgs.isNotEmpty) toolArgs.join(' '),
     ].join(' ');
 
     logger.detail('Test command: $script');
@@ -441,7 +444,7 @@ abstract mixin class TesterMixin {
           PackageToTest(
             tool: tool,
             packagePath: dir,
-          )
+          ),
     ];
 
     if (dirs.isEmpty) {

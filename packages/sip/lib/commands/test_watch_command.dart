@@ -367,8 +367,10 @@ ${darkGray.wrap('Press `q` to exit')}
     final base = path.basenameWithoutExtension(modifiedFile);
     final nameOfTest =
         base.endsWith('_test') ? '$base.dart' : '${base}_test.dart';
-    final possibleFiles = await findFile.childrenOf(nameOfTest,
-        directoryPath: path.join(testResult.packagePath, 'test'));
+    final possibleFiles = await findFile.childrenOf(
+      nameOfTest,
+      directoryPath: path.join(testResult.packagePath, 'test'),
+    );
 
     if (possibleFiles.isEmpty) {
       return null;

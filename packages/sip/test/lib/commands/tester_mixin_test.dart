@@ -269,7 +269,7 @@ void main() {
             RegExp(r"^import '(.*)' as _i\d+;$", multiLine: true);
 
         test('should not include optimized file import', () {
-          final optimizedFile =
+          const optimizedFile =
               'test/${TesterMixin.optimizedTestBasename}.dart';
 
           fs.file('test/some_test.dart').createSync(recursive: true);
