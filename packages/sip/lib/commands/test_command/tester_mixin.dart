@@ -345,7 +345,7 @@ abstract mixin class TesterMixin {
       );
 
       final exitCodes = await runMany.run(
-        label: 'Running tests',
+        label: 'Running tests ',
         bail: bail,
       );
 
