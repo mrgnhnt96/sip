@@ -10,8 +10,8 @@ import 'package:sip_cli/domain/domain.dart';
 import 'package:sip_cli/domain/variables.dart';
 import 'package:sip_cli/sip_runner.dart';
 
-void main(List<String> _) async {
-  final args = List<String>.from(_);
+void main(List<String> arguments) async {
+  final args = List<String>.from(arguments);
 
   var loud = false;
   var quiet = false;

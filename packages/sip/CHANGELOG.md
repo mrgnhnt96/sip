@@ -1,4 +1,4 @@
-# 0.12.0 | 9/30/2024
+# 0.12.0+1 | 10/30/2024
 
 ## Features
 
@@ -6,6 +6,7 @@
   - Skips this when there are no env commands to run
 - Update check that the file to the env exists before running the command
   - Exits with 1 if the file does not exist
+- Skip test directories that have no files to test when optimizing tests
 
 # 0.11.0 | 9/26/2024
 
