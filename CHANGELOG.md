@@ -1,3 +1,13 @@
+# 0.12.0 | 10/30/2024
+
+## Features
+
+- Run all Env commands at the start of all scripts
+  - Skips this when there are no env commands to run
+- Update check that the file to the env exists before running the command
+  - Exits with 1 if the file does not exist
+- Skip test directories that have no files to test when optimizing tests
+
 # 0.11.0 | 9/26/2024
 
 ## Breaking Changes
@@ -38,12 +48,12 @@
 - Support multiple env files
 
   ```yaml
-    my-script:
-        (command): echo $MY_ENV_VAR
-        (env):
-            - .env
-            - .env.local
-    ```
+  my-script:
+    (command): echo $MY_ENV_VAR
+    (env):
+      - .env
+      - .env.local
+  ```
 
 # 0.8.1 | 7/26/2024
 
@@ -91,6 +101,7 @@
   - `sip test ./test`
 
 - Create new `clean` command
+
   - Removes all `.dart_tool` and `build` directories in dart & flutter packages
   - Run `flutter clean` in flutter packages
 
