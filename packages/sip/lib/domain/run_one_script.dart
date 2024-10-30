@@ -8,7 +8,7 @@ import 'package:sip_cli/domain/env_config.dart';
 
 class RunOneScript {
   const RunOneScript({
-    required this.command,
+    required CommandToRun this.command,
     required this.bindings,
     required this.logger,
     required this.showOutput,
@@ -26,9 +26,9 @@ class RunOneScript {
   Future<CommandResult> run() async {
     var cmd = command.command;
 
-    // TODO(mrgnhnt): we are source the env file for the command that could
-    // create it... we should probably split that up
-    if (command.envFile case final EnvConfig config) {
+    logger.detail('Env files: ${command.envConfig?.files}');
+
+    if (command.envConfig case final EnvConfig config) {
       if (config.files case final files? when files.isNotEmpty) {
         for (final file in files) {
           logger.detail('Sourcing env file $file');
@@ -36,13 +36,18 @@ class RunOneScript {
 if [ -f $file ]; then
   builtin source $file
 fi
+
 $cmd
 ''';
         }
       }
     }
     logger.detail('Setting directory to ${command.workingDirectory}');
-    cmd = 'cd ${command.workingDirectory} && $cmd';
+    cmd = '''
+cd ${command.workingDirectory} || exit 1
+
+$cmd
+''';
 
     var printOutput = showOutput;
     if (logger.level == Level.quiet) {
@@ -51,7 +56,7 @@ $cmd
 
     logger.detail('''
 --------- SCRIPT ---------
-${command.command}
+${cmd}
 --------------------------
 ''');
 

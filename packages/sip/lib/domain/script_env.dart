@@ -8,7 +8,7 @@ part 'script_env.g.dart';
 class ScriptEnv extends Equatable {
   const ScriptEnv({
     this.files = const [],
-    this.command = const [],
+    this.commands = const [],
   });
 
   factory ScriptEnv.fromJson(Map<String, dynamic> json) {
@@ -21,7 +21,7 @@ class ScriptEnv extends Equatable {
 
   /// The script to run to create the environment
   @JsonKey(readValue: _readScript)
-  final List<String> command;
+  final List<String> commands;
 
   Map<String, dynamic> toJson() => _$ScriptEnvToJson(this);
 
@@ -36,5 +36,5 @@ List? _readFiles(Map json, String key) {
 
 // ignore: strict_raw_type
 List<String> _readScript(Map json, String key) {
-  return tryReadListOrString(json[key]) ?? [];
+  return tryReadListOrString(json[key] ?? json['command']) ?? [];
 }

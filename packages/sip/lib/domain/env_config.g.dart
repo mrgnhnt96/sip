@@ -10,5 +10,6 @@ extension _$EnvConfigAutoequal on EnvConfig {
   List<Object?> get _$props => [
         files,
         commands,
+        workingDirectory,
       ];
 }

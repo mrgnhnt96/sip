@@ -42,7 +42,7 @@ void main(List<String> _) async {
     findFile: const FindFile(fs: fs),
     pubspecLock: const PubspecLockImpl(fs: fs),
     pubspecYaml: pubspecYaml,
-    variables: const Variables(
+    variables: Variables(
       cwd: cwd,
       pubspecYaml: pubspecYaml,
       scriptsYaml: scriptsYaml,

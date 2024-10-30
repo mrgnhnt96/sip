@@ -8,17 +8,17 @@ class CommandToRun extends Equatable {
     required this.command,
     required this.workingDirectory,
     required this.keys,
+    this.envConfig,
     this.runConcurrently = false,
-    this.envFile = const EnvConfig.empty(),
     String? label,
   }) : label = label ?? command;
 
   final String command;
   final String workingDirectory;
   final String label;
-  final EnvConfig envFile;
   final bool runConcurrently;
   final List<String> keys;
+  final EnvConfig? envConfig;
 
   @override
   List<Object?> get props => _$props;

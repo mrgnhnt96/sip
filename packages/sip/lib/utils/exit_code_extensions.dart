@@ -33,6 +33,9 @@ extension ListExitCodeX on List<CommandResult> {
     logger.detail('Many exit codes: $this, returning unavailable');
     return ExitCode.unavailable;
   }
+
+  bool get hasFailures =>
+      any((element) => element.exitCodeReason != ExitCode.success);
 }
 
 extension CommandResultX on CommandResult {

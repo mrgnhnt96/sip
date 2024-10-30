@@ -8,6 +8,7 @@ import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/command_result.dart';
 import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/domain/cwd.dart';
+import 'package:sip_cli/domain/env_config.dart';
 import 'package:sip_cli/domain/run_many_scripts.dart';
 import 'package:sip_cli/domain/run_one_script.dart';
 import 'package:sip_cli/domain/scripts_yaml.dart';
@@ -16,9 +17,11 @@ import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/exit_code_extensions.dart';
 import 'package:sip_cli/utils/run_script_helper.dart';
 import 'package:sip_cli/utils/stopwatch_extensions.dart';
+import 'package:sip_cli/utils/working_directory.dart';
 
 /// The command to run a script
-class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
+class ScriptRunCommand extends Command<ExitCode>
+    with RunScriptHelper, WorkingDirectory {
   ScriptRunCommand({
     required this.scriptsYaml,
     required this.variables,
@@ -125,6 +128,7 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
           concurrent: concurrent,
           disableConcurrency: disableConcurrency,
           commands: result.commands ?? [],
+          combinedEnvConfig: result.combinedEnvConfig,
         );
 
     if (neverQuit) {
@@ -156,7 +160,44 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
     required bool concurrent,
     required bool disableConcurrency,
     required Iterable<CommandToRun> commands,
+    required EnvConfig? combinedEnvConfig,
   }) async {
+    if (combinedEnvConfig case final EnvConfig _) {
+      if (combinedEnvConfig.commands case final Iterable<String> commands
+          when commands.isNotEmpty) {
+        logger.detail('Running env commands');
+
+        final noConcurrent = argResults.arguments.contains('--no-concurrent');
+        logger.detail('Disabling concurrent runs: $noConcurrent');
+
+        final result = await switch (noConcurrent) {
+          true => RunManyScripts.new,
+          false => RunManyScripts.sequentially,
+        }(
+          commands: [
+            for (final command in commands)
+              CommandToRun(
+                command: command,
+                workingDirectory: combinedEnvConfig.workingDirectory,
+                keys: [],
+                envConfig: null,
+                runConcurrently: !noConcurrent,
+              ),
+          ],
+          bindings: bindings,
+          logger: logger,
+        ).run(
+          bail: true,
+          label: 'Preparing env',
+        );
+
+        if (result.hasFailures) {
+          logger.err('Failed to run env commands');
+          return result.exitCode(logger);
+        }
+      }
+    }
+
     if (!disableConcurrency && concurrent) {
       final exitCodes = await RunManyScripts(
         commands: commands,

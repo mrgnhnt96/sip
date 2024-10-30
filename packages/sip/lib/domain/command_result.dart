@@ -45,4 +45,8 @@ class CommandResult {
 
     return codes[exitCode] ?? ExitCode.unknown(exitCode);
   }
+
+  @override
+  String toString() =>
+      'CommandResult(exitCode: $exitCode, output: $output, error: $error)';
 }

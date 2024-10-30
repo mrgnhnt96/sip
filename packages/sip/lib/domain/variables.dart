@@ -8,10 +8,11 @@ import 'package:sip_cli/domain/script.dart';
 import 'package:sip_cli/domain/scripts_config.dart';
 import 'package:sip_cli/domain/scripts_yaml.dart';
 import 'package:sip_cli/utils/constants.dart';
+import 'package:sip_cli/utils/working_directory.dart';
 
 /// The variables that can be used in the scripts
-class Variables {
-  const Variables({
+class Variables with WorkingDirectory {
+  Variables({
     required this.pubspecYaml,
     required this.scriptsYaml,
     required this.cwd,
@@ -132,11 +133,11 @@ class Variables {
       // instead of {$...} which requires to wrap the input with quotes
       RegExp(r'(?:{)(\$?-{0,2}[\w-_]+(?::[\w-_]+)*)(?:})');
 
-  ResolveScript replace(
+  Iterable<ResolveScript> replace(
     Script script,
     ScriptsConfig config, {
     OptionalFlags? flags,
-  }) {
+  }) sync* {
     late final sipVariables = populate();
     ResolveScript resolve(String command) {
       return replaceVariables(
@@ -147,31 +148,40 @@ class Variables {
       );
     }
 
-    final commands = <String>[];
     final envCommands = <EnvConfig>{
-      if (script.env?.command case final commands)
+      if (script.env?.commands case final commands)
         for (final command in commands ?? <String>[])
-          if (resolve(command) case final resolved
-              when resolved.commands.isNotEmpty)
+          if (resolve(command).commands case final commands
+              when commands.isNotEmpty)
             EnvConfig(
-              commands: resolved.commands,
+              commands: commands,
               files: script.env?.files,
+              workingDirectory: directory,
             ),
+    };
+
+    final allEnvCommands = {
+      ...envCommands,
     };
 
     for (final command in script.commands) {
       final resolved = resolve(command);
-      envCommands.addAll(resolved.envCommands);
 
-      for (final resolved in resolved.commands) {
-        commands.add(resolved.trim());
-      }
+      yield ResolveScript(
+        commands: resolved.commands,
+        envCommands: envCommands,
+        allEnvCommands: {
+          ...allEnvCommands,
+          ...resolved.envCommands,
+        },
+      );
     }
 
-    return ResolveScript(
-      commands: commands,
-      envCommands: envCommands,
-    );
+    // return ResolveScript(
+    //   commands: commands,
+    //   envCommands: envCommands,
+    //   allEnvCommands: allEnvCommands,
+    // );
   }
 
   ResolveScript replaceVariables(
@@ -183,7 +193,11 @@ class Variables {
     final matches = variablePattern.allMatches(command);
 
     if (matches.isEmpty) {
-      return ResolveScript(commands: [command], envCommands: []);
+      return ResolveScript(
+        commands: [command],
+        envCommands: [],
+        allEnvCommands: [],
+      );
     }
 
     Iterable<String> resolvedCommands = [command];
@@ -205,22 +219,22 @@ class Variables {
           throw Exception('Script path $variable is invalid');
         }
 
-        final replaced = replace(found, config, flags: flags);
+        for (final replaced in replace(found, config, flags: flags)) {
+          resolvedEnvCommands.addAll(replaced.envCommands);
 
-        resolvedEnvCommands.addAll(replaced.envCommands);
+          final commandsToCopy = [...resolvedCommands];
 
-        final commandsToCopy = [...resolvedCommands];
+          resolvedCommands = List.generate(
+              resolvedCommands.length * replaced.commands.length, (index) {
+            final commandIndex = index % replaced.commands.length;
+            final command = replaced.commands.elementAt(commandIndex);
 
-        resolvedCommands = List.generate(
-            resolvedCommands.length * replaced.commands.length, (index) {
-          final commandIndex = index % replaced.commands.length;
-          final command = replaced.commands.elementAt(commandIndex);
+            final commandsToCopyIndex = index ~/ replaced.commands.length;
+            final commandsToCopyCommand = commandsToCopy[commandsToCopyIndex];
 
-          final commandsToCopyIndex = index ~/ replaced.commands.length;
-          final commandsToCopyCommand = commandsToCopy[commandsToCopyIndex];
-
-          return commandsToCopyCommand.replaceAll(match.group(0)!, command);
-        });
+            return commandsToCopyCommand.replaceAll(match.group(0)!, command);
+          });
+        }
 
         continue;
       }
@@ -248,6 +262,7 @@ class Variables {
     return ResolveScript(
       commands: resolvedCommands,
       envCommands: resolvedEnvCommands,
+      allEnvCommands: [],
     );
   }
 }
@@ -256,8 +271,10 @@ class ResolveScript {
   const ResolveScript({
     required this.commands,
     required this.envCommands,
+    required this.allEnvCommands,
   });
 
   final Iterable<String> commands;
   final Iterable<EnvConfig> envCommands;
+  final Iterable<EnvConfig> allEnvCommands;
 }
