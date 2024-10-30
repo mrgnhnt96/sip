@@ -8,7 +8,6 @@ import 'package:sip_cli/domain/cwd.dart';
 import 'package:sip_cli/domain/env_config.dart';
 import 'package:sip_cli/domain/optional_flags.dart';
 import 'package:sip_cli/domain/script.dart';
-import 'package:sip_cli/domain/script_env.dart';
 import 'package:sip_cli/domain/scripts_config.dart';
 import 'package:sip_cli/domain/scripts_yaml.dart';
 import 'package:sip_cli/domain/variables.dart';
@@ -172,8 +171,8 @@ $ sip format ui
       }
 
       yield CommandToRun(
-        command: command,
-        label: command,
+        command: command.trim(),
+        label: command.trim(),
         runConcurrently: runConcurrently,
         workingDirectory: directory,
         keys: [...?script.parents, script.name],
@@ -197,7 +196,7 @@ $ sip format ui
       if (exitCode != null || script == null) {
         return CommandsToRunResult.fail(
           exitCode,
-          bail: script?.bail ?? false,
+          bail: script?.bail ?? bail,
         );
       }
 
@@ -289,18 +288,6 @@ extension _CombineEnvConfigEnvConfigX on Iterable<EnvConfig> {
     return EnvConfig(
       commands: commands,
       files: files,
-      workingDirectory: directory,
-    );
-  }
-}
-
-extension _ScriptEnvX on ScriptEnv {
-  EnvConfig? envConfig({required String directory}) {
-    if (commands.isEmpty && files.isEmpty) return null;
-
-    return EnvConfig(
-      commands: {...commands},
-      files: {...files},
       workingDirectory: directory,
     );
   }
