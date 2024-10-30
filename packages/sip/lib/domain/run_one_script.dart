@@ -8,7 +8,7 @@ import 'package:sip_cli/domain/env_config.dart';
 
 class RunOneScript {
   const RunOneScript({
-    required CommandToRun this.command,
+    required this.command,
     required this.bindings,
     required this.logger,
     required this.showOutput,
@@ -56,11 +56,13 @@ $cmd
       printOutput = false;
     }
 
-    logger.detail('''
+    logger.detail(
+      '''
 --------- SCRIPT ---------
-${cmd}
+$cmd
 --------------------------
-''');
+''',
+    );
 
     final runScript = bindings.runScript(cmd, showOutput: printOutput);
 

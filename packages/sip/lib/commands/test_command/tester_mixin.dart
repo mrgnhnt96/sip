@@ -422,12 +422,13 @@ abstract mixin class TesterMixin {
       return (null, ExitCode.unavailable);
     }
 
-    logger.detail('Found ${dirsWithTests.length} directories with tests');
-    logger.detail('  - ${dirsWithTests.join('\n  - ')}');
-
-    logger.detail(
-      '${optimize ? '' : 'NOT '}Optimizing ${dirsWithTests.length} test files',
-    );
+    logger
+      ..detail('Found ${dirsWithTests.length} directories with tests')
+      ..detail('  - ${dirsWithTests.join('\n  - ')}')
+      ..detail(
+        '${optimize ? '' : 'NOT '}Optimizing '
+        '${dirsWithTests.length} test files',
+      );
 
     if (optimize) {
       final done = logger.progress('Optimizing test files');

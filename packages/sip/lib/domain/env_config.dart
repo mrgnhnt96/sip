@@ -6,7 +6,7 @@ class EnvConfig extends Equatable {
   const EnvConfig({
     required this.commands,
     required this.files,
-    required String this.workingDirectory,
+    required this.workingDirectory,
   });
   const EnvConfig.empty()
       : commands = const [],

@@ -176,9 +176,8 @@ class ScriptRunCommand extends Command<ExitCode>
               command: command,
               workingDirectory: combinedEnvConfig.workingDirectory,
               keys: const [],
-              envConfig: null,
               runConcurrently: !noConcurrent,
-            )
+            ),
         ];
 
         final result = await switch (noConcurrent) {

@@ -19,7 +19,9 @@ class Variables with WorkingDirectory {
   });
 
   final PubspecYaml pubspecYaml;
+  @override
   final ScriptsYaml scriptsYaml;
+  @override
   final CWD cwd;
 
   Logger get logger => Logger();
