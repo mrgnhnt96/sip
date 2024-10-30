@@ -9,7 +9,7 @@ class _MockPubUpdater extends Mock implements PubUpdater {}
 class _MockLogger extends Mock implements Logger {}
 
 void main() {
-  group('$UpdateCommand', () {
+  group(UpdateCommand, () {
     late UpdateCommand updateCommand;
 
     setUp(() {

@@ -13,7 +13,7 @@ import 'package:sip_cli/utils/run_script_helper.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('$RunScriptHelper', () {
+  group(RunScriptHelper, () {
     group('#directory', () {
       test('should return the current directory if no scripts.yaml is found',
           () {

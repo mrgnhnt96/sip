@@ -3,7 +3,7 @@ import 'package:sip_cli/domain/any_arg_parser.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('$AnyArgParser', () {
+  group(AnyArgParser, () {
     test('should add flag', () {
       final argParser = AnyArgParser()..addFlag('flag');
       expect(argParser.options, contains('flag'));

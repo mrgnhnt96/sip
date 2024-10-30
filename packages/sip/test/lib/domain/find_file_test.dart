@@ -5,7 +5,7 @@ import 'package:sip_cli/domain/find_file.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('$FindFile', () {
+  group(FindFile, () {
     late FindFile findFile;
     late FileSystem fs;
 

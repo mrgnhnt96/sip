@@ -12,7 +12,7 @@ void main() {
     });
   });
 
-  group('$TimeX', () {
+  group(TimeX, () {
     group('#format', () {
       test('should format milliseconds to time', () {
         final times = {

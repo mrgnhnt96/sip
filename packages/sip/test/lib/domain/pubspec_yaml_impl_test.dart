@@ -6,7 +6,7 @@ import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('$PubspecYamlImpl', () {
+  group(PubspecYamlImpl, () {
     late FileSystem fs;
     late PubspecYamlImpl tester;
 
