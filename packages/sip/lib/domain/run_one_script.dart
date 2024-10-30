@@ -35,6 +35,9 @@ class RunOneScript {
           cmd = '''
 if [ -f $file ]; then
   builtin source $file
+else
+  echo "ENV File $file not found"
+  exit 1
 fi
 
 $cmd
