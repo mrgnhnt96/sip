@@ -4,6 +4,7 @@ import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/command_result.dart';
 import 'package:sip_cli/domain/command_to_run.dart';
+import 'package:sip_cli/domain/env_config.dart';
 
 class RunOneScript {
   const RunOneScript({
@@ -27,10 +28,17 @@ class RunOneScript {
 
     // TODO(mrgnhnt): we are source the env file for the command that could
     // create it... we should probably split that up
-    if (command.envFile.isNotEmpty) {
-      for (final file in command.envFile) {
-        logger.detail('Sourcing env file $file');
-        cmd = '. $file && $cmd';
+    if (command.envFile case final EnvConfig config) {
+      if (config.files case final files? when files.isNotEmpty) {
+        for (final file in files) {
+          logger.detail('Sourcing env file $file');
+          cmd = '''
+if [ -f $file ]; then
+  builtin source $file
+fi
+$cmd
+''';
+        }
       }
     }
     logger.detail('Setting directory to ${command.workingDirectory}');

@@ -87,6 +87,7 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
   Future<ExitCode> run([List<String>? args]) async {
     final argResults = argParser.parse(args ?? this.argResults?.rest ?? []);
     final neverQuit = argResults['never-exit'] as bool? ?? false;
+    final listOut = argResults['list'] as bool? ?? false;
 
     if (argResults['help'] as bool? ?? false) {
       printUsage();
@@ -108,22 +109,22 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
       return validateResult;
     }
 
-    var (exitCode, commands, bail) = commandsToRun(keys, argResults);
+    final result = commandsToRun(keys, listOut: listOut);
 
-    if (exitCode != null) {
+    if (result.exitCode case final ExitCode exitCode) {
       return exitCode;
     }
-    assert(commands != null, 'commands should not be null');
-    commands!;
 
-    bail ^= argResults['bail'] as bool? ?? false;
+    assert(result.commands != null, 'commands should not be null');
+
+    final bail = result.bail ^ argResults['bail'] as bool? ?? false;
 
     Future<ExitCode> runCommands() => _run(
           argResults: argResults,
           bail: bail,
           concurrent: concurrent,
           disableConcurrency: disableConcurrency,
-          commands: commands,
+          commands: result.commands ?? [],
         );
 
     if (neverQuit) {
@@ -161,9 +162,7 @@ class ScriptRunCommand extends Command<ExitCode> with RunScriptHelper {
         commands: commands,
         bindings: bindings,
         logger: logger,
-      ).run(
-        bail: bail,
-      );
+      ).run(bail: bail);
 
       exitCodes.printErrors(commands, logger);
 

@@ -1,6 +1,7 @@
 import 'package:mason_logger/mason_logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/domain/cwd.dart';
+import 'package:sip_cli/domain/env_config.dart';
 import 'package:sip_cli/domain/optional_flags.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
 import 'package:sip_cli/domain/script.dart';
@@ -131,13 +132,13 @@ class Variables {
       // instead of {$...} which requires to wrap the input with quotes
       RegExp(r'(?:{)(\$?-{0,2}[\w-_]+(?::[\w-_]+)*)(?:})');
 
-  List<String> replace(
+  ResolveScript replace(
     Script script,
     ScriptsConfig config, {
     OptionalFlags? flags,
   }) {
     late final sipVariables = populate();
-    Iterable<String> resolve(String command) {
+    ResolveScript resolve(String command) {
       return replaceVariables(
         command,
         sipVariables: sipVariables,
@@ -146,34 +147,47 @@ class Variables {
       );
     }
 
-    final commands = <String>[
+    final commands = <String>[];
+    final envCommands = <EnvConfig>{
       if (script.env?.command case final commands)
-        for (final command in commands ?? <String>[]) ...resolve(command),
-    ];
+        for (final command in commands ?? <String>[])
+          if (resolve(command) case final resolved
+              when resolved.commands.isNotEmpty)
+            EnvConfig(
+              commands: resolved.commands,
+              files: script.env?.files,
+            ),
+    };
 
     for (final command in script.commands) {
-      for (final resolved in resolve(command)) {
+      final resolved = resolve(command);
+      envCommands.addAll(resolved.envCommands);
+
+      for (final resolved in resolved.commands) {
         commands.add(resolved.trim());
       }
     }
 
-    return commands.toList();
+    return ResolveScript(
+      commands: commands,
+      envCommands: envCommands,
+    );
   }
 
-  Iterable<String> replaceVariables(
+  ResolveScript replaceVariables(
     String command, {
     required Map<String, String?> sipVariables,
     required ScriptsConfig config,
     OptionalFlags? flags,
-  }) sync* {
+  }) {
     final matches = variablePattern.allMatches(command);
 
     if (matches.isEmpty) {
-      yield command;
-      return;
+      return ResolveScript(commands: [command], envCommands: []);
     }
 
     Iterable<String> resolvedCommands = [command];
+    final resolvedEnvCommands = <EnvConfig>{};
 
     for (final match in matches) {
       final variable = match.group(1);
@@ -191,16 +205,18 @@ class Variables {
           throw Exception('Script path $variable is invalid');
         }
 
-        final resolved = replace(found, config, flags: flags);
+        final replaced = replace(found, config, flags: flags);
+
+        resolvedEnvCommands.addAll(replaced.envCommands);
 
         final commandsToCopy = [...resolvedCommands];
 
-        resolvedCommands =
-            List.generate(resolvedCommands.length * resolved.length, (index) {
-          final commandIndex = index % resolved.length;
-          final command = resolved[commandIndex];
+        resolvedCommands = List.generate(
+            resolvedCommands.length * replaced.commands.length, (index) {
+          final commandIndex = index % replaced.commands.length;
+          final command = replaced.commands.elementAt(commandIndex);
 
-          final commandsToCopyIndex = index ~/ resolved.length;
+          final commandsToCopyIndex = index ~/ replaced.commands.length;
           final commandsToCopyCommand = commandsToCopy[commandsToCopyIndex];
 
           return commandsToCopyCommand.replaceAll(match.group(0)!, command);
@@ -229,7 +245,19 @@ class Variables {
           resolvedCommands.map((e) => e.replaceAll(match.group(0)!, sipValue));
     }
 
-    yield* resolvedCommands;
-    return;
+    return ResolveScript(
+      commands: resolvedCommands,
+      envCommands: resolvedEnvCommands,
+    );
   }
+}
+
+class ResolveScript {
+  const ResolveScript({
+    required this.commands,
+    required this.envCommands,
+  });
+
+  final Iterable<String> commands;
+  final Iterable<EnvConfig> envCommands;
 }

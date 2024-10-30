@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/commands/list_command.dart';
 import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/domain/cwd.dart';
+import 'package:sip_cli/domain/env_config.dart';
 import 'package:sip_cli/domain/optional_flags.dart';
 import 'package:sip_cli/domain/script.dart';
 import 'package:sip_cli/domain/scripts_config.dart';
@@ -95,22 +95,22 @@ $ sip format ui
       ..write('\n');
   }
 
-  (ExitCode?, List<String>? commands, Script?) getCommands(
-    List<String> keys,
-    ArgResults argResults,
-  ) {
+  GetCommandsResult getCommands(
+    List<String> keys, {
+    required bool listOut,
+  }) {
     final flagStartAt = keys.indexWhere((e) => e.startsWith('-'));
     final scriptKeys = keys.sublist(0, flagStartAt == -1 ? null : flagStartAt);
 
     if (scriptKeys.isEmpty) {
       logger.err('No script specified');
-      return (ExitCode.config, null, null);
+      return GetCommandsResult.exit(ExitCode.config);
     }
 
     final content = scriptsYaml.scripts();
     if (content == null) {
       logger.err('No ${ScriptsYaml.fileName} file found');
-      return (ExitCode.noInput, null, null);
+      return GetCommandsResult.exit(ExitCode.noInput);
     }
 
     final scriptConfig = ScriptsConfig.fromJson(content);
@@ -119,13 +119,13 @@ $ sip format ui
 
     if (script == null) {
       logger.err('No script found for ${scriptKeys.join(' ')}');
-      return (ExitCode.config, null, null);
+      return GetCommandsResult.exit(ExitCode.config);
     }
 
-    if (argResults['list'] as bool? ?? false) {
+    if (listOut) {
       _listOutScript(script);
 
-      return (ExitCode.success, null, null);
+      return GetCommandsResult.exit(ExitCode.success);
     }
 
     if (script.commands.isEmpty) {
@@ -135,30 +135,48 @@ $ sip format ui
 
       _listOutScript(script);
 
-      return (ExitCode.config, null, null);
+      return GetCommandsResult.exit(ExitCode.config);
     }
 
-    final resolvedCommands = variables.replace(
+    final replaced = variables.replace(
       script,
       scriptConfig,
       flags: optionalFlags(keys),
     );
 
-    return (null, resolvedCommands, script);
+    final envCommand = EnvConfig(
+      commands: {
+        if (replaced.envCommands case final commands)
+          ...commands.expand((e) => e.commands ?? []),
+      },
+      files: {
+        if (replaced.envCommands case final commands)
+          ...commands.expand((e) => e.files ?? []),
+      },
+    );
+
+    return GetCommandsResult(
+      commands: replaced.commands,
+      envConfig: envCommand,
+      script: script,
+    );
   }
 
-  Iterable<CommandToRun> _commandsToRun(
-    Script script,
-    List<String> commands,
-  ) sync* {
+  Iterable<CommandToRun> _commandsToRun(GetCommandsResult getCommands) sync* {
+    final GetCommandsResult(:commands, :envConfig, :script) = getCommands;
+    if (commands == null || script == null) {
+      return;
+    }
+
     for (var i = 0; i < commands.length; i++) {
-      var command = commands[i];
+      var command = commands.elementAt(i);
       var runConcurrently = false;
 
       if (command.startsWith(Identifiers.concurrent)) {
         logger.detail(
           'Running concurrently: "${darkGray.wrap(command)}"',
         );
+
         runConcurrently = true;
         while (command.startsWith(Identifiers.concurrent)) {
           command = command.substring(Identifiers.concurrent.length);
@@ -168,7 +186,7 @@ $ sip format ui
       yield CommandToRun(
         command: command,
         label: command,
-        envFile: script.env?.files ?? [],
+        envFile: envConfig ?? EnvConfig.empty(),
         runConcurrently: runConcurrently,
         workingDirectory: directory,
         keys: [...?script.parents, script.name],
@@ -176,19 +194,58 @@ $ sip format ui
     }
   }
 
-  (ExitCode?, Iterable<CommandToRun>?, bool) commandsToRun(
-    List<String> keys,
-    ArgResults argResults,
-  ) {
-    final (exitCode, commands, script) = getCommands(keys, argResults);
+  CommandsToRunResult commandsToRun(
+    List<String> keys, {
+    required bool listOut,
+  }) {
+    final result = getCommands(keys, listOut: listOut);
+    final GetCommandsResult(:exitCode, :script) = result;
 
     if (exitCode != null || script == null) {
-      return (exitCode, null, script?.bail ?? false);
+      return CommandsToRunResult(
+        exitCode: result.exitCode,
+        commands: null,
+        bail: result.script?.bail ?? false,
+      );
     }
 
-    assert(commands != null, 'commands should not be null');
-    commands!;
+    assert(result.commands != null, 'commands should not be null');
 
-    return (null, _commandsToRun(script, commands), script.bail);
+    return CommandsToRunResult(
+      exitCode: null,
+      commands: _commandsToRun(result),
+      bail: script.bail,
+    );
   }
+}
+
+class CommandsToRunResult {
+  const CommandsToRunResult({
+    required this.exitCode,
+    required this.commands,
+    required this.bail,
+  });
+
+  final ExitCode? exitCode;
+  final Iterable<CommandToRun>? commands;
+  final bool bail;
+}
+
+class GetCommandsResult {
+  GetCommandsResult({
+    required Iterable<String> this.commands,
+    required EnvConfig this.envConfig,
+    required Script this.script,
+  }) : exitCode = null;
+
+  GetCommandsResult.exit(
+    this.exitCode,
+  )   : commands = null,
+        envConfig = null,
+        script = null;
+
+  final ExitCode? exitCode;
+  final Iterable<String>? commands;
+  final EnvConfig? envConfig;
+  final Script? script;
 }
