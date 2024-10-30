@@ -170,20 +170,22 @@ class ScriptRunCommand extends Command<ExitCode>
         final noConcurrent = argResults.arguments.contains('--no-concurrent');
         logger.detail('Disabling concurrent runs: $noConcurrent');
 
+        final commandsToRun = [
+          for (final command in commands)
+            CommandToRun(
+              command: command,
+              workingDirectory: combinedEnvConfig.workingDirectory,
+              keys: [],
+              envConfig: null,
+              runConcurrently: !noConcurrent,
+            )
+        ];
+
         final result = await switch (noConcurrent) {
           true => RunManyScripts.new,
           false => RunManyScripts.sequentially,
         }(
-          commands: [
-            for (final command in commands)
-              CommandToRun(
-                command: command,
-                workingDirectory: combinedEnvConfig.workingDirectory,
-                keys: [],
-                envConfig: null,
-                runConcurrently: !noConcurrent,
-              ),
-          ],
+          commands: commandsToRun,
           bindings: bindings,
           logger: logger,
         ).run(
@@ -193,6 +195,9 @@ class ScriptRunCommand extends Command<ExitCode>
 
         if (result.hasFailures) {
           logger.err('Failed to run env commands');
+
+          result.printErrors(commandsToRun, logger);
+
           return result.exitCode(logger);
         }
       }
