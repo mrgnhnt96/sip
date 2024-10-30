@@ -40,8 +40,7 @@ else
   exit 1
 fi
 
-$cmd
-''';
+$cmd''';
         }
       }
     }

@@ -67,7 +67,11 @@ void main() {
       expect(
         mockBindings.scripts,
         [
-          'cd /packages/sip && dart run build_runner clean;\ndart run build_runner build --delete-conflicting-outputs',
+          'cd /packages/sip || exit 1',
+          '',
+          'dart run build_runner clean;',
+          'dart run build_runner build --delete-conflicting-outputs',
+          '',
         ],
       );
     });
@@ -79,7 +83,7 @@ class _MockBindings implements Bindings {
 
   @override
   Future<CommandResult> runScript(String script, {bool showOutput = false}) {
-    scripts.add(script);
+    scripts.addAll(script.split('\n'));
     return Future.value(
       const CommandResult(
         exitCode: 0,

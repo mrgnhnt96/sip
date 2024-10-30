@@ -68,7 +68,12 @@ void main() {
 
       expect(
         mockBindings.scripts,
-        ['cd /packages/sip && dart test'],
+        [
+          'cd /packages/sip || exit 1',
+          '',
+          'dart test',
+          '',
+        ],
       );
 
       mockBindings.scripts.clear();
@@ -77,7 +82,12 @@ void main() {
 
       expect(
         mockBindings.scripts,
-        ['cd /packages/sip && dart test --coverage'],
+        [
+          'cd /packages/sip || exit 1',
+          '',
+          'dart test --coverage',
+          '',
+        ],
       );
 
       mockBindings.scripts.clear();
@@ -86,7 +96,12 @@ void main() {
 
       expect(
         mockBindings.scripts,
-        ['cd /packages/sip && dart test --coverage=banana'],
+        [
+          'cd /packages/sip || exit 1',
+          '',
+          'dart test --coverage=banana',
+          '',
+        ],
       );
 
       mockBindings.scripts.clear();
@@ -95,7 +110,12 @@ void main() {
 
       expect(
         mockBindings.scripts,
-        ['cd /packages/sip && dart test --coverage monkey'],
+        [
+          'cd /packages/sip || exit 1',
+          '',
+          'dart test --coverage monkey',
+          '',
+        ],
       );
     });
   });
@@ -109,7 +129,7 @@ class _MockBindings implements Bindings {
     String script, {
     bool showOutput = false,
   }) async {
-    scripts.add(script);
+    scripts.addAll(script.split('\n'));
 
     return const CommandResult(
       exitCode: 0,
