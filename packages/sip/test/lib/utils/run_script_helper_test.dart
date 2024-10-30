@@ -26,7 +26,7 @@ void main() {
       test('should return the directory of the nearest scripts.yaml', () {
         final command = TestCommand();
 
-        when(() => command.scriptsYaml.nearest())
+        when(command.scriptsYaml.nearest)
             .thenReturn('some/path/to/test/scripts.yaml');
 
         expect(command.directory, 'some/path/to/test');
@@ -81,20 +81,20 @@ void main() {
       group('#env', () {
         test('should get the env config', () {
           final command = TestCommand();
-          when(() => command.scriptsYaml.scripts()).thenReturn({
+          when(command.scriptsYaml.scripts).thenReturn({
             'pub': {
               '(command)': 'echo "pub"',
               '(env)': {
                 'file': 'some/path/to/test/.env',
                 'command': 'echo "env"',
-              }
+              },
             },
           });
 
           final result = command.getCommands(['pub'], listOut: false).single;
 
           expect(result.exitCode, isNull);
-          final expectedConfig = EnvConfig(
+          const expectedConfig = EnvConfig(
             commands: {'echo "env"'},
             files: {'some/path/to/test/.env'},
             workingDirectory: '/',
@@ -105,27 +105,27 @@ void main() {
 
         test('should get the env config for the referenced script', () {
           final command = TestCommand();
-          when(() => command.scriptsYaml.scripts()).thenReturn({
+          when(command.scriptsYaml.scripts).thenReturn({
             'pub': {
               '(command)': r'{$other}',
               '(env)': {
                 'file': 'some/path/to/test/.env',
                 'command': 'pub env command',
-              }
+              },
             },
             'other': {
               '(command)': 'echo "other"',
               '(env)': {
                 'file': 'some/path/to/other/.env',
                 'command': 'other env command',
-              }
+              },
             },
           });
 
           final result = command.getCommands(['pub'], listOut: false).single;
 
           expect(result.exitCode, isNull);
-          final expectedConfig = EnvConfig(
+          const expectedConfig = EnvConfig(
             workingDirectory: '/',
             commands: {
               'pub env command',
@@ -142,27 +142,27 @@ void main() {
 
         test('should remove duplicate env configs', () {
           final command = TestCommand();
-          when(() => command.scriptsYaml.scripts()).thenReturn({
+          when(command.scriptsYaml.scripts).thenReturn({
             'pub': {
               '(command)': r'{$other}',
               '(env)': {
                 'file': 'some/path/to/test/.env',
                 'command': 'pub env command',
-              }
+              },
             },
             'other': {
               '(command)': 'echo "other"',
               '(env)': {
                 'file': 'some/path/to/test/.env',
                 'command': 'pub env command',
-              }
+              },
             },
           });
 
           final result = command.getCommands(['pub'], listOut: false).single;
 
           expect(result.exitCode, isNull);
-          final expectedConfig = EnvConfig(
+          const expectedConfig = EnvConfig(
             workingDirectory: '/',
             commands: {
               'pub env command',
@@ -179,7 +179,7 @@ void main() {
       test('should return the list of commands', () {
         final command = TestCommand();
 
-        when(() => command.scriptsYaml.scripts()).thenReturn({
+        when(command.scriptsYaml.scripts).thenReturn({
           'pub': 'echo "pub"',
         });
 
@@ -199,7 +199,7 @@ void main() {
 
       test('should return an exit code when the script is empty', () {
         final command = TestCommand();
-        when(() => command.scriptsYaml.scripts()).thenReturn({
+        when(command.scriptsYaml.scripts).thenReturn({
           'pub': null,
         });
 
@@ -211,7 +211,7 @@ void main() {
       test('should return an exit code with list option is provided', () {
         final command = TestCommand();
 
-        when(() => command.scriptsYaml.scripts()).thenReturn({
+        when(command.scriptsYaml.scripts).thenReturn({
           'pub': 'echo "pub"',
         });
 
@@ -226,10 +226,10 @@ void main() {
       test('should return the list of commands', () {
         final command = TestCommand();
 
-        when(() => command.scriptsYaml.nearest())
+        when(command.scriptsYaml.nearest)
             .thenReturn('some/path/to/test/scripts.yaml');
 
-        when(() => command.scriptsYaml.scripts()).thenReturn({
+        when(command.scriptsYaml.scripts).thenReturn({
           'pub': 'echo "pub"',
         });
 
@@ -253,10 +253,10 @@ void main() {
       test('should remove concurrent symbol when found', () {
         final command = TestCommand();
 
-        when(() => command.scriptsYaml.nearest())
+        when(command.scriptsYaml.nearest)
             .thenReturn('some/path/to/test/scripts.yaml');
 
-        when(() => command.scriptsYaml.scripts()).thenReturn({
+        when(command.scriptsYaml.scripts).thenReturn({
           'pub': '(+) echo "pub"',
         });
 
@@ -269,10 +269,10 @@ void main() {
       test('should remove extra concurrent symbols when found', () {
         final command = TestCommand();
 
-        when(() => command.scriptsYaml.nearest())
+        when(command.scriptsYaml.nearest)
             .thenReturn('some/path/to/test/scripts.yaml');
 
-        when(() => command.scriptsYaml.scripts()).thenReturn({
+        when(command.scriptsYaml.scripts).thenReturn({
           'pub': '(+) (+) echo "pub"',
         });
 
@@ -294,16 +294,16 @@ void main() {
         test('should get env config when provided', () {
           final command = TestCommand();
 
-          when(() => command.scriptsYaml.nearest())
+          when(command.scriptsYaml.nearest)
               .thenReturn('some/path/to/test/scripts.yaml');
 
-          when(() => command.scriptsYaml.scripts()).thenReturn({
+          when(command.scriptsYaml.scripts).thenReturn({
             'pub': {
               '(command)': 'echo "pub"',
               '(env)': {
                 'file': 'some/path/to/test/.env',
                 'command': 'echo "env"',
-              }
+              },
             },
           });
 
@@ -321,11 +321,12 @@ void main() {
           expect(result.combinedEnvConfig, envConfig);
 
           const expected = CommandToRun(
-              command: 'echo "pub"',
-              label: 'echo "pub"',
-              workingDirectory: 'some/path/to/test',
-              keys: ['pub'],
-              envConfig: envConfig);
+            command: 'echo "pub"',
+            label: 'echo "pub"',
+            workingDirectory: 'some/path/to/test',
+            keys: ['pub'],
+            envConfig: envConfig,
+          );
 
           expect(result.commands?.single, expected);
         });
@@ -333,23 +334,23 @@ void main() {
         test('should keep envs scoped to commands when multiple are found', () {
           final command = TestCommand();
 
-          when(() => command.scriptsYaml.nearest())
+          when(command.scriptsYaml.nearest)
               .thenReturn('some/path/to/test/scripts.yaml');
 
-          when(() => command.scriptsYaml.scripts()).thenReturn({
+          when(command.scriptsYaml.scripts).thenReturn({
             'pub': {
               '(command)': r'{$other}',
               '(env)': {
                 'file': 'some/path/to/test/.env',
                 'command': 'pub env command',
-              }
+              },
             },
             'other': {
               '(command)': 'echo "other"',
               '(env)': {
                 'file': 'some/path/to/other/.env',
                 'command': 'other env command',
-              }
+              },
             },
           });
 
@@ -373,8 +374,8 @@ void main() {
           expect(result.combinedEnvConfig, combinedEnvConfig);
 
           const expected = CommandToRun(
-            command: r'echo "other"',
-            label: r'echo "other"',
+            command: 'echo "other"',
+            label: 'echo "other"',
             workingDirectory: 'some/path/to/test',
             keys: ['pub'],
             envConfig: EnvConfig(
@@ -390,27 +391,27 @@ void main() {
         test('should pass envs from references', () {
           final command = TestCommand();
 
-          when(() => command.scriptsYaml.nearest())
+          when(command.scriptsYaml.nearest)
               .thenReturn('some/path/to/test/scripts.yaml');
 
-          when(() => command.scriptsYaml.scripts()).thenReturn({
+          when(command.scriptsYaml.scripts).thenReturn({
             'all': [
               r'{$pub}',
               r'{$other}',
             ],
             'pub': {
-              '(command)': r'echo "pub"',
+              '(command)': 'echo "pub"',
               '(env)': {
                 'file': 'some/path/to/test/.env',
                 'command': 'pub env command',
-              }
+              },
             },
             'other': {
               '(command)': 'echo "other"',
               '(env)': {
                 'file': 'some/path/to/other/.env',
                 'command': 'other env command',
-              }
+              },
             },
           });
 
@@ -434,8 +435,8 @@ void main() {
           expect(result.combinedEnvConfig, combinedEnvConfig);
 
           const pubExpected = CommandToRun(
-            command: r'echo "pub"',
-            label: r'echo "pub"',
+            command: 'echo "pub"',
+            label: 'echo "pub"',
             workingDirectory: 'some/path/to/test',
             keys: ['all'],
             envConfig: EnvConfig(
@@ -448,8 +449,8 @@ void main() {
           expect(result.commands?.elementAt(0), pubExpected);
 
           const otherExpected = CommandToRun(
-            command: r'echo "other"',
-            label: r'echo "other"',
+            command: 'echo "other"',
+            label: 'echo "other"',
             workingDirectory: 'some/path/to/test',
             keys: ['all'],
             envConfig: EnvConfig(
