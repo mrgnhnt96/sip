@@ -64,6 +64,9 @@ prep:
     for dir in packages/*; do
       sed -i '' "s|^version: .*|version: $version|g" "$dir/pubspec.yaml"
     done
+
+    # update version in packages/sip/lib/src/version.dart
+    sed -i '' "s|const packageVersion = '.*';|const packageVersion = '$version';|g" packages/sip/lib/src/version.dart
   assets: |
     echo "Copying assets to packages/sip"
     rm -rf packages/sip/assets
