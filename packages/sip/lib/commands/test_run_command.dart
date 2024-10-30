@@ -210,6 +210,9 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
       }
 
       final (testDirs, dirTools) = dirs;
+      logger.detail('Found ${testDirs.length} test directories');
+      logger.detail('  - ${testDirs.join('\n  - ')}');
+
       final (tests, testsExitCode) = getPackagesToTest(
         testDirs,
         dirTools,

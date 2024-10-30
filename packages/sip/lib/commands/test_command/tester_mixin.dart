@@ -407,13 +407,31 @@ abstract mixin class TesterMixin {
     Map<String, DetermineFlutterOrDart> dirTools, {
     required bool optimize,
   }) {
+    final dirsWithTests = <String>[];
+    final glob = Glob('**_test.dart');
+    for (final MapEntry(key: dir, value: _) in dirTools.entries) {
+      final result = glob.listFileSystemSync(fs, followLinks: false, root: dir);
+
+      if (result.any((e) => e is File)) {
+        dirsWithTests.add(dir);
+      }
+    }
+
+    if (dirsWithTests.isEmpty) {
+      logger.err('No tests found');
+      return (null, ExitCode.unavailable);
+    }
+
+    logger.detail('Found ${dirsWithTests.length} directories with tests');
+    logger.detail('  - ${dirsWithTests.join('\n  - ')}');
+
     logger.detail(
-      '${optimize ? '' : 'NOT '}Optimizing ${testDirs.length} test files',
+      '${optimize ? '' : 'NOT '}Optimizing ${dirsWithTests.length} test files',
     );
 
     if (optimize) {
       final done = logger.progress('Optimizing test files');
-      final result = prepareOptimizedFilesFromDirs(testDirs, dirTools);
+      final result = prepareOptimizedFilesFromDirs(dirsWithTests, dirTools);
 
       done.complete();
 
@@ -427,17 +445,6 @@ abstract mixin class TesterMixin {
 
     logger.warn('Running tests without optimization');
 
-    final dirsWithTests = <String>[];
-
-    final glob = Glob('**_test.dart');
-    for (final MapEntry(key: dir, value: _) in dirTools.entries) {
-      final result = glob.listFileSystemSync(fs, followLinks: false, root: dir);
-
-      if (result.any((e) => e is File)) {
-        dirsWithTests.add(dir);
-      }
-    }
-
     final dirs = [
       for (final dir in dirsWithTests)
         if (dirTools[dir] case final tool?)
@@ -446,11 +453,6 @@ abstract mixin class TesterMixin {
             packagePath: dir,
           ),
     ];
-
-    if (dirs.isEmpty) {
-      logger.err('No tests found');
-      return (null, ExitCode.unavailable);
-    }
 
     return (dirs, null);
   }
