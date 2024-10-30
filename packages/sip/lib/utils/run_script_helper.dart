@@ -134,13 +134,13 @@ $ sip format ui
       return;
     }
 
-    final _replaced = variables.replace(
+    final replacedResult = variables.replace(
       script,
       scriptConfig,
       flags: optionalFlags(keys),
     );
 
-    for (final replaced in _replaced) {
+    for (final replaced in replacedResult) {
       yield GetCommandsResult(
         commands: replaced.commands,
         envConfig: replaced.allEnvCommands.combine(directory: directory),
@@ -187,7 +187,7 @@ $ sip format ui
   }) {
     final commands = <CommandToRun>[];
 
-    bool bail = false;
+    var bail = false;
 
     final allResults = getCommands(keys, listOut: listOut);
     for (final result in allResults) {
@@ -234,7 +234,7 @@ class CommandsToRunResult {
 class GetCommandsResult {
   GetCommandsResult({
     required Iterable<String> this.commands,
-    required EnvConfig? this.envConfig,
+    required this.envConfig,
     required Script this.script,
   }) : exitCode = null;
 

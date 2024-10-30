@@ -120,7 +120,7 @@ class ScriptRunCommand extends Command<ExitCode>
 
     assert(result.commands != null, 'commands should not be null');
 
-    final bail = result.bail ^ argResults['bail'] as bool? ?? false;
+    final bail = result.bail ^ (argResults['bail'] as bool? ?? false);
 
     Future<ExitCode> runCommands() => _run(
           argResults: argResults,
@@ -175,7 +175,7 @@ class ScriptRunCommand extends Command<ExitCode>
             CommandToRun(
               command: command,
               workingDirectory: combinedEnvConfig.workingDirectory,
-              keys: [],
+              keys: const [],
               envConfig: null,
               runConcurrently: !noConcurrent,
             )
