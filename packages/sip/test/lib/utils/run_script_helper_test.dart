@@ -220,6 +220,64 @@ void main() {
         expect(result.exitCode, isA<ExitCode>());
         expect(result.commands, isNull);
       });
+
+      test('should resolve multiple references', () {
+        final command = TestCommand();
+
+        when(command.scriptsYaml.scripts).thenReturn({
+          'test-domain': r'''
+cd packages/domain
+{$test:_test}
+''',
+          'test': {
+            '_clear-coverage': 'clear-coverage',
+            '_format-coverage': 'format-coverage',
+            '_open-coverage': 'open-coverage',
+            '_test': [
+              r'{$test:_clear-coverage}',
+              'sip test {--coverage}',
+              r'{$test:_format-coverage}',
+              r'{$test:_open-coverage}',
+            ],
+          }
+        });
+
+        final result = command
+            .getCommands(['test-domain'], listOut: false)
+            .toList()
+            .single;
+
+        expect(result.exitCode, isNull);
+        expect(result.commands, hasLength(4));
+        expect(
+          result.commands?.elementAt(0).split('\n'),
+          [
+            'cd packages/domain',
+            'clear-coverage',
+          ],
+        );
+        expect(
+          result.commands?.elementAt(1).split('\n'),
+          [
+            'cd packages/domain',
+            'sip test ',
+          ],
+        );
+        expect(
+          result.commands?.elementAt(2).split('\n'),
+          [
+            'cd packages/domain',
+            'format-coverage',
+          ],
+        );
+        expect(
+          result.commands?.elementAt(3).split('\n'),
+          [
+            'cd packages/domain',
+            'open-coverage',
+          ],
+        );
+      });
     });
 
     group('#commandsToRun', () {

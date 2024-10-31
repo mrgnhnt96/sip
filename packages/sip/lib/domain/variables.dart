@@ -166,24 +166,19 @@ class Variables with WorkingDirectory {
       ...envCommands,
     };
 
+    final commands = <String>[];
     for (final command in script.commands) {
       final resolved = resolve(command);
 
-      yield ResolveScript(
-        commands: resolved.commands,
-        envCommands: envCommands,
-        allEnvCommands: {
-          ...allEnvCommands,
-          ...resolved.envCommands,
-        },
-      );
+      commands.addAll(resolved.commands);
+      allEnvCommands.addAll(resolved.envCommands);
     }
 
-    // return ResolveScript(
-    //   commands: commands,
-    //   envCommands: envCommands,
-    //   allEnvCommands: allEnvCommands,
-    // );
+    yield ResolveScript(
+      commands: commands,
+      envCommands: envCommands,
+      allEnvCommands: allEnvCommands,
+    );
   }
 
   ResolveScript replaceVariables(
@@ -226,7 +221,7 @@ class Variables with WorkingDirectory {
 
           final commandsToCopy = [...resolvedCommands];
 
-          resolvedCommands = List.generate(
+          final copied = List.generate(
               resolvedCommands.length * replaced.commands.length, (index) {
             final commandIndex = index % replaced.commands.length;
             final command = replaced.commands.elementAt(commandIndex);
@@ -236,6 +231,8 @@ class Variables with WorkingDirectory {
 
             return commandsToCopyCommand.replaceAll(match.group(0)!, command);
           });
+
+          resolvedCommands = copied;
         }
 
         continue;
@@ -257,8 +254,9 @@ class Variables with WorkingDirectory {
         throw Exception('Variable $variable is not defined');
       }
 
-      resolvedCommands =
-          resolvedCommands.map((e) => e.replaceAll(match.group(0)!, sipValue));
+      resolvedCommands = resolvedCommands.map(
+        (e) => e.replaceAll(match.group(0)!, sipValue),
+      );
     }
 
     return ResolveScript(
