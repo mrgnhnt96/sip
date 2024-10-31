@@ -21,12 +21,14 @@ class EnvConfig extends Equatable {
   List<Object?> get props => _$props;
 }
 
-extension CombineEnvConfigEnvConfigX on Iterable<EnvConfig> {
+extension CombineEnvConfigEnvConfigX on Iterable<EnvConfig?> {
   EnvConfig? combine({required String directory}) {
     final commands = <String>{};
     final files = <String>{};
 
     for (final config in this) {
+      if (config == null) continue;
+
       commands.addAll(config.commands ?? []);
       files.addAll(config.files ?? []);
     }

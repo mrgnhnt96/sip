@@ -453,8 +453,8 @@ cd packages/domain
             keys: ['pub'],
             envConfig: EnvConfig(
               workingDirectory: 'some/path/to/test',
-              commands: {'other env command'},
-              files: {'some/path/to/other/.env'},
+              commands: {'pub env command', 'other env command'},
+              files: {'some/path/to/test/.env', 'some/path/to/other/.env'},
             ),
           );
 
@@ -530,6 +530,89 @@ cd packages/domain
               workingDirectory: 'some/path/to/test',
               commands: {'other env command'},
               files: {'some/path/to/other/.env'},
+            ),
+          );
+
+          expect(result.commands?.elementAt(1), otherExpected);
+        });
+
+        test('should pass envs from references and keep parent env', () {
+          final command = TestCommand();
+
+          when(command.scriptsYaml.nearest)
+              .thenReturn('some/path/to/test/scripts.yaml');
+
+          when(command.scriptsYaml.scripts).thenReturn({
+            'all': {
+              '(env)': {
+                'file': 'some/path/to/all/.env',
+                'command': 'all env command',
+              },
+              '(command)': [
+                r'{$pub}',
+                r'{$other}',
+              ],
+            },
+            'pub': {
+              '(command)': 'echo "pub"',
+              '(env)': {
+                'file': 'some/path/to/test/.env',
+                'command': 'pub env command',
+              },
+            },
+            'other': {
+              '(command)': 'echo "other"',
+              '(env)': {
+                'file': 'some/path/to/other/.env',
+                'command': 'other env command',
+              },
+            },
+          });
+
+          final result = command.commandsToRun(['all'], listOut: false).single;
+
+          expect(result.exitCode, isNull);
+          expect(result.commands, hasLength(2));
+
+          const combinedEnvConfig = EnvConfig(
+            workingDirectory: 'some/path/to/test',
+            commands: {
+              'all env command',
+              'pub env command',
+              'other env command',
+            },
+            files: {
+              'some/path/to/all/.env',
+              'some/path/to/test/.env',
+              'some/path/to/other/.env',
+            },
+          );
+
+          expect(result.combinedEnvConfig, combinedEnvConfig);
+
+          const pubExpected = CommandToRun(
+            command: 'echo "pub"',
+            label: 'echo "pub"',
+            workingDirectory: 'some/path/to/test',
+            keys: ['all'],
+            envConfig: EnvConfig(
+              workingDirectory: 'some/path/to/test',
+              commands: {'all env command', 'pub env command'},
+              files: {'some/path/to/all/.env', 'some/path/to/test/.env'},
+            ),
+          );
+
+          expect(result.commands?.elementAt(0), pubExpected);
+
+          const otherExpected = CommandToRun(
+            command: 'echo "other"',
+            label: 'echo "other"',
+            workingDirectory: 'some/path/to/test',
+            keys: ['all'],
+            envConfig: EnvConfig(
+              workingDirectory: 'some/path/to/test',
+              commands: {'all env command', 'other env command'},
+              files: {'some/path/to/all/.env', 'some/path/to/other/.env'},
             ),
           );
 

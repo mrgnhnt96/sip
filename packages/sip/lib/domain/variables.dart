@@ -138,6 +138,7 @@ class Variables with WorkingDirectory {
   Iterable<ResolveScript> replace(
     Script script,
     ScriptsConfig config, {
+    EnvConfig? parentEnvConfig,
     OptionalFlags? flags,
   }) sync* {
     late final sipVariables = populate();
@@ -148,6 +149,7 @@ class Variables with WorkingDirectory {
         config: config,
         flags: flags,
         script: script,
+        envConfigOfParent: parentEnvConfig,
       );
     }
 
@@ -169,10 +171,11 @@ class Variables with WorkingDirectory {
 
     final commands = <ResolveScript>[];
     for (final command in script.commands) {
-      final resolved = resolve(command, script);
+      final resolved = resolve(command, script).toList();
 
       commands.addAll(resolved);
       envConfig.addAll([
+        if (parentEnvConfig != null) parentEnvConfig,
         for (final e in resolved)
           if (e.envConfig case final config?) config,
       ]);
@@ -190,6 +193,7 @@ class Variables with WorkingDirectory {
     required Map<String, String?> sipVariables,
     required ScriptsConfig config,
     required Script script,
+    EnvConfig? envConfigOfParent,
     OptionalFlags? flags,
   }) sync* {
     final matches = variablePattern.allMatches(command);
@@ -197,7 +201,10 @@ class Variables with WorkingDirectory {
     if (matches.isEmpty) {
       yield ResolveScript.command(
         command: command,
-        envConfig: script.envConfig(directory: directory),
+        envConfig: [
+          envConfigOfParent,
+          script.envConfig(directory: directory),
+        ].combine(directory: directory),
         script: script,
       );
 
@@ -205,7 +212,9 @@ class Variables with WorkingDirectory {
     }
 
     Iterable<String> resolvedCommands = [command];
-    final resolvedEnvCommands = <EnvConfig>{};
+    final resolvedEnvCommands = <EnvConfig?>{};
+
+    final parentEnvConfig = script.envConfig(directory: directory);
 
     for (final match in matches) {
       final variable = match.group(1);
@@ -223,10 +232,13 @@ class Variables with WorkingDirectory {
           throw Exception('Script path $variable is invalid');
         }
 
-        for (final replaced in replace(found, config, flags: flags)) {
-          if (replaced.envConfig case final config?) {
-            resolvedEnvCommands.add(config);
-          }
+        for (final replaced in replace(
+          found,
+          config,
+          flags: flags,
+          parentEnvConfig: parentEnvConfig,
+        )) {
+          resolvedEnvCommands.add(replaced.envConfig);
 
           final commandsToCopy = [...resolvedCommands];
 
@@ -258,8 +270,9 @@ class Variables with WorkingDirectory {
         // flags are optional, so if not found, replace with empty string
         final flag = flags?[variable] ?? '';
 
-        resolvedCommands =
-            resolvedCommands.map((e) => e.replaceAll(match.group(0)!, flag));
+        resolvedCommands = resolvedCommands.map(
+          (e) => e.replaceAll(match.group(0)!, flag),
+        );
 
         continue;
       }
