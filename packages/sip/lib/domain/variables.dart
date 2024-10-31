@@ -141,60 +141,67 @@ class Variables with WorkingDirectory {
     OptionalFlags? flags,
   }) sync* {
     late final sipVariables = populate();
-    ResolveScript resolve(String command) {
-      return replaceVariables(
+    Iterable<ResolveScript> resolve(String command, Script script) sync* {
+      yield* replaceVariables(
         command,
         sipVariables: sipVariables,
         config: config,
         flags: flags,
+        script: script,
       );
     }
 
     final envCommands = <EnvConfig>{
       if (script.env?.commands case final commands)
         for (final command in commands ?? <String>[])
-          if (resolve(command).commands case final commands
-              when commands.isNotEmpty)
-            EnvConfig(
-              commands: commands,
-              files: script.env?.files,
-              workingDirectory: directory,
-            ),
+          EnvConfig(
+            commands: resolve(command, script)
+                .map((e) => e.command)
+                .whereType<String>(),
+            files: script.env?.files,
+            workingDirectory: directory,
+          ),
     };
 
-    final allEnvCommands = {
+    final envConfig = {
       ...envCommands,
     };
 
-    final commands = <String>[];
+    final commands = <ResolveScript>[];
     for (final command in script.commands) {
-      final resolved = resolve(command);
+      final resolved = resolve(command, script);
 
-      commands.addAll(resolved.commands);
-      allEnvCommands.addAll(resolved.envCommands);
+      commands.addAll(resolved);
+      envConfig.addAll([
+        for (final e in resolved)
+          if (e.envConfig case final config?) config
+      ]);
     }
 
     yield ResolveScript(
-      commands: commands,
-      envCommands: envCommands,
-      allEnvCommands: allEnvCommands,
+      resolvedScripts: commands,
+      envConfig: envConfig.combine(directory: directory),
+      script: script,
     );
   }
 
-  ResolveScript replaceVariables(
+  Iterable<ResolveScript> replaceVariables(
     String command, {
     required Map<String, String?> sipVariables,
     required ScriptsConfig config,
+    required Script script,
     OptionalFlags? flags,
-  }) {
+  }) sync* {
     final matches = variablePattern.allMatches(command);
 
     if (matches.isEmpty) {
-      return ResolveScript(
-        commands: [command],
-        envCommands: [],
-        allEnvCommands: [],
+      yield ResolveScript.command(
+        command: command,
+        envConfig: script.envConfig(directory: directory),
+        script: script,
       );
+
+      return;
     }
 
     Iterable<String> resolvedCommands = [command];
@@ -217,16 +224,24 @@ class Variables with WorkingDirectory {
         }
 
         for (final replaced in replace(found, config, flags: flags)) {
-          resolvedEnvCommands.addAll(replaced.envCommands);
+          if (replaced.envConfig case final config?)
+            resolvedEnvCommands.add(config);
 
           final commandsToCopy = [...resolvedCommands];
 
           final copied = List.generate(
-              resolvedCommands.length * replaced.commands.length, (index) {
-            final commandIndex = index % replaced.commands.length;
-            final command = replaced.commands.elementAt(commandIndex);
+              resolvedCommands.length * replaced.resolvedScripts.length,
+              (index) {
+            final commandIndex = index % replaced.resolvedScripts.length;
+            final command =
+                replaced.resolvedScripts.elementAt(commandIndex).command;
 
-            final commandsToCopyIndex = index ~/ replaced.commands.length;
+            if (command == null) {
+              throw Exception('Command is null');
+            }
+
+            final commandsToCopyIndex =
+                index ~/ replaced.resolvedScripts.length;
             final commandsToCopyCommand = commandsToCopy[commandsToCopyIndex];
 
             return commandsToCopyCommand.replaceAll(match.group(0)!, command);
@@ -259,22 +274,46 @@ class Variables with WorkingDirectory {
       );
     }
 
-    return ResolveScript(
-      commands: resolvedCommands,
-      envCommands: resolvedEnvCommands,
-      allEnvCommands: [],
-    );
+    for (final command in resolvedCommands) {
+      yield ResolveScript.command(
+        command: command,
+        envConfig: resolvedEnvCommands.combine(directory: directory),
+        script: script,
+      );
+    }
   }
 }
 
 class ResolveScript {
   const ResolveScript({
-    required this.commands,
-    required this.envCommands,
-    required this.allEnvCommands,
-  });
+    required this.resolvedScripts,
+    required this.envConfig,
+    required this.script,
+  }) : command = null;
 
-  final Iterable<String> commands;
-  final Iterable<EnvConfig> envCommands;
-  final Iterable<EnvConfig> allEnvCommands;
+  const ResolveScript.command({
+    required String this.command,
+    required this.envConfig,
+    required this.script,
+  }) : resolvedScripts = const [];
+
+  final Script script;
+  final String? command;
+  final Iterable<ResolveScript> resolvedScripts;
+  final EnvConfig? envConfig;
+}
+
+extension _ScriptX on Script {
+  EnvConfig? envConfig({required String directory}) {
+    final env = this.env;
+    if (env == null) return null;
+
+    if (env.commands.isEmpty && env.files.isEmpty) return null;
+
+    return EnvConfig(
+      commands: {...env.commands},
+      files: {...env.files},
+      workingDirectory: directory,
+    );
+  }
 }

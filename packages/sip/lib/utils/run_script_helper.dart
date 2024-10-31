@@ -134,30 +134,36 @@ $ sip format ui
       return;
     }
 
-    final replacedResult = variables.replace(
+    final resolvedScripts = variables.replace(
       script,
       scriptConfig,
       flags: optionalFlags(keys),
     );
 
-    for (final replaced in replacedResult) {
+    for (final resolved in resolvedScripts) {
       yield GetCommandsResult(
-        commands: replaced.commands,
-        envConfig: replaced.allEnvCommands.combine(directory: directory),
+        resolveScript: resolved,
         script: script,
       );
     }
   }
 
   Iterable<CommandToRun> _commandsToRun(GetCommandsResult getCommands) sync* {
-    final GetCommandsResult(:commands, :script, :envConfig) = getCommands;
-    if (commands == null || script == null) {
+    final GetCommandsResult(:resolveScript, :script) = getCommands;
+    if (resolveScript == null || script == null) {
       return;
     }
 
-    for (var i = 0; i < commands.length; i++) {
-      var command = commands.elementAt(i);
+    final ResolveScript(:resolvedScripts, :envConfig) = resolveScript;
+
+    for (var i = 0; i < resolvedScripts.length; i++) {
+      final resolved = resolvedScripts.elementAt(i);
       var runConcurrently = false;
+
+      var command = switch (resolved.command) {
+        final String command => command,
+        null => throw Exception('Command is null'),
+      };
 
       if (command.startsWith(Identifiers.concurrent)) {
         logger.detail(
@@ -175,42 +181,40 @@ $ sip format ui
         label: command.trim(),
         runConcurrently: runConcurrently,
         workingDirectory: directory,
-        keys: [...?script.parents, script.name],
-        envConfig: envConfig,
+        keys: resolved.script.keys,
+        envConfig: resolved.envConfig,
       );
     }
   }
 
-  CommandsToRunResult commandsToRun(
+  Iterable<CommandsToRunResult> commandsToRun(
     List<String> keys, {
     required bool listOut,
-  }) {
-    final commands = <CommandToRun>[];
-
+  }) sync* {
     var bail = false;
 
     final allResults = getCommands(keys, listOut: listOut);
     for (final result in allResults) {
-      final GetCommandsResult(:exitCode, :script, :envConfig) = result;
+      final GetCommandsResult(:exitCode, :script, :resolveScript) = result;
 
       if (exitCode != null || script == null) {
-        return CommandsToRunResult.fail(
+        yield CommandsToRunResult.fail(
           exitCode,
           bail: script?.bail ?? bail,
         );
+
+        return;
       }
 
       bail ^= script.bail;
 
-      assert(result.commands != null, 'commands should not be null');
-      commands.addAll(_commandsToRun(result));
+      assert(resolveScript != null, 'commands should not be null');
+      yield CommandsToRunResult(
+        commands: _commandsToRun(result),
+        bail: bail,
+        combinedEnvConfig: resolveScript?.envConfig,
+      );
     }
-
-    return CommandsToRunResult(
-      commands: commands,
-      bail: bail,
-      combinedEnvConfig: commands.combineEnv(),
-    );
   }
 }
 
@@ -233,62 +237,16 @@ class CommandsToRunResult {
 
 class GetCommandsResult {
   GetCommandsResult({
-    required Iterable<String> this.commands,
-    required this.envConfig,
+    required ResolveScript this.resolveScript,
     required Script this.script,
   }) : exitCode = null;
 
   GetCommandsResult.exit(
     this.exitCode,
-  )   : commands = null,
-        envConfig = null,
+  )   : resolveScript = null,
         script = null;
 
   final ExitCode? exitCode;
-  final Iterable<String>? commands;
-  final EnvConfig? envConfig;
   final Script? script;
-}
-
-extension _CombineEnvConfigCommandToRunX on Iterable<CommandToRun> {
-  EnvConfig combineEnv() {
-    final commands = <String>{};
-    final files = <String>{};
-    String? workingDirectory;
-
-    for (final command in this) {
-      final config = command.envConfig;
-      if (config == null) continue;
-
-      commands.addAll(config.commands ?? []);
-      files.addAll(config.files ?? []);
-      workingDirectory ??= command.workingDirectory;
-    }
-
-    return EnvConfig(
-      commands: commands,
-      files: files,
-      workingDirectory: workingDirectory ?? '',
-    );
-  }
-}
-
-extension _CombineEnvConfigEnvConfigX on Iterable<EnvConfig> {
-  EnvConfig? combine({required String directory}) {
-    final commands = <String>{};
-    final files = <String>{};
-
-    for (final config in this) {
-      commands.addAll(config.commands ?? []);
-      files.addAll(config.files ?? []);
-    }
-
-    if (commands.isEmpty && files.isEmpty) return null;
-
-    return EnvConfig(
-      commands: commands,
-      files: files,
-      workingDirectory: directory,
-    );
-  }
+  final ResolveScript? resolveScript;
 }

@@ -17,7 +17,7 @@ class CommandToRun extends Equatable {
   final String workingDirectory;
   final String label;
   final bool runConcurrently;
-  final List<String> keys;
+  final Iterable<String> keys;
   final EnvConfig? envConfig;
 
   @override

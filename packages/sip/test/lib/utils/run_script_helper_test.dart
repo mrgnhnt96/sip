@@ -100,7 +100,7 @@ void main() {
             workingDirectory: '/',
           );
 
-          expect(result.envConfig, expectedConfig);
+          expect(result.resolveScript?.envConfig, expectedConfig);
         });
 
         test('should get the env config for the referenced script', () {
@@ -137,7 +137,7 @@ void main() {
             },
           );
 
-          expect(result.envConfig, expectedConfig);
+          expect(result.resolveScript?.envConfig, expectedConfig);
         });
 
         test('should remove duplicate env configs', () {
@@ -172,7 +172,7 @@ void main() {
             },
           );
 
-          expect(result.envConfig, expectedConfig);
+          expect(result.resolveScript?.envConfig, expectedConfig);
         });
       });
 
@@ -186,7 +186,10 @@ void main() {
         final result = command.getCommands(['pub'], listOut: false).single;
 
         expect(result.exitCode, isNull);
-        expect(result.commands, ['echo "pub"']);
+        expect(
+          result.resolveScript?.resolvedScripts.single.command,
+          'echo "pub"',
+        );
       });
 
       test('should return an exit code when the script is not found', () {
@@ -194,7 +197,7 @@ void main() {
         final result = command.getCommands(['pub'], listOut: false).single;
 
         expect(result.exitCode, isA<ExitCode>());
-        expect(result.commands, isNull);
+        expect(result.resolveScript?.resolvedScripts, isNull);
       });
 
       test('should return an exit code when the script is empty', () {
@@ -205,7 +208,7 @@ void main() {
 
         final result = command.getCommands(['pub'], listOut: false).single;
         expect(result.exitCode, isA<ExitCode>());
-        expect(result.commands, isNull);
+        expect(result.resolveScript?.resolvedScripts, isNull);
       });
 
       test('should return an exit code with list option is provided', () {
@@ -218,7 +221,7 @@ void main() {
         final result = command.getCommands(['pub'], listOut: true).single;
 
         expect(result.exitCode, isA<ExitCode>());
-        expect(result.commands, isNull);
+        expect(result.resolveScript?.resolvedScripts, isNull);
       });
 
       test('should resolve multiple references', () {
@@ -248,30 +251,42 @@ cd packages/domain
             .single;
 
         expect(result.exitCode, isNull);
-        expect(result.commands, hasLength(4));
+        expect(result.resolveScript?.resolvedScripts, hasLength(4));
         expect(
-          result.commands?.elementAt(0).split('\n'),
+          result.resolveScript?.resolvedScripts
+              .elementAt(0)
+              .command
+              ?.split('\n'),
           [
             'cd packages/domain',
             'clear-coverage',
           ],
         );
         expect(
-          result.commands?.elementAt(1).split('\n'),
+          result.resolveScript?.resolvedScripts
+              .elementAt(1)
+              .command
+              ?.split('\n'),
           [
             'cd packages/domain',
             'sip test ',
           ],
         );
         expect(
-          result.commands?.elementAt(2).split('\n'),
+          result.resolveScript?.resolvedScripts
+              .elementAt(2)
+              .command
+              ?.split('\n'),
           [
             'cd packages/domain',
             'format-coverage',
           ],
         );
         expect(
-          result.commands?.elementAt(3).split('\n'),
+          result.resolveScript?.resolvedScripts
+              .elementAt(3)
+              .command
+              ?.split('\n'),
           [
             'cd packages/domain',
             'open-coverage',
@@ -291,7 +306,7 @@ cd packages/domain
           'pub': 'echo "pub"',
         });
 
-        final result = command.commandsToRun(['pub'], listOut: false);
+        final result = command.commandsToRun(['pub'], listOut: false).single;
 
         expect(result.exitCode, isNull);
         expect(result.commands, isNotNull);
@@ -318,7 +333,7 @@ cd packages/domain
           'pub': '(+) echo "pub"',
         });
 
-        final result = command.commandsToRun(['pub'], listOut: false);
+        final result = command.commandsToRun(['pub'], listOut: false).single;
         expect(result.exitCode, isNull);
         expect(result.commands?.map((e) => e.command), ['echo "pub"']);
         expect(result.commands?.map((e) => e.runConcurrently), [true]);
@@ -334,7 +349,7 @@ cd packages/domain
           'pub': '(+) (+) echo "pub"',
         });
 
-        final result = command.commandsToRun(['pub'], listOut: false);
+        final result = command.commandsToRun(['pub'], listOut: false).single;
         expect(result.exitCode, isNull);
         expect(result.commands?.map((e) => e.command), ['echo "pub"']);
         expect(result.commands?.map((e) => e.runConcurrently), [true]);
@@ -343,7 +358,7 @@ cd packages/domain
       test('should return an exit code when the script is not found', () {
         final command = TestCommand();
 
-        final result = command.commandsToRun(['pub'], listOut: false);
+        final result = command.commandsToRun(['pub'], listOut: false).single;
         expect(result.exitCode, isA<ExitCode>());
         expect(result.commands, isNull);
       });
@@ -365,7 +380,7 @@ cd packages/domain
             },
           });
 
-          final result = command.commandsToRun(['pub'], listOut: false);
+          final result = command.commandsToRun(['pub'], listOut: false).single;
 
           expect(result.exitCode, isNull);
           expect(result.commands, hasLength(1));
@@ -412,7 +427,7 @@ cd packages/domain
             },
           });
 
-          final result = command.commandsToRun(['pub'], listOut: false);
+          final result = command.commandsToRun(['pub'], listOut: false).single;
 
           expect(result.exitCode, isNull);
           expect(result.commands, hasLength(1));
@@ -438,8 +453,8 @@ cd packages/domain
             keys: ['pub'],
             envConfig: EnvConfig(
               workingDirectory: 'some/path/to/test',
-              commands: {'pub env command', 'other env command'},
-              files: {'some/path/to/test/.env', 'some/path/to/other/.env'},
+              commands: {'other env command'},
+              files: {'some/path/to/other/.env'},
             ),
           );
 
@@ -473,7 +488,7 @@ cd packages/domain
             },
           });
 
-          final result = command.commandsToRun(['all'], listOut: false);
+          final result = command.commandsToRun(['all'], listOut: false).single;
 
           expect(result.exitCode, isNull);
           expect(result.commands, hasLength(2));

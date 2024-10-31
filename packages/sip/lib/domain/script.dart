@@ -121,6 +121,11 @@ class Script extends Equatable {
 
   @override
   List<Object?> get props => _$props;
+
+  Iterable<String> get keys => [
+        ...parents ?? [],
+        name,
+      ];
 }
 
 // ignore: strict_raw_type

@@ -112,7 +112,7 @@ class ScriptRunCommand extends Command<ExitCode>
       return validateResult;
     }
 
-    final result = commandsToRun(keys, listOut: listOut);
+    final result = commandsToRun(keys, listOut: listOut).single;
 
     if (result.exitCode case final ExitCode exitCode) {
       return exitCode;
