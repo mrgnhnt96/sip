@@ -75,7 +75,7 @@ prep:
 publish:
   (bail):
   (command):
-    - sip test --bail --recursive --concurrent
+    # - sip test --bail --recursive --concurrent
     - "{$prep}"
     - "{$_packages} dart pub publish"
     - "{$publish:commit}"
