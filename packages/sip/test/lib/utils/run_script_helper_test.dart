@@ -242,7 +242,7 @@ cd packages/domain
               r'{$test:_format-coverage}',
               r'{$test:_open-coverage}',
             ],
-          }
+          },
         });
 
         final result = command

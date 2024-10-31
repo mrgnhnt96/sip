@@ -174,7 +174,7 @@ class Variables with WorkingDirectory {
       commands.addAll(resolved);
       envConfig.addAll([
         for (final e in resolved)
-          if (e.envConfig case final config?) config
+          if (e.envConfig case final config?) config,
       ]);
     }
 
@@ -224,8 +224,9 @@ class Variables with WorkingDirectory {
         }
 
         for (final replaced in replace(found, config, flags: flags)) {
-          if (replaced.envConfig case final config?)
+          if (replaced.envConfig case final config?) {
             resolvedEnvCommands.add(config);
+          }
 
           final commandsToCopy = [...resolvedCommands];
 
