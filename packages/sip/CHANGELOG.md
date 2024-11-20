@@ -1,3 +1,9 @@
+# 0.13.1 | 11.20.2024
+
+## Fixes
+
+- `sip update` should now update to the latest version properly
+
 # 0.13.0 | 11.20.2024
 
 ## Features
