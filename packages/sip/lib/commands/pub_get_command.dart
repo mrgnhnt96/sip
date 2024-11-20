@@ -3,6 +3,8 @@
 import 'package:sip_cli/commands/a_pub_command.dart';
 
 /// The `pub get` command.
+///
+/// https://github.com/dart-lang/pub/blob/master/lib/src/command/get.dart
 class PubGetCommand extends APubCommand {
   PubGetCommand({
     required super.pubspecLock,
@@ -28,6 +30,9 @@ class PubGetCommand extends APubCommand {
         negatable: false,
         help: 'Enforce pubspec.lock. Fail resolution if '
             'pubspec.lock does not satisfy pubspec.yaml',
+      )
+      ..addFlag(
+        'unlock-transitive',
       )
       ..addFlag(
         'precompile',
