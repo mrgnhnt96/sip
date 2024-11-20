@@ -65,6 +65,7 @@ class PubUpgradeCommand extends APubCommand {
         if (argResults!['tighten'] as bool) '--tighten',
         if (argResults!['major-versions'] as bool) '--major-versions',
         if (argResults!['unlock-transitive'] as bool) '--unlock-transitive',
+        if (argResults!.rest.isNotEmpty) ...argResults!.rest,
       ];
 
   @override
