@@ -24,6 +24,7 @@ class ConstrainPubspecVersions {
     String path, {
     bool includeDevDependencies = false,
     VersionBump versionBump = VersionBump.breaking,
+    bool dryRun = false,
   }) {
     final file = fs.file(path);
 
@@ -43,6 +44,10 @@ class ConstrainPubspecVersions {
 
     if (result == null) {
       return false;
+    }
+
+    if (dryRun) {
+      return true;
     }
 
     file.writeAsStringSync(result);

@@ -29,6 +29,12 @@ class PubConstrainCommand extends Command<ExitCode> with DartOrFlutterMixin {
         help: 'Run command recursively in all subdirectories.',
       )
       ..addFlag(
+        'dry-run',
+        abbr: 'n',
+        negatable: false,
+        help: "Report what dependencies would change but don't change any.",
+      )
+      ..addFlag(
         'dev_dependencies',
         abbr: 'd',
         negatable: false,
@@ -82,6 +88,7 @@ class PubConstrainCommand extends Command<ExitCode> with DartOrFlutterMixin {
     final flutterOnly = argResults['flutter-only'] as bool;
     final includeDevDependencies = argResults['dev_dependencies'] as bool;
     final versionBump = VersionBump.values.byName(argResults['bump'] as String);
+    final dryRun = argResults['dry-run'] as bool;
 
     warnDartOrFlutter(
       isDartOnly: dartOnly,
@@ -114,6 +121,7 @@ class PubConstrainCommand extends Command<ExitCode> with DartOrFlutterMixin {
           flutterOrDart.pubspecYaml,
           includeDevDependencies: includeDevDependencies,
           versionBump: versionBump,
+          dryRun: dryRun,
         );
 
         progress.complete();

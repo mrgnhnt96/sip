@@ -17,6 +17,28 @@ void main() {
   });
 
   group(ConstrainPubspecVersions, () {
+    group('#constrain', () {
+      group('#dryRun', () {
+        test('does not write to file', () {
+          const content = '''
+dependencies:
+  foo: 1.2.3
+''';
+
+          final file = fs.file('pubspec.yaml')
+            ..createSync(recursive: true)
+            ..writeAsStringSync(content);
+
+          final result = instance.constrain(
+            'pubspec.yaml',
+            dryRun: true,
+          );
+
+          expect(result, isTrue);
+          expect(file.readAsStringSync(), content);
+        });
+      });
+    });
     group('#constraint', () {
       group('returns null', () {
         test('when name is not a string', () {
