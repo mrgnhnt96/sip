@@ -1,9 +1,13 @@
 import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
+import 'package:sip_cli/commands/pub_constrain_command.dart';
+import 'package:sip_cli/commands/pub_deps_command.dart';
+import 'package:sip_cli/commands/pub_downgrade_command.dart';
 import 'package:sip_cli/commands/pub_get_command.dart';
 import 'package:sip_cli/commands/pub_upgrade_command.dart';
 import 'package:sip_cli/domain/bindings.dart';
+import 'package:sip_cli/domain/constrain_pubspec_versions.dart';
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/pubspec_lock.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
@@ -37,6 +41,40 @@ class PubCommand extends Command<ExitCode> {
         fs: fs,
         logger: logger,
         bindings: bindings,
+      ),
+    );
+    addSubcommand(
+      PubDepsCommand(
+        pubspecLock: pubspecLock,
+        pubspecYaml: pubspecYaml,
+        findFile: findFile,
+        fs: fs,
+        logger: logger,
+        bindings: bindings,
+      ),
+    );
+    addSubcommand(
+      PubDowngradeCommand(
+        pubspecLock: pubspecLock,
+        pubspecYaml: pubspecYaml,
+        findFile: findFile,
+        fs: fs,
+        logger: logger,
+        bindings: bindings,
+      ),
+    );
+    addSubcommand(
+      PubConstrainCommand(
+        pubspecLock: pubspecLock,
+        pubspecYaml: pubspecYaml,
+        findFile: findFile,
+        fs: fs,
+        logger: logger,
+        bindings: bindings,
+        constrainPubspecVersions: ConstrainPubspecVersions(
+          fs: fs,
+          logger: logger,
+        ),
       ),
     );
   }
