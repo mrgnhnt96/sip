@@ -1,0 +1,263 @@
+import 'package:file/memory.dart';
+import 'package:mason_logger/mason_logger.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:sip_cli/domain/constrain_pubspec_versions.dart';
+import 'package:test/test.dart';
+
+void main() {
+  late MemoryFileSystem fs;
+  late ConstrainPubspecVersions instance;
+
+  setUp(() {
+    fs = MemoryFileSystem();
+    instance = ConstrainPubspecVersions(
+      fs: fs,
+      logger: _MockLogger(),
+    );
+  });
+
+  group(ConstrainPubspecVersions, () {
+    group('#constraint', () {
+      group('returns null', () {
+        test('when name is not a string', () {
+          final result = instance.constraint(42, '1.2.3');
+
+          expect(result, isNull);
+        });
+
+        test('when version is not a string', () {
+          final result = instance.constraint('foo', 42);
+
+          expect(result, isNull);
+        });
+
+        test('when version is path', () {
+          const version = '''
+  path: ../foo
+''';
+
+          final result = instance.constraint('foo', version);
+
+          expect(result, isNull);
+        });
+
+        test('when version is git', () {
+          const version = '''
+  git:
+    url: git://github.com/user/repo.git
+''';
+
+          final result = instance.constraint('foo', version);
+
+          expect(result, isNull);
+        });
+
+        test('when version is hosted', () {
+          const version = '''
+  hosted:
+    name: foo
+    url: https://pub.dartlang.org
+''';
+
+          final result = instance.constraint('foo', version);
+
+          expect(result, isNull);
+        });
+
+        test('when version is sdk', () {
+          const version = '''
+  sdk: '>=2.12.0 <3.0.0'
+''';
+
+          final result = instance.constraint('foo', version);
+
+          expect(result, isNull);
+        });
+
+        test('when version constrained', () {
+          const version = '>1.2.3 <2.0.0';
+
+          final result = instance.constraint('foo', version);
+
+          expect(result, isNull);
+        });
+      });
+
+      group('returns new constraint gracefully', () {
+        test('when version number is normal', () {
+          final result = instance.constraint('foo', '1.2.3');
+
+          expect(result, isNotNull);
+
+          final (:name, :version) = result!;
+
+          expect(name, 'foo');
+          expect(version, '>=1.2.3 <2.0.0');
+        });
+
+        test('when version number has min', () {
+          final result = instance.constraint('foo', '^1.2.3');
+
+          expect(result, isNotNull);
+
+          final (:name, :version) = result!;
+
+          expect(name, 'foo');
+          expect(version, '>=1.2.3 <2.0.0');
+        });
+
+        test('when version number contains pre-release', () {
+          final result = instance.constraint('foo', '1.2.3-dev.1');
+
+          expect(result, isNotNull);
+
+          final (:name, :version) = result!;
+
+          expect(name, 'foo');
+          expect(version, '>=1.2.3-dev.1 <2.0.0');
+        });
+
+        test('when version number contains build', () {
+          final result = instance.constraint('foo', '1.2.3+42');
+
+          expect(result, isNotNull);
+
+          final (:name, :version) = result!;
+
+          expect(name, 'foo');
+          expect(version, '>=1.2.3+42 <2.0.0');
+        });
+
+        test('when version number contains pre-release and build', () {
+          final result = instance.constraint('foo', '1.2.3-dev.1+42');
+
+          expect(result, isNotNull);
+
+          final (:name, :version) = result!;
+
+          expect(name, 'foo');
+          expect(version, '>=1.2.3-dev.1+42 <2.0.0');
+        });
+      });
+    });
+
+    group('#applyConstraintsTo', () {
+      group('returns null', () {
+        test('when dependencies are not provided', () {
+          const content = '';
+
+          final result = instance.applyConstraintsTo(content);
+
+          expect(result, isNull);
+        });
+
+        test('when dependencies are not changed', () {
+          const content = '''
+dependencies:
+  foo: ">=1.2.3 <2.0.0"
+''';
+
+          final result = instance.applyConstraintsTo(content);
+
+          expect(result, isNull);
+        });
+      });
+
+      group('runs successfully', () {
+        test('when dependencies exist', () {
+          const content = '''
+dependencies:
+  foo: 1.2.3
+
+dev_dependencies:
+  bar: 2.3.4
+''';
+
+          const expected = '''
+dependencies:
+  foo: ">=1.2.3 <2.0.0"
+
+dev_dependencies:
+  bar: 2.3.4
+''';
+
+          final result = instance.applyConstraintsTo(content);
+
+          expect(result, isNotNull);
+          expect(result, expected);
+        });
+
+        test('when dev_dependencies exist', () {
+          const content = '''
+dev_dependencies:
+  foo: 1.2.3
+
+dependencies:
+  bar: 2.3.4
+''';
+
+          const expected = '''
+dev_dependencies:
+  foo: ">=1.2.3 <2.0.0"
+
+dependencies:
+  bar: ">=2.3.4 <3.0.0"
+''';
+
+          final result = instance.applyConstraintsTo(
+            content,
+            additionalKeys: ['dev_dependencies'],
+          );
+
+          expect(result, isNotNull);
+          expect(result, expected);
+        });
+      });
+
+      test('ignores invalid dependencies', () {
+        const content = '''
+dependencies:
+  deku: 1.2.3
+  link:
+    path: ../bar
+  zelda:
+    git:
+      url: git://github.com/user/repo.git
+  ganon:
+    hosted:
+      name: qux
+      url: https://pub.dartlang.org
+  hyrule:
+    sdk: '>=2.12.0 <3.0.0'
+  triforce: '>1.2.3 <2.0.0'
+  epona: ">=1.2.3 <2.0.0"
+''';
+
+        const expected = '''
+dependencies:
+  deku: ">=1.2.3 <2.0.0"
+  link:
+    path: ../bar
+  zelda:
+    git:
+      url: git://github.com/user/repo.git
+  ganon:
+    hosted:
+      name: qux
+      url: https://pub.dartlang.org
+  hyrule:
+    sdk: '>=2.12.0 <3.0.0'
+  triforce: '>1.2.3 <2.0.0'
+  epona: ">=1.2.3 <2.0.0"
+''';
+
+        final result = instance.applyConstraintsTo(content);
+
+        expect(result, isNotNull);
+        expect(result, expected);
+      });
+    });
+  });
+}
+
+class _MockLogger extends Mock implements Logger {}
