@@ -26,6 +26,7 @@ abstract class APubCommand extends Command<ExitCode> with DartOrFlutterMixin {
     required this.findFile,
     required this.logger,
     required this.fs,
+    bool runConcurrently = true,
   }) {
     argParser
       ..addFlag(
@@ -38,7 +39,7 @@ abstract class APubCommand extends Command<ExitCode> with DartOrFlutterMixin {
         'concurrent',
         aliases: ['parallel'],
         abbr: 'c',
-        defaultsTo: true,
+        defaultsTo: runConcurrently,
         help: 'Run command concurrently in all subdirectories.',
       )
       ..addFlag(
