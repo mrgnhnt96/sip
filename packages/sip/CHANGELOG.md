@@ -1,3 +1,22 @@
+# 0.13.0 | 11.20.2024
+
+## Features
+
+- Pass packages to `sip pub upgrade` when provided
+  - e.g. `sip pub upgrade analyzer test` will run `<dart|flutter> pub upgrade analyzer test`
+- Create new `sip pub constrain` command
+  - Constrains all dependency versions in the `pubspec.yaml` file
+- Create new `sip pub deps` command
+  - Lists all dependencies in the `pubspec.yaml` file by running `<dart|flutter> pub deps`
+- Add `--unlock-transitive` flag to `sip pub upgrade` command
+  - This will unlock all transitive dependencies when upgrading packages
+- Create new `sip pub downgrade` command
+  - Downgrades all dependencies in the `pubspec.yaml` file by running `<dart|flutter> pub downgrade`
+
+## Enhancements
+
+- Always include a space after the label when running scripts concurrently to format the output better
+
 # 0.12.0+3 | 10/30/2024
 
 ## Features

@@ -155,8 +155,73 @@ There are flags that can be passed to `sip pub upgrade` that will be passed to `
 - precompile
 - tighten
 - major-versions
+- unlock-transitive
 
 _You can read more about these flags [here](https://dart.dev/tools/pub/cmd/pub-upgrade#options)._
+
+### PUB DOWNGRADE
+
+`sip pub downgrade` runs `pub downgrade`. It performs and functions the same as `sip pub get` but will downgrade all dependencies to the latest version.
+
+There are flags that can be passed to `sip pub downgrade` that will be passed to `pub downgrade`. The following flags are supported:
+
+- offline
+- dry-run
+- tighten
+
+_You can read more about these flags [here](https://dart.dev/tools/pub/cmd/pub-downgrade#options)._
+
+### PUB DEPS
+
+`sip pub deps` runs `pub deps` in the closest parent directory containing a `pubspec.yaml` file.
+
+There are flags that can be passed to `sip pub deps` that will be passed to `pub deps`. The following flags are supported:
+
+- style
+- dev
+- executables
+- json
+
+_You can read more about these flags [here](https://dart.dev/tools/pub/cmd/pub-deps#options)._
+
+### PUB CONSTRAIN
+
+`sip pub constrain` will modify the `pubspec.yaml` file to constrain the version of each dependency to the version that is currently being used.
+
+```yaml
+# pubspec.yaml (BEFORE)
+name: package
+
+dependencies:
+  provider: ^5.0.0
+  shared_preferences: 2.0.0
+  http: ^0.13.3
+  dio: ">=4.0.0 <5.0.0"
+```
+
+```bash
+sip pub constrain
+```
+
+```yaml
+# pubspec.yaml (AFTER)
+name: package
+
+dependencies:
+  provider: ">=5.0.0 <6.0.0"
+  shared_preferences: ">=2.0.0 <3.0.0"
+  http: ">=0.13.3 <0.14.0"
+  dio: ">=4.0.0 <5.0.0"
+```
+
+Flags:
+
+- **recursive**: Constrain all dependencies in all children directories containing a `pubspec.yaml` file.
+- **dev_dependencies**: Constrain the dev_dependencies in the `pubspec.yaml` file.
+- **bump**: Choose which version to bump to. The options are `breaking`, `major`, `minor`, and `patch`.
+- **dry-run**: Print the changes that will be made without actually making the changes.
+- **dart-only**: Only constrain dart dependencies.
+- **flutter-only**: Only constrain flutter dependencies.
 
 ## Running Tests
 
