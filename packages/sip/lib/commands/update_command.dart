@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:args/command_runner.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
+import 'package:pub_semver/pub_semver.dart';
 import 'package:pub_updater/pub_updater.dart';
 import 'package:sip_cli/src/version.dart';
 import 'package:sip_cli/utils/exit_code.dart';
@@ -24,54 +25,21 @@ class UpdateCommand extends Command<ExitCode> {
   Future<(bool, String)> needsUpdate() async {
     final latestVersion = await pubUpdater.getLatestVersion('sip_cli');
 
-    final match = packageVersion == latestVersion;
+    try {
+      final semPackageVersion = Version.parse(packageVersion);
+      final semLatestVersion = Version.parse(latestVersion);
 
-    if (match) {
+      logger
+        ..detail('Current version: $packageVersion')
+        ..detail('Latest version: $latestVersion');
+
+      return (semPackageVersion != semLatestVersion, latestVersion);
+    } catch (e) {
+      logger
+        ..detail('Failed to parse versions')
+        ..detail('Error: $e');
       return (false, latestVersion);
     }
-
-    if (isLocalVersion(current: packageVersion, latest: latestVersion)) {
-      return (false, latestVersion);
-    }
-
-    return (true, latestVersion);
-  }
-
-  /// Returns true if the local version is larger than the latest version
-  ///
-  /// 0.0.1 (local) > 0.0.0 (latest)
-  bool isLocalVersion({
-    required String current,
-    required String latest,
-  }) {
-    final latestPlus =
-        latest.contains('+') ? latest.replaceAll(RegExp(r'.*(?=\+)'), '') : '';
-    final currentPlus = current.contains('+')
-        ? current.replaceAll(RegExp(r'.*(?=\+)'), '')
-        : '';
-
-    final latestSplit = latest.replaceAll(latestPlus, '').split('.');
-    final currentSplit = current.replaceAll(currentPlus, '').split('.');
-
-    for (var i = 0; i < latestSplit.length; i++) {
-      final latest = int.tryParse(latestSplit[i]) ?? 0;
-      final current = int.tryParse(currentSplit[i]) ?? 0;
-
-      if (current > latest) {
-        return true;
-      }
-    }
-
-    if (latestPlus != currentPlus) {
-      final latest = int.tryParse(latestPlus) ?? 0;
-      final current = int.tryParse(currentPlus) ?? 0;
-
-      if (current > latest) {
-        return true;
-      }
-    }
-
-    return false;
   }
 
   Future<bool> update() async {
@@ -96,7 +64,10 @@ class UpdateCommand extends Command<ExitCode> {
     final (needsUpdate, latestVersion) = await this.needsUpdate();
 
     if (!needsUpdate) {
-      progress.complete('$packageName is up to date');
+      final version = darkGray.wrap('(v$packageVersion)');
+      progress.complete(
+        '$packageName is up to date $version',
+      );
 
       return ExitCode.success;
     }
