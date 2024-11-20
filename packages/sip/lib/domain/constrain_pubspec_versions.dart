@@ -4,6 +4,13 @@ import 'package:pub_semver/pub_semver.dart';
 import 'package:yaml/yaml.dart';
 import 'package:yaml_edit/yaml_edit.dart';
 
+enum VersionBump {
+  patch,
+  minor,
+  major,
+  breaking,
+}
+
 class ConstrainPubspecVersions {
   const ConstrainPubspecVersions({
     required this.fs,
@@ -16,6 +23,7 @@ class ConstrainPubspecVersions {
   bool constrain(
     String path, {
     bool includeDevDependencies = false,
+    VersionBump versionBump = VersionBump.breaking,
   }) {
     final file = fs.file(path);
 
@@ -27,6 +35,7 @@ class ConstrainPubspecVersions {
 
     final result = applyConstraintsTo(
       content,
+      versionBump: versionBump,
       additionalKeys: [
         if (includeDevDependencies) 'dev_dependencies',
       ],
@@ -44,6 +53,7 @@ class ConstrainPubspecVersions {
   String? applyConstraintsTo(
     String content, {
     Iterable<String> additionalKeys = const [],
+    VersionBump versionBump = VersionBump.breaking,
   }) {
     final yaml = YamlEditor(content);
 
@@ -58,9 +68,10 @@ class ConstrainPubspecVersions {
       logger.detail('Constraining versions for $key');
       if (yaml[key] case final YamlMap deps) {
         for (final MapEntry(key: name, value: version) in deps.entries) {
-          final depConstraint = constraint(name, version);
+          final depConstraint = constraint(name, version, versionBump);
 
           if (depConstraint == null) continue;
+          if (depConstraint.version == version) continue;
 
           changesMade = true;
 
@@ -77,20 +88,39 @@ class ConstrainPubspecVersions {
     return yaml.toString();
   }
 
-  ({dynamic name, dynamic version})? constraint(dynamic name, dynamic version) {
+  ({dynamic name, dynamic version})? constraint(
+    dynamic name,
+    dynamic version, [
+    VersionBump versionBump = VersionBump.breaking,
+  ]) {
     if (name is! String || version is! String) {
       return null;
     }
 
     Version semVersion;
 
+    final minVersion = RegExp(r'^\^');
+    final rangedVersion = RegExp(r'^\>\=?([\d.+-\w]+)');
+
+    final sanitized = switch (version) {
+      _ when minVersion.hasMatch(version) => version.replaceFirst('^', ''),
+      _ when rangedVersion.hasMatch(version) =>
+        rangedVersion.firstMatch(version)?.group(1) ?? version,
+      _ => version,
+    };
+
     try {
-      semVersion = Version.parse(version.replaceFirst('^', ''));
+      semVersion = Version.parse(sanitized);
     } on FormatException {
       return null;
     }
 
-    final nextVersion = semVersion.nextBreaking;
+    final nextVersion = switch (versionBump) {
+      VersionBump.patch => semVersion.nextPatch,
+      VersionBump.minor => semVersion.nextMinor,
+      VersionBump.major => semVersion.nextMajor,
+      VersionBump.breaking => semVersion.nextBreaking,
+    };
 
     final constraint = '>=$semVersion <$nextVersion';
 

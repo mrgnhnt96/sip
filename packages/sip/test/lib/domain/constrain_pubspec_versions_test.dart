@@ -73,14 +73,6 @@ void main() {
 
           expect(result, isNull);
         });
-
-        test('when version constrained', () {
-          const version = '>1.2.3 <2.0.0';
-
-          final result = instance.constraint('foo', version);
-
-          expect(result, isNull);
-        });
       });
 
       group('returns new constraint gracefully', () {
@@ -100,6 +92,16 @@ void main() {
 
           expect(result, isNotNull);
 
+          final (:name, :version) = result!;
+
+          expect(name, 'foo');
+          expect(version, '>=1.2.3 <2.0.0');
+        });
+
+        test('when version constrained', () {
+          final result = instance.constraint('foo', '>1.2.3 <1.2.4');
+
+          expect(result, isNotNull);
           final (:name, :version) = result!;
 
           expect(name, 'foo');
@@ -137,6 +139,63 @@ void main() {
 
           expect(name, 'foo');
           expect(version, '>=1.2.3-dev.1+42 <2.0.0');
+        });
+      });
+
+      group('bumps correct version', () {
+        test('breaking before first major', () {
+          final result = instance.constraint('foo', '0.1.2');
+
+          expect(result, isNotNull);
+
+          final (:name, :version) = result!;
+
+          expect(name, 'foo');
+          expect(version, '>=0.1.2 <0.2.0');
+        });
+
+        test('breaking after first major', () {
+          final result = instance.constraint('foo', '1.2.3');
+
+          expect(result, isNotNull);
+
+          final (:name, :version) = result!;
+
+          expect(name, 'foo');
+          expect(version, '>=1.2.3 <2.0.0');
+        });
+
+        test('major', () {
+          final result = instance.constraint('foo', '1.2.3', VersionBump.major);
+
+          expect(result, isNotNull);
+
+          final (:name, :version) = result!;
+
+          expect(name, 'foo');
+          expect(version, '>=1.2.3 <2.0.0');
+        });
+
+        test('minor', () {
+          final result = instance.constraint('foo', '1.2.3', VersionBump.minor);
+
+          expect(result, isNotNull);
+
+          final (:name, :version) = result!;
+
+          expect(name, 'foo');
+          expect(version, '>=1.2.3 <1.3.0');
+        });
+
+        test('patch', () {
+          final result = instance.constraint('foo', '1.2.3', VersionBump.patch);
+
+          expect(result, isNotNull);
+
+          final (:name, :version) = result!;
+
+          expect(name, 'foo');
+          expect(version, '>=1.2.3 <1.2.4');
         });
       });
     });
@@ -247,7 +306,7 @@ dependencies:
       url: https://pub.dartlang.org
   hyrule:
     sdk: '>=2.12.0 <3.0.0'
-  triforce: '>1.2.3 <2.0.0'
+  triforce: ">=1.2.3 <2.0.0"
   epona: ">=1.2.3 <2.0.0"
 ''';
 
