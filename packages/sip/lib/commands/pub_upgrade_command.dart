@@ -3,6 +3,8 @@
 import 'package:sip_cli/commands/a_pub_command.dart';
 
 /// The `pub upgrade` command.
+///
+/// https://github.com/dart-lang/pub/blob/master/lib/src/command/upgrade.dart
 class PubUpgradeCommand extends APubCommand {
   PubUpgradeCommand({
     required super.pubspecLock,
@@ -37,6 +39,13 @@ class PubUpgradeCommand extends APubCommand {
     );
 
     argParser.addFlag(
+      'unlock-transitive',
+      help: 'Also upgrades the transitive dependencies '
+          'of the listed [dependencies]',
+      negatable: false,
+    );
+
+    argParser.addFlag(
       'major-versions',
       help: 'Upgrades packages to their latest resolvable versions, '
           'and updates pubspec.yaml.',
@@ -55,6 +64,7 @@ class PubUpgradeCommand extends APubCommand {
         if (argResults!['precompile'] as bool) '--precompile',
         if (argResults!['tighten'] as bool) '--tighten',
         if (argResults!['major-versions'] as bool) '--major-versions',
+        if (argResults!['unlock-transitive'] as bool) '--unlock-transitive',
       ];
 
   @override
