@@ -23,8 +23,10 @@ dependencies:
   json_annotation: ^4.9.0
   mason_logger: ">=0.0.1 <1.0.0"
   path: ">=1.8.0 <2.0.0"
+  pub_semver: ^2.1.4
   pub_updater: ^0.4.0
   yaml: ">=3.0.0 <4.0.0"
+  yaml_edit: ^2.2.1
 
 dev_dependencies:
   autoequal_gen: ^0.9.1

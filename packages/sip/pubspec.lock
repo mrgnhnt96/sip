@@ -479,7 +479,7 @@ packages:
     source: hosted
     version: "5.0.2"
   pub_semver:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: pub_semver
       sha256: "40d3ab1bbd474c4c2328c91e3a7df8c6dd629b79ece4c4bd04bee496a224fb0c"
@@ -750,5 +750,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.2"
+  yaml_edit:
+    dependency: "direct main"
+    description:
+      name: yaml_edit
+      sha256: e9c1a3543d2da0db3e90270dbb1e4eebc985ee5e3ffe468d83224472b2194a5f
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.2.1"
 sdks:
   dart: ">=3.4.0 <4.0.0"
