@@ -46,7 +46,8 @@ class RunManyScripts {
 
     String getLabel() {
       Iterable<String> create() sync* {
-        yield label;
+        yield label.trim();
+        yield ' ';
         yield darkGray.wrap('| ')!;
         yield magenta.wrap('${results.length}/${commands.length}')!;
       }
