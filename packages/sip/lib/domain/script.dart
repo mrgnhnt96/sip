@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:mason_logger/mason_logger.dart';
 import 'package:sip_cli/domain/script_env.dart';
 import 'package:sip_cli/domain/scripts_config.dart';
 import 'package:sip_cli/utils/constants.dart';
@@ -119,6 +120,33 @@ class Script extends Equatable {
     return buffer.toString();
   }
 
+  Iterable<(bool, Script)> query(String query) sync* {
+    if (_matchesQuery(this, query)) {
+      yield (true, this);
+    }
+
+    final scripts = this.scripts?.scripts.values ?? [];
+
+    for (final script in scripts) {
+      final hasMatch = _matchesQuery(script, query);
+      yield (hasMatch, script);
+
+      if (hasMatch) continue;
+
+      yield* script.query(query);
+    }
+  }
+
+  bool _matchesQuery(Script script, String query) {
+    if (script.name.startsWith('_')) return false;
+    if (script.name.contains(query)) return true;
+    if (script.aliases.contains(query)) return true;
+    if (script.description case final String description
+        when description.contains(query)) return true;
+
+    return false;
+  }
+
   @override
   List<Object?> get props => _$props;
 
@@ -126,6 +154,37 @@ class Script extends Equatable {
         ...parents ?? [],
         name,
       ];
+
+  String printDetails() {
+    if (this.name.startsWith('_')) return '';
+
+    final buffer = StringBuffer();
+
+    final name = cyan.wrap(this.name);
+
+    final keys = yellow.wrap(this.keys.join(' '));
+    buffer.writeln('$name: $keys');
+
+    if (description case final String description) {
+      final descriptionTitle = darkGray.wrap('description');
+      buffer.writeln('  $descriptionTitle: $description');
+    }
+
+    if (scripts?.scripts.values case final scripts?) {
+      for (final script in scripts) {
+        final lines = script.printDetails().split('\n');
+
+        for (final line in lines) {
+          final trimmed = line.trimRight();
+          if (trimmed.isEmpty) continue;
+
+          buffer.writeln('  $trimmed');
+        }
+      }
+    }
+
+    return buffer.toString();
+  }
 }
 
 // ignore: strict_raw_type

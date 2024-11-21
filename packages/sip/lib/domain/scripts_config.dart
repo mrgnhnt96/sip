@@ -198,6 +198,22 @@ class ScriptsConfig extends Equatable {
     return buffer.toString();
   }
 
+  Iterable<Script> search(String query) sync* {
+    final results = this.query(query);
+
+    for (final (hasMatch, script) in results) {
+      if (!hasMatch) continue;
+
+      yield script;
+    }
+  }
+
+  Iterable<(bool, Script)> query(String query) sync* {
+    for (final script in scripts.values) {
+      yield* script.query(query);
+    }
+  }
+
   @override
   List<Object?> get props => _$props;
 }
