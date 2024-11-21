@@ -214,6 +214,14 @@ dependencies:
   dio: ">=4.0.0 <5.0.0"
 ```
 
+If you would like to constrain only certain dependencies, you can pass the package's names as arguments.
+
+```bash
+sip pub constrain provider shared_preferences
+```
+
+```yaml
+
 Flags:
 
 - **recursive**: Constrain all dependencies in all children directories containing a `pubspec.yaml` file.

@@ -1,3 +1,10 @@
+# 0.13.3 | 11.21.2024
+
+## Features
+
+- Constrain certain packages by providing their package names to the `constrain` command
+  - e.g. `sip pub constrain analyzer test` will constrain only the `analyzer` and `test` packages
+
 # 0.13.2 | 11.21.2024
 
 ## Features
