@@ -1,3 +1,14 @@
+# 0.13.2 | 11.21.2024
+
+## Features
+
+- Support querying scripts from `sip list`
+  - Usage: `sip list [query] [arguments]`
+  - Searches for
+    - Script keys that contain the query string
+    - Aliases that match the query string
+    - Descriptions that contain the query string
+
 # 0.13.1 | 11.20.2024
 
 ## Fixes
