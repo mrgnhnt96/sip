@@ -1,9 +1,18 @@
+# 0.13.4 | 11.21.2024
+
+## Features
+
+- Pin versions of packages by providing the `--pin` flag to the `constrain` command
+  - e.g. `sip pub constrain --pin` will pin all packages to their current versions
+
 # 0.13.3 | 11.21.2024
 
 ## Features
 
 - Constrain certain packages by providing their package names to the `constrain` command
   - e.g. `sip pub constrain analyzer test` will constrain only the `analyzer` and `test` packages
+- Pin versions of packages by providing the `--pin` flag to the `constrain` command
+  - e.g. `sip pub constrain --pin` will pin all packages to their current versions
 
 # 0.13.2 | 11.21.2024
 
