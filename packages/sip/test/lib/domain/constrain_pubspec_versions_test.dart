@@ -39,6 +39,7 @@ dependencies:
         });
       });
     });
+
     group('#constraint', () {
       group('returns null', () {
         test('when name is not a string', () {
@@ -333,6 +334,32 @@ dependencies:
 ''';
 
         final result = instance.applyConstraintsTo(content);
+
+        expect(result, isNotNull);
+        expect(result, expected);
+      });
+
+      test('applies to only certain packages', () {
+        final packages = ['foo', 'bar'];
+
+        const content = '''
+dependencies:
+  foo: 1.2.3
+  bar: 2.3.4
+  baz: 3.4.5
+''';
+
+        const expected = '''
+dependencies:
+  foo: ">=1.2.3 <2.0.0"
+  bar: ">=2.3.4 <3.0.0"
+  baz: 3.4.5
+''';
+
+        final result = instance.applyConstraintsTo(
+          content,
+          packages: packages,
+        );
 
         expect(result, isNotNull);
         expect(result, expected);

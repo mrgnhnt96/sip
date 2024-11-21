@@ -25,6 +25,7 @@ class ConstrainPubspecVersions {
     bool includeDevDependencies = false,
     VersionBump versionBump = VersionBump.breaking,
     bool dryRun = false,
+    Iterable<String> packages = const [],
   }) {
     final file = fs.file(path);
 
@@ -37,6 +38,7 @@ class ConstrainPubspecVersions {
     final result = applyConstraintsTo(
       content,
       versionBump: versionBump,
+      packages: packages,
       additionalKeys: [
         if (includeDevDependencies) 'dev_dependencies',
       ],
@@ -59,6 +61,7 @@ class ConstrainPubspecVersions {
     String content, {
     Iterable<String> additionalKeys = const [],
     VersionBump versionBump = VersionBump.breaking,
+    Iterable<String> packages = const [],
   }) {
     final yaml = YamlEditor(content);
 
@@ -69,10 +72,16 @@ class ConstrainPubspecVersions {
 
     var changesMade = false;
 
+    final uniquePackages = packages.toSet();
+
     for (final key in dependencies) {
       logger.detail('Constraining versions for $key');
       if (yaml[key] case final YamlMap deps) {
         for (final MapEntry(key: name, value: version) in deps.entries) {
+          if (uniquePackages.isNotEmpty && !uniquePackages.contains(name)) {
+            continue;
+          }
+
           final depConstraint = constraint(name, version, versionBump);
 
           if (depConstraint == null) continue;

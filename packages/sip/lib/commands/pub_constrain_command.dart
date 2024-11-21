@@ -80,8 +80,19 @@ class PubConstrainCommand extends Command<ExitCode> with DartOrFlutterMixin {
       'Constrain all versions in pubspec.yaml to the current versions.';
 
   @override
+  String get invocation {
+    final invocation = super.invocation;
+
+    final first = invocation.split(' [arguments]').first;
+
+    return '$first [packages] [arguments]';
+  }
+
+  @override
   Future<ExitCode> run([List<String>? args]) async {
     final argResults = args != null ? argParser.parse(args) : this.argResults!;
+
+    final packages = {...argResults.rest};
 
     final recursive = argResults['recursive'] as bool;
     final dartOnly = argResults['dart-only'] as bool;
@@ -122,6 +133,7 @@ class PubConstrainCommand extends Command<ExitCode> with DartOrFlutterMixin {
           includeDevDependencies: includeDevDependencies,
           versionBump: versionBump,
           dryRun: dryRun,
+          packages: packages,
         );
 
         progress.complete();
