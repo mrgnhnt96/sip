@@ -23,9 +23,10 @@ class ConstrainPubspecVersions {
   bool constrain(
     String path, {
     bool includeDevDependencies = false,
-    VersionBump versionBump = VersionBump.breaking,
+    VersionBump bump = VersionBump.breaking,
     bool dryRun = false,
     Iterable<String> packages = const [],
+    bool pin = false,
   }) {
     final file = fs.file(path);
 
@@ -37,8 +38,9 @@ class ConstrainPubspecVersions {
 
     final result = applyConstraintsTo(
       content,
-      versionBump: versionBump,
+      bump: bump,
       packages: packages,
+      pin: pin,
       additionalKeys: [
         if (includeDevDependencies) 'dev_dependencies',
       ],
@@ -60,8 +62,9 @@ class ConstrainPubspecVersions {
   String? applyConstraintsTo(
     String content, {
     Iterable<String> additionalKeys = const [],
-    VersionBump versionBump = VersionBump.breaking,
+    VersionBump bump = VersionBump.breaking,
     Iterable<String> packages = const [],
+    bool pin = false,
   }) {
     final yaml = YamlEditor(content);
 
@@ -82,7 +85,7 @@ class ConstrainPubspecVersions {
             continue;
           }
 
-          final depConstraint = constraint(name, version, versionBump);
+          final depConstraint = constraint(name, version, bump: bump, pin: pin);
 
           if (depConstraint == null) continue;
           if (depConstraint.version == version) continue;
@@ -104,9 +107,10 @@ class ConstrainPubspecVersions {
 
   ({dynamic name, dynamic version})? constraint(
     dynamic name,
-    dynamic version, [
-    VersionBump versionBump = VersionBump.breaking,
-  ]) {
+    dynamic version, {
+    VersionBump bump = VersionBump.breaking,
+    bool pin = false,
+  }) {
     if (name is! String || version is! String) {
       return null;
     }
@@ -129,7 +133,11 @@ class ConstrainPubspecVersions {
       return null;
     }
 
-    final nextVersion = switch (versionBump) {
+    if (pin) {
+      return (name: name, version: semVersion.toString());
+    }
+
+    final nextVersion = switch (bump) {
       VersionBump.patch => semVersion.nextPatch,
       VersionBump.minor => semVersion.nextMinor,
       VersionBump.major => semVersion.nextMajor,

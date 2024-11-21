@@ -49,6 +49,11 @@ class PubConstrainCommand extends Command<ExitCode> with DartOrFlutterMixin {
         defaultsTo: VersionBump.breaking.name,
       )
       ..addFlag(
+        'pin',
+        negatable: false,
+        help: 'Pin the version of the package.',
+      )
+      ..addFlag(
         'dart-only',
         negatable: false,
         help: 'Only run command in Dart projects.',
@@ -100,6 +105,7 @@ class PubConstrainCommand extends Command<ExitCode> with DartOrFlutterMixin {
     final includeDevDependencies = argResults['dev_dependencies'] as bool;
     final versionBump = VersionBump.values.byName(argResults['bump'] as String);
     final dryRun = argResults['dry-run'] as bool;
+    final pin = argResults['pin'] as bool;
 
     warnDartOrFlutter(
       isDartOnly: dartOnly,
@@ -131,9 +137,10 @@ class PubConstrainCommand extends Command<ExitCode> with DartOrFlutterMixin {
         final success = constrainPubspecVersions.constrain(
           flutterOrDart.pubspecYaml,
           includeDevDependencies: includeDevDependencies,
-          versionBump: versionBump,
+          bump: versionBump,
           dryRun: dryRun,
           packages: packages,
+          pin: pin,
         );
 
         progress.complete();

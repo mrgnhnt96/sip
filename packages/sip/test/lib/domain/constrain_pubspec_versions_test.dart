@@ -189,7 +189,8 @@ dependencies:
         });
 
         test('major', () {
-          final result = instance.constraint('foo', '1.2.3', VersionBump.major);
+          final result =
+              instance.constraint('foo', '1.2.3', bump: VersionBump.major);
 
           expect(result, isNotNull);
 
@@ -200,7 +201,8 @@ dependencies:
         });
 
         test('minor', () {
-          final result = instance.constraint('foo', '1.2.3', VersionBump.minor);
+          final result =
+              instance.constraint('foo', '1.2.3', bump: VersionBump.minor);
 
           expect(result, isNotNull);
 
@@ -211,7 +213,8 @@ dependencies:
         });
 
         test('patch', () {
-          final result = instance.constraint('foo', '1.2.3', VersionBump.patch);
+          final result =
+              instance.constraint('foo', '1.2.3', bump: VersionBump.patch);
 
           expect(result, isNotNull);
 
@@ -359,6 +362,30 @@ dependencies:
         final result = instance.applyConstraintsTo(
           content,
           packages: packages,
+        );
+
+        expect(result, isNotNull);
+        expect(result, expected);
+      });
+
+      test('pins dependencies', () {
+        const content = '''
+dependencies:
+  foo: ">=1.2.3 <2.0.0"
+  bar: ^2.3.4
+  baz: 3.4.5
+''';
+
+        const expected = '''
+dependencies:
+  foo: 1.2.3
+  bar: 2.3.4
+  baz: 3.4.5
+''';
+
+        final result = instance.applyConstraintsTo(
+          content,
+          pin: true,
         );
 
         expect(result, isNotNull);
