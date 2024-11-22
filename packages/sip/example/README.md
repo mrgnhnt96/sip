@@ -389,6 +389,13 @@ You can list all the scripts that are defined within the `scripts.yaml` file.
 sip list # or sip ls
 ```
 
+> [!TIP]
+> You can search for a script by passing in a query after the command
+>
+> ```bash
+> sip list build_runner
+> ```
+
 ![Sip](../assets/list_commands.png)
 
 You can filter nested scripts by passing in the `--list` flag.
