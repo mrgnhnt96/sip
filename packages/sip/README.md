@@ -159,6 +159,17 @@ There are flags that can be passed to `sip pub upgrade` that will be passed to `
 
 _You can read more about these flags [here](https://dart.dev/tools/pub/cmd/pub-upgrade#options)._
 
+> [!TIP]
+> If you would like to upgrade only certain dependencies, you can pass the package's names as arguments.
+>
+> ```bash
+> sip pub upgrade provider shared_preferences
+> ```
+>
+> This will only upgrade the `provider` and `shared_preferences` packages.
+>
+> Running recursively, if these dependencies don't exist in the pubspec.yaml file, the pubspec.yaml file will be ignored
+
 ### PUB DOWNGRADE
 
 `sip pub downgrade` runs `pub downgrade`. It performs and functions the same as `sip pub get` but will downgrade all dependencies to the latest version.

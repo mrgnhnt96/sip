@@ -1,3 +1,10 @@
+# 0.13.5 | 11.22.2024
+
+## Features
+
+- Check for dependencies when running `sip pub upgrade <packages>`
+  - If the package is not found in the `pubspec.yaml` file, that `pubspec.yaml` file will be skipped
+
 # 0.13.4+1 | 11.22.2024
 
 ## Features
