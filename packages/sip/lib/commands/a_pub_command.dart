@@ -92,6 +92,10 @@ abstract class APubCommand extends Command<ExitCode> with DartOrFlutterMixin {
     return onFinish(result);
   }
 
+  Future<Iterable<String>> pubspecs({required bool recursive}) async {
+    return await pubspecYaml.all(recursive: recursive);
+  }
+
   Future<ExitCode> _run([List<String>? args]) async {
     final argResults = args != null ? argParser.parse(args) : this.argResults!;
 
@@ -107,7 +111,7 @@ abstract class APubCommand extends Command<ExitCode> with DartOrFlutterMixin {
       isFlutterOnly: flutterOnly,
     );
 
-    final pubspecs = await pubspecYaml.all(recursive: recursive);
+    final pubspecs = await this.pubspecs(recursive: recursive);
 
     if (pubspecs.isEmpty) {
       logger.err('No pubspec.yaml files found.');
