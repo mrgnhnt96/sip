@@ -103,6 +103,31 @@ void main() {
           expect(result.resolveScript?.envConfig, expectedConfig);
         });
 
+        test('should resolve the env command reference', () {
+          final command = TestCommand();
+          when(command.scriptsYaml.scripts).thenReturn({
+            'ref': "echo 'ref'",
+            'pub': {
+              '(command)': 'echo "pub"',
+              '(env)': {
+                'file': 'some/path/to/test/.env',
+                'command': r'{$ref}',
+              },
+            },
+          });
+
+          final result = command.getCommands(['pub'], listOut: false).single;
+
+          expect(result.exitCode, isNull);
+          const expectedConfig = EnvConfig(
+            commands: {"echo 'ref'"},
+            files: {'some/path/to/test/.env'},
+            workingDirectory: '/',
+          );
+
+          expect(result.resolveScript?.envConfig, expectedConfig);
+        });
+
         test('should get the env config for the referenced script', () {
           final command = TestCommand();
           when(command.scriptsYaml.scripts).thenReturn({
@@ -337,6 +362,28 @@ cd packages/domain
         expect(result.exitCode, isNull);
         expect(result.commands?.map((e) => e.command), ['echo "pub"']);
         expect(result.commands?.map((e) => e.runConcurrently), [true]);
+      });
+
+      test('should remove concurrent symbol from env config when found', () {
+        final command = TestCommand();
+
+        when(command.scriptsYaml.nearest)
+            .thenReturn('some/path/to/test/scripts.yaml');
+
+        when(command.scriptsYaml.scripts).thenReturn({
+          'pub': {
+            '(command)': 'echo "pub"',
+            '(env)': {
+              'file': 'some/path/to/test/.env',
+              'command': '(+) echo "env"',
+            },
+          },
+        });
+
+        final result = command.commandsToRun(['pub'], listOut: false).single;
+        expect(result.exitCode, isNull);
+        expect(result.commands, hasLength(1));
+        expect(result.combinedEnvConfig?.commands, ['echo "env"']);
       });
 
       test('should remove extra concurrent symbols when found', () {

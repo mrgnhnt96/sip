@@ -165,7 +165,7 @@ class Variables with WorkingDirectory {
           ),
     };
 
-    final envConfig = {
+    final envConfig = <EnvConfig>{
       ...envCommands,
     };
 
@@ -177,7 +177,14 @@ class Variables with WorkingDirectory {
       envConfig.addAll([
         if (parentEnvConfig != null) parentEnvConfig,
         for (final e in resolved)
-          if (e.envConfig case final config?) config,
+          for (final command in e.envConfig?.commands ?? <String>[])
+            EnvConfig(
+              commands: resolve(command, script)
+                  .map((e) => e.command)
+                  .whereType<String>(),
+              files: e.envConfig?.files,
+              workingDirectory: directory,
+            ),
       ]);
     }
 

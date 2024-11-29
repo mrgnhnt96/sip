@@ -162,7 +162,7 @@ class ScriptRunCommand extends Command<ExitCode>
     required Iterable<CommandToRun> commands,
     required EnvConfig? combinedEnvConfig,
   }) async {
-    if (combinedEnvConfig case final EnvConfig _) {
+    if (combinedEnvConfig case EnvConfig()) {
       if (combinedEnvConfig.commands case final Iterable<String> commands
           when commands.isNotEmpty) {
         logger.detail('Running env commands');
