@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:sip_cli/utils/constants.dart';
 
 part 'env_config.g.dart';
 
@@ -29,7 +30,14 @@ extension CombineEnvConfigEnvConfigX on Iterable<EnvConfig?> {
     for (final config in this) {
       if (config == null) continue;
 
-      commands.addAll(config.commands ?? []);
+      for (var command in config.commands ?? <String>[]) {
+        while (command.startsWith(Identifiers.concurrent)) {
+          command = command.substring(Identifiers.concurrent.length);
+        }
+
+        commands.add(command);
+      }
+
       files.addAll(config.files ?? []);
     }
 
