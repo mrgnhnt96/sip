@@ -15,7 +15,7 @@ import 'package:sip_cli/domain/variables.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('coverage e2e', () {
+  group('env files e2e', () {
     late FileSystem fs;
     late _MockBindings mockBindings;
     late Logger mockLogger;
@@ -31,92 +31,104 @@ void main() {
       fs.currentDirectory = cwd;
     });
 
-    test('runs gracefully', () async {
-      final input = io.File(
-        path.join(
-          'test',
-          'e2e',
-          'run',
-          'coverage',
-          'inputs',
-          'scripts.yaml',
-        ),
-      ).readAsStringSync();
+    group('runs gracefully', () {
+      late ScriptRunCommand command;
 
-      fs.file(ScriptsYaml.fileName)
-        ..createSync(recursive: true)
-        ..writeAsStringSync(input);
-      fs.file(PubspecYaml.fileName)
-        ..createSync(recursive: true)
-        ..writeAsStringSync('');
+      ScriptRunCommand prep() {
+        final input = io.File(
+          path.join(
+            'test',
+            'e2e',
+            'run',
+            'coverage',
+            'inputs',
+            'scripts.yaml',
+          ),
+        ).readAsStringSync();
 
-      final command = ScriptRunCommand(
-        bindings: mockBindings,
-        cwd: CWDImpl(fs: fs),
-        logger: mockLogger,
-        scriptsYaml: ScriptsYamlImpl(fs: fs),
-        variables: Variables(
+        fs.file(ScriptsYaml.fileName)
+          ..createSync(recursive: true)
+          ..writeAsStringSync(input);
+        fs.file(PubspecYaml.fileName)
+          ..createSync(recursive: true)
+          ..writeAsStringSync('');
+
+        final command = ScriptRunCommand(
+          bindings: mockBindings,
           cwd: CWDImpl(fs: fs),
-          pubspecYaml: PubspecYamlImpl(fs: fs),
+          logger: mockLogger,
           scriptsYaml: ScriptsYamlImpl(fs: fs),
-        ),
-      );
+          variables: Variables(
+            cwd: CWDImpl(fs: fs),
+            pubspecYaml: PubspecYamlImpl(fs: fs),
+            scriptsYaml: ScriptsYamlImpl(fs: fs),
+          ),
+        );
 
-      await command.run(['test']);
+        return command;
+      }
 
-      await Future<void>.delayed(const Duration(milliseconds: 100));
+      setUp(() {
+        command = prep();
+      });
 
-      expect(
-        mockBindings.scripts,
-        [
-          'cd /packages/sip || exit 1',
-          '',
-          'dart test',
-          '',
-        ],
-      );
+      test('command: test', () async {
+        await command.run(['test']);
 
-      mockBindings.scripts.clear();
+        await Future<void>.delayed(const Duration(milliseconds: 100));
 
-      await command.run(['test', '--coverage']);
+        expect(
+          mockBindings.scripts,
+          [
+            'cd /packages/sip || exit 1',
+            '',
+            'dart test',
+            '',
+          ],
+        );
+      });
 
-      expect(
-        mockBindings.scripts,
-        [
-          'cd /packages/sip || exit 1',
-          '',
-          'dart test --coverage',
-          '',
-        ],
-      );
+      test('command: test --coverage', () async {
+        await command.run(['test', '--coverage']);
 
-      mockBindings.scripts.clear();
+        expect(
+          mockBindings.scripts,
+          [
+            'cd /packages/sip || exit 1',
+            '',
+            'dart test --coverage',
+            '',
+          ],
+        );
+      });
 
-      await command.run(['test', '--coverage=banana']);
+      test('command: test --coverage=banana', () async {
+        await command.run(['test', '--coverage=banana']);
 
-      expect(
-        mockBindings.scripts,
-        [
-          'cd /packages/sip || exit 1',
-          '',
-          'dart test --coverage=banana',
-          '',
-        ],
-      );
+        expect(
+          mockBindings.scripts,
+          [
+            'cd /packages/sip || exit 1',
+            '',
+            'dart test --coverage=banana',
+            '',
+          ],
+        );
+      });
 
-      mockBindings.scripts.clear();
+      test('command: test --coverage monkey', () async {
+        await command.run(['test', '--coverage', 'monkey']);
 
-      await command.run(['test', '--coverage', 'monkey']);
-
-      expect(
-        mockBindings.scripts,
-        [
-          'cd /packages/sip || exit 1',
-          '',
-          'dart test --coverage monkey',
-          '',
-        ],
-      );
+        expect(
+          mockBindings.scripts,
+          [
+            'cd /packages/sip || exit 1',
+            '',
+            'dart test --coverage monkey',
+            '',
+          ],
+        );
+      });
     });
   });
 }
