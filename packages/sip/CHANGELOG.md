@@ -1,3 +1,10 @@
+# 0.13.6 | 11.29.2024
+
+## Fixes
+
+- Bug where env reference commands may not be resolved
+- Bug that did not remove concurrency symbols from env file commands
+
 # 0.13.5 | 11.22.2024
 
 ## Features
