@@ -1,0 +1,27 @@
+env:
+  _files:
+    - be
+    - app.run-time
+
+  generate:
+    (aliases): gen
+
+    local:
+      (bail):
+      (command): >
+        (+)
+        cd infra || exit 1;
+        pnv generate-env
+        -i public/{$env:_files}.local.yaml
+        -o private/
+        -f ~/.cant-run/local.key
+
+backend:
+  (aliases): be
+  reset:
+    (env):
+      files: infra/private/be.local.env
+      command: "{$env:generate:local}"
+    (command): |
+      cd backend || exit 1;
+      dart run scripts/reset.dart
