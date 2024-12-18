@@ -19,8 +19,19 @@ class DetermineFlutterOrDart {
 
   String? _tool;
 
-  bool get isFlutter => tool() == 'flutter';
-  bool get isDart => tool() == 'dart';
+  bool _isFlutter = false;
+  bool get isFlutter {
+    tool();
+
+    return _isFlutter;
+  }
+
+  bool _isDart = true;
+  bool get isDart {
+    tool();
+
+    return _isDart;
+  }
 
   String directory({String? fromDirectory}) {
     final dir = path.dirname(pubspecYaml);
@@ -49,6 +60,8 @@ class DetermineFlutterOrDart {
 
     if (contents != null && contents.contains('flutter')) {
       tool = executables.flutter ?? 'flutter';
+      _isFlutter = true;
+      _isDart = false;
     }
 
     return _tool = tool;
