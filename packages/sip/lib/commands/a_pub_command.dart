@@ -157,6 +157,16 @@ abstract class APubCommand extends Command<ExitCode> with DartOrFlutterMixin {
       },
     );
 
+    if (dartOnly && commands.dart.isEmpty) {
+      logger.err('No Dart projects found.');
+      return ExitCode.unavailable;
+    }
+
+    if (flutterOnly && commands.flutter.isEmpty) {
+      logger.err('No Flutter projects found.');
+      return ExitCode.unavailable;
+    }
+
     if (concurrent) {
       final runners = [
         if (separated) ...[

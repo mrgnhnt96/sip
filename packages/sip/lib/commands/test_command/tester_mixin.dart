@@ -120,7 +120,7 @@ abstract mixin class TesterMixin {
       // we only care checking for flutter or
       // dart tests if we are not running both
       if (isFlutterOnly ^ isDartOnly) {
-        if (tool.isFlutter && isDartOnly && !isFlutterOnly) {
+        if (tool.isFlutter && isDartOnly) {
           continue;
         }
 
