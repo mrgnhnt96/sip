@@ -57,6 +57,28 @@ void main() {
         expect(all.length, 2);
       });
 
+      test('should ignore pubspecs within build directory', () async {
+        fs.file('pubspec.yaml').createSync();
+        fs.file('build/pubspec.yaml').createSync(recursive: true);
+
+        final all = await tester.all(recursive: true);
+
+        expect(all, isNotNull);
+        expect(all.length, 1);
+        expect(all.first, endsWith('pubspec.yaml'));
+      });
+
+      test('should ignore pubspecs within .dart_tool directory', () async {
+        fs.file('pubspec.yaml').createSync();
+        fs.file('.dart_tool/pubspec.yaml').createSync(recursive: true);
+
+        final all = await tester.all(recursive: true);
+
+        expect(all, isNotNull);
+        expect(all.length, 1);
+        expect(all.first, endsWith('pubspec.yaml'));
+      });
+
       test('should return all pubspec.yamls even when root does not exist',
           () async {
         fs.file('sub/pubspec.yaml').createSync(recursive: true);

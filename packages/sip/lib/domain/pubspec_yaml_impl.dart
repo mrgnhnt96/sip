@@ -53,6 +53,19 @@ class PubspecYamlImpl extends FindYaml implements PubspecYaml {
       ..sort()
       ..sort((a, b) => path.split(b).length - path.split(a).length);
 
-    return sortedPubspecs;
+    return sortedPubspecs
+      ..removeWhere((e) {
+        // if within a build directory, ignore
+        if (e.contains('${path.separator}build${path.separator}')) {
+          return true;
+        }
+
+        // if within a .dart_tool directory, ignore
+        if (e.contains('${path.separator}.dart_tool${path.separator}')) {
+          return true;
+        }
+
+        return false;
+      });
   }
 }
