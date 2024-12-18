@@ -6,6 +6,7 @@ import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/pubspec_lock.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
+import 'package:sip_cli/domain/scripts_yaml.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 
 class TestCleanCommand extends Command<ExitCode> with TesterMixin {
@@ -16,6 +17,7 @@ class TestCleanCommand extends Command<ExitCode> with TesterMixin {
     required this.logger,
     required this.pubspecLock,
     required this.pubspecYaml,
+    required this.scriptsYaml,
   });
 
   @override
@@ -41,6 +43,9 @@ class TestCleanCommand extends Command<ExitCode> with TesterMixin {
 
   @override
   final PubspecYaml pubspecYaml;
+
+  @override
+  final ScriptsYaml scriptsYaml;
 
   @override
   Future<ExitCode> run() async {

@@ -19,6 +19,30 @@ import 'package:sip_cli/utils/run_script_helper.dart';
 import 'package:sip_cli/utils/stopwatch_extensions.dart';
 import 'package:sip_cli/utils/working_directory.dart';
 
+// TODO(mrgnhnt): Handle when the user presses Ctrl+C
+/*
+var attemptsToKill = 0;
+    final stream = Platform.isWindows
+        ? ProcessSignal.sigint.watch()
+        : StreamGroup.merge(
+            [
+              ProcessSignal.sigterm.watch(),
+              ProcessSignal.sigint.watch(),
+            ],
+          );
+
+    _killSubscription ??= stream.listen((event) {
+      logger.detail('Received SIGINT');
+      if (attemptsToKill > 0) {
+        exit(1);
+      } else if (attemptsToKill == 0) {
+        stop().ignore();
+      }
+
+      attemptsToKill++;
+    });
+*/
+
 /// The command to run a script
 class ScriptRunCommand extends Command<ExitCode>
     with RunScriptHelper, WorkingDirectory {

@@ -8,6 +8,8 @@ abstract interface class ScriptsYaml {
 
   Map<String, dynamic>? scripts();
 
+  Map<String, dynamic>? executables();
+
   String? nearest();
 
   String? retrieveContent();

@@ -1,17 +1,21 @@
 import 'package:path/path.dart' as path;
+import 'package:sip_cli/domain/executables.dart';
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/pubspec_lock.dart';
+import 'package:sip_cli/domain/scripts_yaml.dart';
 
 class DetermineFlutterOrDart {
   DetermineFlutterOrDart({
     required this.pubspecYaml,
     required this.pubspecLock,
     required this.findFile,
+    required this.scriptsYaml,
   });
 
   final FindFile findFile;
   final String pubspecYaml;
   final PubspecLock pubspecLock;
+  final ScriptsYaml scriptsYaml;
 
   String? _tool;
 
@@ -37,12 +41,14 @@ class DetermineFlutterOrDart {
 
     final nestedLock = pubspecLock.findIn(root);
 
-    var tool = 'dart';
+    final executables = Executables.fromJson(scriptsYaml.executables() ?? {});
+
+    var tool = executables.dart ?? 'dart';
 
     final contents = findFile.retrieveContent(nestedLock ?? pubspecYaml);
 
     if (contents != null && contents.contains('flutter')) {
-      tool = 'flutter';
+      tool = executables.flutter ?? 'flutter';
     }
 
     return _tool = tool;

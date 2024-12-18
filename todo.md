@@ -1,5 +1,9 @@
 # TODO
 
+- [ ] Running `sip pub upgrade --major --dart-only` results in a never ending process if there are no matches
+- [ ] Add a `(commands)` section to the `scripts.yaml` file to configure how `flutter` and `dart` commands are run
+  - It would be nice to map `flutter` to `fvm flutter` and `dart` to `fvm dart`
+- [ ] Ignore the build directory when running pub commands
 - [ ] Look into interact
   - <https://pub.dev/packages/interact>
 - [ ] Add config for colors

@@ -11,6 +11,7 @@ import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/package_to_test.dart';
 import 'package:sip_cli/domain/pubspec_lock.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
+import 'package:sip_cli/domain/scripts_yaml.dart';
 import 'package:sip_cli/domain/test_scope.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/key_press_listener.dart';
@@ -25,6 +26,7 @@ class TestWatchCommand extends Command<ExitCode> with TesterMixin {
     required this.pubspecLock,
     required this.pubspecYaml,
     required this.keyPressListener,
+    required this.scriptsYaml,
   }) : argParser = ArgParser(usageLineLength: 120) {
     addTestFlags(this);
 
@@ -100,6 +102,9 @@ class TestWatchCommand extends Command<ExitCode> with TesterMixin {
 
   @override
   final ArgParser argParser;
+
+  @override
+  final ScriptsYaml scriptsYaml;
 
   final KeyPressListener keyPressListener;
 

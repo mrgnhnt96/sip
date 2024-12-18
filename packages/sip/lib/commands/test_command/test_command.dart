@@ -10,6 +10,7 @@ import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/pubspec_lock.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
+import 'package:sip_cli/domain/scripts_yaml.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/key_press_listener.dart';
 
@@ -22,6 +23,7 @@ class TestCommand extends Command<ExitCode> {
     required PubspecLock pubspecLock,
     required FindFile findFile,
     required KeyPressListener keyPressListener,
+    required ScriptsYaml scriptsYaml,
   }) {
     addSubcommand(
       TestRunCommand(
@@ -31,6 +33,7 @@ class TestCommand extends Command<ExitCode> {
         logger: logger,
         pubspecLock: pubspecLock,
         pubspecYaml: pubspecYaml,
+        scriptsYaml: scriptsYaml,
       ),
     );
 
@@ -42,6 +45,7 @@ class TestCommand extends Command<ExitCode> {
         logger: logger,
         pubspecLock: pubspecLock,
         pubspecYaml: pubspecYaml,
+        scriptsYaml: scriptsYaml,
       ),
     );
 
@@ -54,6 +58,7 @@ class TestCommand extends Command<ExitCode> {
         pubspecLock: pubspecLock,
         pubspecYaml: pubspecYaml,
         keyPressListener: keyPressListener,
+        scriptsYaml: scriptsYaml,
       ),
     );
   }

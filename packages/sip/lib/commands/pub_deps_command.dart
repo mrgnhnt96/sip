@@ -13,6 +13,7 @@ class PubDepsCommand extends APubCommand {
     required super.logger,
     required super.bindings,
     required super.findFile,
+    required super.scriptsYaml,
   }) : super(runConcurrently: false) {
     argParser.addOption(
       'style',

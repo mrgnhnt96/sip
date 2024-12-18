@@ -8,6 +8,7 @@ import 'package:sip_cli/domain/pubspec_lock.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
 import 'package:sip_cli/domain/run_many_scripts.dart';
 import 'package:sip_cli/domain/run_one_script.dart';
+import 'package:sip_cli/domain/scripts_yaml.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/exit_code_extensions.dart';
@@ -20,6 +21,7 @@ class CleanCommand extends Command<ExitCode> {
     required this.bindings,
     required this.logger,
     required this.cwd,
+    required this.scriptsYaml,
   }) {
     argParser
       ..addFlag(
@@ -50,6 +52,7 @@ class CleanCommand extends Command<ExitCode> {
   final PubspecYaml pubspecYaml;
   final PubspecLock pubspecLock;
   final FindFile findFile;
+  final ScriptsYaml scriptsYaml;
   final Logger logger;
   final Bindings bindings;
   final CWD cwd;
@@ -79,6 +82,7 @@ class CleanCommand extends Command<ExitCode> {
         pubspecYaml: e,
         pubspecLock: pubspecLock,
         findFile: findFile,
+        scriptsYaml: scriptsYaml,
       ),
     );
 

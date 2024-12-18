@@ -81,6 +81,7 @@ class SipRunner extends CommandRunner<ExitCode> {
         fs: fs,
         logger: logger,
         bindings: bindings,
+        scriptsYaml: scriptsYaml,
       ),
     );
     addCommand(
@@ -91,6 +92,7 @@ class SipRunner extends CommandRunner<ExitCode> {
         bindings: bindings,
         logger: logger,
         cwd: cwd,
+        scriptsYaml: scriptsYaml,
       ),
     );
     addCommand(
@@ -114,6 +116,7 @@ class SipRunner extends CommandRunner<ExitCode> {
         fs: fs,
         logger: logger,
         keyPressListener: KeyPressListener(logger: logger),
+        scriptsYaml: scriptsYaml,
       ),
     );
   }

@@ -8,6 +8,7 @@ import 'package:sip_cli/domain/constrain_pubspec_versions.dart';
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/pubspec_lock.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
+import 'package:sip_cli/domain/scripts_yaml.dart';
 import 'package:sip_cli/utils/dart_or_flutter_mixin.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 
@@ -20,6 +21,7 @@ class PubConstrainCommand extends Command<ExitCode> with DartOrFlutterMixin {
     required this.fs,
     required this.findFile,
     required this.constrainPubspecVersions,
+    required this.scriptsYaml,
   }) {
     argParser
       ..addFlag(
@@ -75,6 +77,8 @@ class PubConstrainCommand extends Command<ExitCode> with DartOrFlutterMixin {
   final FileSystem fs;
   @override
   final FindFile findFile;
+  @override
+  final ScriptsYaml scriptsYaml;
   final ConstrainPubspecVersions constrainPubspecVersions;
 
   @override

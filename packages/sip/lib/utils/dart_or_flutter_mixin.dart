@@ -3,6 +3,7 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/pubspec_lock.dart';
+import 'package:sip_cli/domain/scripts_yaml.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 
 mixin DartOrFlutterMixin {
@@ -10,6 +11,7 @@ mixin DartOrFlutterMixin {
   PubspecLock get pubspecLock;
   FindFile get findFile;
   FileSystem get fs;
+  ScriptsYaml get scriptsYaml;
 
   void warnDartOrFlutter({
     required bool isFlutterOnly,
@@ -47,6 +49,7 @@ mixin DartOrFlutterMixin {
         pubspecYaml: pubspec,
         pubspecLock: pubspecLock,
         findFile: findFile,
+        scriptsYaml: scriptsYaml,
       );
 
       final project = path.dirname(pubspec);

@@ -42,4 +42,11 @@ class ScriptsYamlImpl extends FindYaml implements ScriptsYaml {
 
     return Map.from(parsed?[Keys.variables] as Map? ?? {});
   }
+
+  @override
+  Map<String, dynamic>? executables() {
+    final parsed = parse();
+
+    return Map.from(parsed?[Keys.executables] as Map? ?? {});
+  }
 }

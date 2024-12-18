@@ -11,6 +11,7 @@ import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/pubspec_lock.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
+import 'package:sip_cli/domain/scripts_yaml.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 
@@ -22,6 +23,7 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
     required this.findFile,
     required this.fs,
     required this.logger,
+    required this.scriptsYaml,
   }) : argParser = ArgParser(usageLineLength: 120) {
     addTestFlags(this);
 
@@ -109,6 +111,9 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
   final FindFile findFile;
 
   @override
+  final ScriptsYaml scriptsYaml;
+
+  @override
   String get description => 'Run flutter or dart tests';
 
   @override
@@ -182,6 +187,7 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
         pubspecYaml: pubspec,
         pubspecLock: pubspecLock,
         findFile: findFile,
+        scriptsYaml: scriptsYaml,
       );
 
       final command = createTestCommand(

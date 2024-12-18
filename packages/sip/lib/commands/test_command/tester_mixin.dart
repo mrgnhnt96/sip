@@ -14,6 +14,7 @@ import 'package:sip_cli/domain/pubspec_yaml.dart';
 import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
 import 'package:sip_cli/domain/run_many_scripts.dart';
 import 'package:sip_cli/domain/run_one_script.dart';
+import 'package:sip_cli/domain/scripts_yaml.dart';
 import 'package:sip_cli/domain/testable.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/exit_code.dart';
@@ -37,6 +38,7 @@ abstract mixin class TesterMixin {
   PubspecLock get pubspecLock;
   FileSystem get fs;
   Bindings get bindings;
+  ScriptsYaml get scriptsYaml;
 
   ({
     List<String> both,
@@ -112,6 +114,7 @@ abstract mixin class TesterMixin {
         pubspecYaml: path.join(projectRoot, 'pubspec.yaml'),
         findFile: findFile,
         pubspecLock: pubspecLock,
+        scriptsYaml: scriptsYaml,
       );
 
       // we only care checking for flutter or

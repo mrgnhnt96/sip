@@ -13,6 +13,7 @@ class PubGetCommand extends APubCommand {
     required super.logger,
     required super.bindings,
     required super.findFile,
+    required super.scriptsYaml,
   }) {
     argParser
       ..addFlag(

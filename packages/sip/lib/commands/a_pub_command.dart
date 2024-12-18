@@ -13,6 +13,7 @@ import 'package:sip_cli/domain/pubspec_lock.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
 import 'package:sip_cli/domain/run_many_scripts.dart';
 import 'package:sip_cli/domain/run_one_script.dart';
+import 'package:sip_cli/domain/scripts_yaml.dart';
 import 'package:sip_cli/utils/dart_or_flutter_mixin.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/exit_code_extensions.dart';
@@ -26,6 +27,7 @@ abstract class APubCommand extends Command<ExitCode> with DartOrFlutterMixin {
     required this.findFile,
     required this.logger,
     required this.fs,
+    required this.scriptsYaml,
     bool runConcurrently = true,
   }) {
     argParser
@@ -77,6 +79,8 @@ abstract class APubCommand extends Command<ExitCode> with DartOrFlutterMixin {
   final Logger logger;
   @override
   final FileSystem fs;
+  @override
+  final ScriptsYaml scriptsYaml;
 
   ({Duration? dart, Duration? flutter})? get retryAfter => null;
 

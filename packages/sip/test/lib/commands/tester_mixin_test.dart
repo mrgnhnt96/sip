@@ -10,6 +10,7 @@ import 'package:sip_cli/domain/domain.dart';
 import 'package:sip_cli/domain/package_to_test.dart';
 import 'package:sip_cli/domain/pubspec_lock.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
+import 'package:sip_cli/domain/scripts_yaml.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:test/test.dart';
@@ -37,6 +38,7 @@ void main() {
         findFile: FindFile(fs: fs),
         fs: fs,
         logger: mockLogger,
+        scriptsYaml: ScriptsYamlImpl(fs: fs),
       );
     });
 
@@ -683,6 +685,7 @@ class _Tester extends TesterMixin {
     required this.logger,
     required this.pubspecLock,
     required this.pubspecYaml,
+    required this.scriptsYaml,
   });
   @override
   final Bindings bindings;
@@ -698,6 +701,9 @@ class _Tester extends TesterMixin {
 
   @override
   final PubspecLock pubspecLock;
+
+  @override
+  final ScriptsYaml scriptsYaml;
 
   @override
   final PubspecYaml pubspecYaml;

@@ -8,6 +8,7 @@ class Keys {
   static const String description = '(description)';
   static const String command = '(command)';
   static const String variables = '(variables)';
+  static const String executables = '(executables)';
   static const String name = '__(name)__';
   static const String parents = '__(parents)__';
 

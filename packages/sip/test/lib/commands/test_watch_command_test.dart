@@ -8,6 +8,7 @@ import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/package_to_test.dart';
 import 'package:sip_cli/domain/pubspec_lock_impl.dart';
 import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
+import 'package:sip_cli/domain/scripts_yaml_impl.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/key_press_listener.dart';
 import 'package:test/test.dart';
@@ -31,6 +32,7 @@ void main() {
         pubspecLock: PubspecLockImpl(fs: fs),
         pubspecYaml: PubspecYamlImpl(fs: fs),
         keyPressListener: KeyPressListener(logger: mockLogger),
+        scriptsYaml: ScriptsYamlImpl(fs: fs),
       );
     });
 
