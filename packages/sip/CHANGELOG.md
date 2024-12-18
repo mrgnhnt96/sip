@@ -1,3 +1,23 @@
+# 0.14.0 | 12.17.2024
+
+## Features
+
+- Override `dart` and `flutter` executable by using `(executables)` within the `scripts.yaml file
+
+```yaml
+(executables):
+  dart: fvm dart
+  flutter: fvm flutter
+```
+
+## Enhancements
+
+- Ignore build and dart tool directories when running pub commands
+
+## Fixes
+
+- Check for empty tests when no dart/flutter tests are found when targeting dart/flutter tests only
+
 # 0.13.6 | 11.29.2024
 
 ## Fixes

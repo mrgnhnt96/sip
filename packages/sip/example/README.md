@@ -14,6 +14,7 @@ Sip is a command-line tool with the goal of making it easier to manage the many 
   - _Recursively and concurrently_
   - Pass most all dart/flutter test flags
   - Run only dart or flutter tests
+- Change default executable commands
 
 ## Installation
 
@@ -321,7 +322,19 @@ sip test --bail
 
 ## `Scripts.yaml` configuration
 
-The `scripts.yaml` file is where you define all the scripts that you would like to run. The `scripts.yaml` file is generally located in the root of your project.
+The `scripts.yaml` file is where you configure sip and define all the scripts that you would like to run. The `scripts.yaml` file is generally located in the root of your project.
+
+### Executable Commands
+
+By default, sip will use `dart` & `flutter` as the default executable commands. If you would like to change the default executable command, you can add the following to the `scripts.yaml` file:
+
+```yaml
+# scripts.yaml
+
+(executables):
+    dart: fvm dart
+    flutter: fvm flutter
+```
 
 ### Defining a script
 
