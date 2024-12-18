@@ -31,7 +31,8 @@ class ScriptsYamlImpl extends FindYaml implements ScriptsYaml {
   Map<String, dynamic>? scripts() {
     final parsed = parse();
 
-    final all = {...?parsed}..remove(Keys.variables);
+    final all = {...?parsed}
+      ..removeWhere((e, _) => Keys.nonScriptKeys.contains(e));
 
     return all;
   }
