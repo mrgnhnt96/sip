@@ -142,7 +142,9 @@ class Script extends Equatable {
     if (script.name.contains(query)) return true;
     if (script.aliases.contains(query)) return true;
     if (script.description case final String description
-        when description.contains(query)) return true;
+        when description.contains(query)) {
+      return true;
+    }
 
     return false;
   }
