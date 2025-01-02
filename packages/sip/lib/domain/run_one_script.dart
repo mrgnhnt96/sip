@@ -5,6 +5,7 @@ import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/command_result.dart';
 import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/domain/env_config.dart';
+import 'package:sip_cli/domain/filter_type.dart';
 
 class RunOneScript {
   const RunOneScript({
@@ -14,6 +15,7 @@ class RunOneScript {
     required this.showOutput,
     this.retryAfter,
     this.maxAttempts = 3,
+    this.filter,
   });
 
   final CommandToRun command;
@@ -22,6 +24,7 @@ class RunOneScript {
   final Logger logger;
   final Duration? retryAfter;
   final int maxAttempts;
+  final FilterType? filter;
 
   Future<CommandResult> run() async {
     var cmd = command.command;
@@ -64,13 +67,25 @@ $cmd
 ''',
     );
 
-    final runScript = bindings.runScript(cmd, showOutput: printOutput);
+    if (filter case final filter?) {
+      logger.detail('Filter type: $filter');
+    }
+
+    final runScript = bindings.runScript(
+      cmd,
+      showOutput: printOutput,
+      filterType: filter,
+    );
 
     CommandResult codeResult;
     final retryAfter = this.retryAfter;
     if (retryAfter == null) {
       logger.detail('Not retrying');
       final result = await runScript;
+
+      if (filter case FilterType.flutterTest) {
+        logger.write('\n');
+      }
 
       codeResult = result;
     } else {
@@ -109,6 +124,10 @@ $cmd
       );
 
       final result = await runScript;
+
+      if (filter case FilterType.flutterTest) {
+        logger.write('\n');
+      }
 
       codeResult = result;
     }

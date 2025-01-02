@@ -103,6 +103,7 @@ class RunManyScripts {
         showOutput: false,
         retryAfter: retryAfter,
         maxAttempts: maxAttempts,
+        filter: command.filterOutput,
       );
 
       if (sequentially) {

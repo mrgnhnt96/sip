@@ -5,6 +5,7 @@ import 'dart:isolate';
 
 import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/command_result.dart';
+import 'package:sip_cli/domain/filter_type.dart';
 
 class BindingsImpl implements Bindings {
   const BindingsImpl();
@@ -13,6 +14,7 @@ class BindingsImpl implements Bindings {
   Future<CommandResult> runScript(
     String script, {
     required bool showOutput,
+    FilterType? filterType,
   }) async {
     final port = ReceivePort();
 
@@ -28,6 +30,7 @@ class BindingsImpl implements Bindings {
         event.send({
           'script': script,
           'showOutput': showOutput,
+          'filterType': filterType?.name,
         });
       } else if (event is Map) {
         final result = CommandResult.fromJson(event);
@@ -49,19 +52,34 @@ Future<void> _runScript(SendPort sendPort) async {
 
   sendPort.send(port.sendPort);
 
-  Future<CommandResult> run(String script, {required bool showOutput}) async {
+  Future<CommandResult> run(
+    String script, {
+    required bool showOutput,
+    FilterType? type,
+  }) async {
     final [command, arg] = switch (Platform.operatingSystem) {
       'linux' => ['bash', '-c'],
       'macos' => ['bash', '-c'],
       'windows' => ['cmd', '/c'],
       _ => throw UnsupportedError('Unsupported platform'),
     };
+
+    final filterOutput = type?.filter;
+    final formatter = type?.formatter;
+
+    final hasTerminal = switch ((showOutput, filterOutput != null)) {
+      (false, _) => false,
+      (_, true) => false,
+      _ => true,
+    };
     final process = await Process.start(
       command,
       [arg, script],
       runInShell: true,
-      mode:
-          showOutput ? ProcessStartMode.inheritStdio : ProcessStartMode.normal,
+      mode: switch (hasTerminal) {
+        false => ProcessStartMode.normal,
+        _ => ProcessStartMode.inheritStdio,
+      },
     );
 
     final outputBuffer = StringBuffer();
@@ -76,7 +94,19 @@ Future<void> _runScript(SendPort sendPort) async {
     outputStream.transform(utf8.decoder).listen(outputBuffer.write);
     errorStream.transform(utf8.decoder).listen(errorBuffer.write);
 
-    if (!showOutput) {
+    final filter = filterOutput ?? (_) => false;
+
+    outputStream.transform(utf8.decoder).listen((event) {
+      if (!filter(event)) {
+        return;
+      }
+
+      final message = formatter?.call(event) ?? event;
+
+      stdout.write(message);
+    });
+
+    if (!hasTerminal) {
       process.stdout.listen(outputController.add);
       process.stderr.listen(errorController.add);
     }
@@ -96,9 +126,14 @@ Future<void> _runScript(SendPort sendPort) async {
     if (event
         case {
           'script': final String script,
-          'showOutput': final bool showOutput
+          'showOutput': final bool showOutput,
+          'filterType': final String? type,
         }) {
-      final result = await run(script, showOutput: showOutput);
+      final result = await run(
+        script,
+        showOutput: showOutput,
+        type: FilterType.fromString(type),
+      );
 
       sendPort.send(result.toJson());
     }

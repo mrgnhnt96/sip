@@ -1,5 +1,6 @@
 // ignore_for_file: one_member_abstracts
 import 'package:sip_cli/domain/command_result.dart';
+import 'package:sip_cli/domain/filter_type.dart';
 
 /// The bindings for the script runner
 ///
@@ -8,5 +9,10 @@ import 'package:sip_cli/domain/command_result.dart';
 abstract interface class Bindings {
   const Bindings();
 
-  Future<CommandResult> runScript(String script, {required bool showOutput});
+  /// [filterType] is the type of filter to apply to the output
+  Future<CommandResult> runScript(
+    String script, {
+    required bool showOutput,
+    FilterType? filterType,
+  });
 }

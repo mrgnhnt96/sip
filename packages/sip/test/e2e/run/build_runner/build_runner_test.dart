@@ -9,6 +9,7 @@ import 'package:sip_cli/commands/script_run_command.dart';
 import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/command_result.dart';
 import 'package:sip_cli/domain/domain.dart';
+import 'package:sip_cli/domain/filter_type.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
 import 'package:sip_cli/domain/scripts_yaml.dart';
 import 'package:sip_cli/domain/variables.dart';
@@ -82,7 +83,11 @@ class _MockBindings implements Bindings {
   final List<String> scripts = [];
 
   @override
-  Future<CommandResult> runScript(String script, {bool showOutput = false}) {
+  Future<CommandResult> runScript(
+    String script, {
+    bool showOutput = false,
+    FilterType? filterType,
+  }) {
     scripts.addAll(script.split('\n'));
     return Future.value(
       const CommandResult(

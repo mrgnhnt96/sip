@@ -7,6 +7,7 @@ import 'package:path/path.dart' as path;
 import 'package:sip_cli/domain/any_arg_parser.dart';
 import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/command_to_run.dart';
+import 'package:sip_cli/domain/filter_type.dart';
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/package_to_test.dart';
 import 'package:sip_cli/domain/pubspec_lock.dart';
@@ -328,6 +329,10 @@ abstract mixin class TesterMixin {
       workingDirectory: projectRoot,
       keys: ['dart', 'test', ...tests, ...toolArgs],
       label: label,
+      filterOutput: switch (tool.isFlutter) {
+        true => FilterType.flutterTest,
+        _ => null,
+      },
     );
   }
 
@@ -366,6 +371,7 @@ abstract mixin class TesterMixin {
         bindings: bindings,
         logger: logger,
         showOutput: true,
+        filter: command.filterOutput,
       );
 
       final stopwatch = Stopwatch()..start();
