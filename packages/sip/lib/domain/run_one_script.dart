@@ -83,7 +83,7 @@ $cmd
       logger.detail('Not retrying');
       final result = await runScript;
 
-      if (filter case FilterType.flutterTest) {
+      if (filter != null) {
         logger.write('\n');
       }
 

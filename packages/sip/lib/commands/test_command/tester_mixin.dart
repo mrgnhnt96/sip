@@ -331,7 +331,7 @@ abstract mixin class TesterMixin {
       label: label,
       filterOutput: switch (tool.isFlutter) {
         true => FilterType.flutterTest,
-        _ => null,
+        false => FilterType.dartTest,
       },
     );
   }
