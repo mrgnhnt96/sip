@@ -1,3 +1,10 @@
+# 0.14.2 | 1.3.2025
+
+## Enhancements
+
+- Improve the output when running flutter tests
+- Improve the output when running dart tests
+
 # 0.14.1 | 12.17.2024
 
 ## Features
