@@ -8,17 +8,8 @@ enum FilterType {
   dartTest;
 
   bool Function(String)? get filter => _getFilter(this);
-  (String, {bool isError}) Function(String)? get formatter {
-    final formatter = _getFormatter(this);
-
-    return (msg) {
-      try {
-        return formatter?.call(msg) ?? (msg, isError: false);
-      } catch (_) {
-        return (msg, isError: false);
-      }
-    };
-  }
+  (String, {bool isError}) Function(String)? get formatter =>
+      _getFormatter(this);
 
   static FilterType? fromString(String? value) {
     return FilterType.values.asNameMap()[value];

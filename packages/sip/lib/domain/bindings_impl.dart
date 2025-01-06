@@ -104,7 +104,7 @@ Future<void> _runScript(SendPort sendPort) async {
     final filter = filterOutput ?? (_) => false;
 
     void log(String message) {
-      if (logger.level.index >= Level.warning.index) {
+      if (logger.level.index <= Level.warning.index) {
         logger.write(message);
       }
     }
@@ -114,21 +114,28 @@ Future<void> _runScript(SendPort sendPort) async {
         return;
       }
 
-      final message = formatter?.call(event);
+      String message;
+      bool isError;
 
-      if (message == null) {
+      try {
+        final result = formatter?.call(event);
+
+        if (result == null) {
+          return;
+        }
+
+        (message, :isError) = result;
+      } catch (_) {
         return;
       }
-
-      final (msg, :isError) = message;
 
       try {
         if (!showOutput) {
           if (isError) {
-            log(msg);
+            log(message);
           }
         } else {
-          log(msg);
+          log(message);
         }
       } catch (_) {
         // ignore
