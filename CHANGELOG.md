@@ -1,3 +1,9 @@
+# 0.14.3 | 1.3.2025
+
+## Fixes
+
+- Issue where formatting test output could result in an exception thrown
+
 # 0.14.2 | 1.3.2025
 
 ## Enhancements
