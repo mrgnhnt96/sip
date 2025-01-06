@@ -83,7 +83,7 @@ $cmd
       logger.detail('Not retrying');
       final result = await runScript;
 
-      if (filter != null) {
+      if (filter != null && showOutput) {
         logger.write('\n');
       }
 

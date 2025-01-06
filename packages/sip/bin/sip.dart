@@ -37,7 +37,9 @@ void main(List<String> arguments) async {
   const cwd = CWDImpl(fs: fs);
 
   final exitCode = await SipRunner(
-    bindings: const BindingsImpl(),
+    bindings: BindingsImpl(
+      logger: logger,
+    ),
     scriptsYaml: scriptsYaml,
     findFile: const FindFile(fs: fs),
     pubspecLock: const PubspecLockImpl(fs: fs),

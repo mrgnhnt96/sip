@@ -8,7 +8,17 @@ enum FilterType {
   dartTest;
 
   bool Function(String)? get filter => _getFilter(this);
-  String Function(String)? get formatter => _getFormatter(this);
+  (String, {bool isError}) Function(String)? get formatter {
+    final formatter = _getFormatter(this);
+
+    return (msg) {
+      try {
+        return formatter?.call(msg) ?? (msg, isError: false);
+      } catch (_) {
+        return (msg, isError: false);
+      }
+    };
+  }
 
   static FilterType? fromString(String? value) {
     return FilterType.values.asNameMap()[value];
@@ -23,7 +33,7 @@ bool Function(String)? _getFilter(FilterType? type) {
   };
 }
 
-String Function(String)? _getFormatter(FilterType? type) {
+(String, {bool isError}) Function(String)? _getFormatter(FilterType? type) {
   return switch (type) {
     FilterType.flutterTest => _formatFlutterTest,
     FilterType.dartTest => _formatDartTest,
@@ -31,7 +41,7 @@ String Function(String)? _getFormatter(FilterType? type) {
   };
 }
 
-String _formatFlutterTest(String string) {
+(String, {bool isError}) _formatFlutterTest(String string) {
   final m = resetAll.wrap(string) ?? '';
   final time = RegExp(r'\d+:\d+').firstMatch(m)?.group(0);
   final passing = RegExp(r'\+\d+').firstMatch(m)?.group(0);
@@ -97,10 +107,10 @@ String _formatFlutterTest(String string) {
     if (hasError) '\n',
   ].join();
 
-  return message;
+  return (message, isError: hasError);
 }
 
-String _formatDartTest(String string) {
+(String, {bool isError}) _formatDartTest(String string) {
   final m = resetAll.wrap(string) ?? '';
   final time = RegExp(r'\d+:\d+').firstMatch(m)?.group(0);
   final passing = RegExp(r'\+\d+').firstMatch(m)?.group(0);
@@ -153,5 +163,5 @@ String _formatDartTest(String string) {
     if (hasError) '\n',
   ].join();
 
-  return message;
+  return (message, isError: hasError);
 }

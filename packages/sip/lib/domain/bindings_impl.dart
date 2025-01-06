@@ -3,12 +3,17 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 
+import 'package:mason_logger/mason_logger.dart';
 import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/command_result.dart';
 import 'package:sip_cli/domain/filter_type.dart';
 
 class BindingsImpl implements Bindings {
-  const BindingsImpl();
+  const BindingsImpl({
+    required this.logger,
+  });
+
+  final Logger logger;
 
   @override
   Future<CommandResult> runScript(
@@ -31,6 +36,7 @@ class BindingsImpl implements Bindings {
           'script': script,
           'showOutput': showOutput,
           'filterType': filterType?.name,
+          'loggerLevel': logger.level.name,
         });
       } else if (event is Map) {
         final result = CommandResult.fromJson(event);
@@ -55,6 +61,7 @@ Future<void> _runScript(SendPort sendPort) async {
   Future<CommandResult> run(
     String script, {
     required bool showOutput,
+    required Logger logger,
     FilterType? type,
   }) async {
     final [command, arg] = switch (Platform.operatingSystem) {
@@ -96,19 +103,45 @@ Future<void> _runScript(SendPort sendPort) async {
 
     final filter = filterOutput ?? (_) => false;
 
+    void log(String message) {
+      if (logger.level.index >= Level.warning.index) {
+        logger.write(message);
+      }
+    }
+
     outputStream.transform(utf8.decoder).listen((event) {
       if (!filter(event)) {
         return;
       }
 
-      final message = formatter?.call(event) ?? event;
+      final message = formatter?.call(event);
 
-      stdout.write(message);
+      if (message == null) {
+        return;
+      }
+
+      final (msg, :isError) = message;
+
+      try {
+        if (!showOutput) {
+          if (isError) {
+            log(msg);
+          }
+        } else {
+          log(msg);
+        }
+      } catch (_) {
+        // ignore
+      }
     });
 
     if (!hasTerminal) {
-      process.stdout.listen(outputController.add);
-      process.stderr.listen(errorController.add);
+      try {
+        process.stdout.listen(outputController.add);
+        process.stderr.listen(errorController.add);
+      } catch (_) {
+        // ignore
+      }
     }
 
     final code = await process.exitCode;
@@ -128,11 +161,16 @@ Future<void> _runScript(SendPort sendPort) async {
           'script': final String script,
           'showOutput': final bool showOutput,
           'filterType': final String? type,
+          'loggerLevel': final String loggerLevel,
         }) {
+      final logger = Logger(
+        level: Level.values.asNameMap()[loggerLevel] ?? Level.info,
+      );
       final result = await run(
         script,
         showOutput: showOutput,
         type: FilterType.fromString(type),
+        logger: logger,
       );
 
       sendPort.send(result.toJson());
