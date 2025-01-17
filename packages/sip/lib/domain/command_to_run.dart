@@ -9,6 +9,7 @@ class CommandToRun extends Equatable {
     required this.command,
     required this.workingDirectory,
     required this.keys,
+    this.bail = false,
     this.envConfig,
     this.runConcurrently = false,
     this.filterOutput,
@@ -22,6 +23,7 @@ class CommandToRun extends Equatable {
   final Iterable<String> keys;
   final EnvConfig? envConfig;
   final FilterType? filterOutput;
+  final bool bail;
 
   @override
   List<Object?> get props => _$props;

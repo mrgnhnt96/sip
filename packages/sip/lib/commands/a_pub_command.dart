@@ -151,6 +151,7 @@ abstract class APubCommand extends Command<ExitCode> with DartOrFlutterMixin {
           workingDirectory: project,
           keys: ['dart', 'pub', name, ...pubFlags],
           label: label,
+          bail: bail,
         );
 
         return command;

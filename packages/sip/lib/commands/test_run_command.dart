@@ -130,6 +130,7 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
     final optimize = argResults['optimize'] as bool;
     final isRecursive = argResults['recursive'] as bool? ?? false;
     final cleanOptimizedFiles = argResults['clean'] as bool;
+    final bail = argResults['bail'] as bool;
 
     final providedTests = [...argResults.rest];
 
@@ -171,6 +172,10 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
     final flutterArgs = [...flutter, ...both];
     final dartArgs = [...dart, ...both];
 
+    if (bail) {
+      logger.warn('Bailing after first test failure\n');
+    }
+
     final commandsToRun = <CommandToRun>[];
 
     void Function()? cleanUp;
@@ -197,6 +202,7 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
         flutterArgs: flutterArgs,
         dartArgs: dartArgs,
         tests: testsToRun,
+        bail: bail,
       );
 
       commandsToRun.add(command);
@@ -238,6 +244,7 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
           tests,
           flutterArgs: flutterArgs,
           dartArgs: dartArgs,
+          bail: bail,
         ),
       );
 
@@ -271,7 +278,7 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
     final exitCode = await runCommands(
       commandsToRun,
       runConcurrently: argResults['concurrent'] as bool,
-      bail: argResults['bail'] as bool,
+      bail: bail,
     );
 
     logger.write('\n');

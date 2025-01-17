@@ -75,6 +75,7 @@ $cmd
       cmd,
       showOutput: printOutput,
       filterType: filter,
+      bail: command.bail,
     );
 
     CommandResult codeResult;

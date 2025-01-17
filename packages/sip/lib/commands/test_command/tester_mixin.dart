@@ -278,6 +278,7 @@ abstract mixin class TesterMixin {
     Iterable<PackageToTest> packagesToTest, {
     required List<String> flutterArgs,
     required List<String> dartArgs,
+    bool bail = false,
   }) sync* {
     for (final packageToTest in packagesToTest) {
       yield createTestCommand(
@@ -295,6 +296,7 @@ abstract mixin class TesterMixin {
               from: packageToTest.packagePath,
             ),
         ],
+        bail: bail,
       );
     }
   }
@@ -306,6 +308,7 @@ abstract mixin class TesterMixin {
     required List<String> flutterArgs,
     required List<String> dartArgs,
     required List<String> tests,
+    required bool bail,
   }) {
     final toolArgs = tool.isFlutter ? flutterArgs : dartArgs;
 
@@ -329,6 +332,7 @@ abstract mixin class TesterMixin {
       workingDirectory: projectRoot,
       keys: ['dart', 'test', ...tests, ...toolArgs],
       label: label,
+      bail: bail,
       filterOutput: switch (tool.isFlutter) {
         true => FilterType.flutterTest,
         false => FilterType.dartTest,
@@ -389,7 +393,7 @@ abstract mixin class TesterMixin {
       if (result.exitCodeReason != ExitCode.success) {
         exitCode = result.exitCodeReason;
 
-        if (bail) {
+        if (bail || command.bail) {
           return exitCode;
         }
       }
@@ -440,10 +444,19 @@ abstract mixin class TesterMixin {
       );
 
     if (optimize) {
-      final done = logger.progress('Optimizing test files');
+      // only dart tests can be optimized
+      Progress? done;
+      for (final dir in dirsWithTests) {
+        final tool = dirTools[dir];
+        if (tool == null) continue;
+        if (tool.isFlutter) continue;
+
+        done = logger.progress('Optimizing test files');
+        break;
+      }
       final result = prepareOptimizedFilesFromDirs(dirsWithTests, dirTools);
 
-      done.complete();
+      done?.complete();
 
       if (result.isEmpty) {
         logger.err('No tests found');

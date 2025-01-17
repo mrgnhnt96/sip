@@ -13,6 +13,7 @@ abstract interface class Bindings {
   Future<CommandResult> runScript(
     String script, {
     required bool showOutput,
+    bool bail = false,
     FilterType? filterType,
   });
 }

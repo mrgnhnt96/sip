@@ -19,6 +19,7 @@ class BindingsImpl implements Bindings {
   Future<CommandResult> runScript(
     String script, {
     required bool showOutput,
+    bool bail = false,
     FilterType? filterType,
   }) async {
     final port = ReceivePort();
@@ -37,6 +38,7 @@ class BindingsImpl implements Bindings {
           'showOutput': showOutput,
           'filterType': filterType?.name,
           'loggerLevel': logger.level.name,
+          'bail': bail,
         });
       } else if (event is Map) {
         final result = CommandResult.fromJson(event);
@@ -61,6 +63,7 @@ Future<void> _runScript(SendPort sendPort) async {
   Future<CommandResult> run(
     String script, {
     required bool showOutput,
+    required bool bail,
     required Logger logger,
     FilterType? type,
   }) async {
@@ -73,6 +76,9 @@ Future<void> _runScript(SendPort sendPort) async {
 
     final filterOutput = type?.filter;
     final formatter = type?.formatter;
+
+    int? overrideExitCode;
+    var haltLogs = false;
 
     final hasTerminal = switch ((showOutput, filterOutput != null)) {
       (false, _) => false,
@@ -104,6 +110,10 @@ Future<void> _runScript(SendPort sendPort) async {
     final filter = filterOutput ?? (_) => false;
 
     void log(String message) {
+      if (haltLogs) {
+        return;
+      }
+
       if (logger.level.index <= Level.warning.index) {
         logger.write(message);
       }
@@ -140,6 +150,12 @@ Future<void> _runScript(SendPort sendPort) async {
       } catch (_) {
         // ignore
       }
+
+      if (isError && bail) {
+        overrideExitCode = 1;
+        haltLogs = true;
+        process.kill();
+      }
     });
 
     if (!hasTerminal) {
@@ -152,11 +168,12 @@ Future<void> _runScript(SendPort sendPort) async {
     }
 
     final code = await process.exitCode;
+    haltLogs = true;
 
     process.kill();
 
     return CommandResult(
-      exitCode: code,
+      exitCode: overrideExitCode ?? code,
       output: outputBuffer.toString(),
       error: errorBuffer.toString(),
     );
@@ -169,6 +186,7 @@ Future<void> _runScript(SendPort sendPort) async {
           'showOutput': final bool showOutput,
           'filterType': final String? type,
           'loggerLevel': final String loggerLevel,
+          'bail': final bool bail,
         }) {
       final logger = Logger(
         level: Level.values.asNameMap()[loggerLevel] ?? Level.info,
@@ -176,6 +194,7 @@ Future<void> _runScript(SendPort sendPort) async {
       final result = await run(
         script,
         showOutput: showOutput,
+        bail: bail,
         type: FilterType.fromString(type),
         logger: logger,
       );
