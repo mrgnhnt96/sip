@@ -1,3 +1,10 @@
+# 0.14.5 | 1.17.2025
+
+## Features
+
+- Flutter tests respect the `--bail` flag during `sip test` command
+  - If a test fails, the command will stop running tests and exit with a non-zero exit code
+
 # 0.14.4 | 1.3.2025
 
 ## Fixes
