@@ -142,6 +142,7 @@ class _MockBindings implements Bindings {
     String script, {
     bool showOutput = false,
     FilterType? filterType,
+    bool bail = false,
   }) async {
     scripts.addAll(script.split('\n'));
 
