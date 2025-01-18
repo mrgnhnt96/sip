@@ -142,7 +142,7 @@ abstract mixin class TesterMixin {
         forTool += isDartOnly ? 'dart' : 'flutter';
       }
       logger.err('No$forTool tests found');
-      return (null, ExitCode.unavailable);
+      return (null, ExitCode.success);
     }
 
     return ((testDirs, dirTools), null);
@@ -432,7 +432,7 @@ abstract mixin class TesterMixin {
 
     if (dirsWithTests.isEmpty) {
       logger.err('No tests found');
-      return (null, ExitCode.unavailable);
+      return (null, ExitCode.success);
     }
 
     logger
@@ -460,7 +460,7 @@ abstract mixin class TesterMixin {
 
       if (result.isEmpty) {
         logger.err('No tests found');
-        return (null, ExitCode.unavailable);
+        return (null, ExitCode.success);
       }
 
       return (result, null);

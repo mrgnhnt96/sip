@@ -218,7 +218,7 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
         return exitCode;
       } else if (dirs == null) {
         logger.err('No tests found');
-        return ExitCode.unavailable;
+        return ExitCode.success;
       }
 
       final (testDirs, dirTools) = dirs;
@@ -236,7 +236,7 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
         return exitCode;
       } else if (tests == null) {
         logger.err('No tests found');
-        return ExitCode.unavailable;
+        return ExitCode.success;
       }
 
       commandsToRun.addAll(
