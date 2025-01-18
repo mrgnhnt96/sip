@@ -1,3 +1,9 @@
+# 0.14.6 | 1.18.2025
+
+## Features
+
+- Don't exit with non-zero when no test directories are found
+
 # 0.14.5 | 1.17.2025
 
 ## Features
