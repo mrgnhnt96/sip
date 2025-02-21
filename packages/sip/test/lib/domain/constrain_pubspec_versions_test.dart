@@ -343,7 +343,10 @@ dependencies:
       });
 
       test('applies to only certain packages', () {
-        final packages = ['foo', 'bar'];
+        final packages = [
+          ('foo', null),
+          ('bar', null),
+        ];
 
         const content = '''
 dependencies:
@@ -356,6 +359,35 @@ dependencies:
 dependencies:
   foo: ">=1.2.3 <2.0.0"
   bar: ">=2.3.4 <3.0.0"
+  baz: 3.4.5
+''';
+
+        final result = instance.applyConstraintsTo(
+          content,
+          packages: packages,
+        );
+
+        expect(result, isNotNull);
+        expect(result, expected);
+      });
+
+      test('applies to only certain packages with version', () {
+        final packages = [
+          ('foo', '4.5.6'),
+          ('bar', '5.6.7'),
+        ];
+
+        const content = '''
+dependencies:
+  foo: 1.2.3
+  bar: 2.3.4
+  baz: 3.4.5
+''';
+
+        const expected = '''
+dependencies:
+  foo: ">=4.5.6 <5.0.0"
+  bar: ">=5.6.7 <6.0.0"
   baz: 3.4.5
 ''';
 
@@ -386,6 +418,114 @@ dependencies:
         final result = instance.applyConstraintsTo(
           content,
           pin: true,
+        );
+
+        expect(result, isNotNull);
+        expect(result, expected);
+      });
+
+      test('unpins dependencies', () {
+        const content = '''
+dependencies:
+  foo: ">=1.2.3 <2.0.0"
+  bar: ^2.3.4
+  baz: 3.4.5
+''';
+
+        const expected = '''
+dependencies:
+  foo: ^1.2.3
+  bar: ^2.3.4
+  baz: ^3.4.5
+''';
+
+        final result = instance.applyConstraintsTo(
+          content,
+          pin: false,
+        );
+
+        expect(result, isNotNull);
+        expect(result, expected);
+      });
+
+      test('pins dependencies with specified package and version', () {
+        const content = '''
+dependencies:
+  foo: ">=1.2.3 <2.0.0"
+  bar: ^2.3.4
+  baz: 3.4.5
+''';
+
+        const expected = '''
+dependencies:
+  foo: 1.2.3
+  bar: 2.3.4
+  baz: 3.4.5
+''';
+
+        final result = instance.applyConstraintsTo(
+          content,
+          packages: [
+            ('foo', '1.2.3'),
+            ('bar', '2.3.4'),
+          ],
+          pin: true,
+        );
+
+        expect(result, isNotNull);
+        expect(result, expected);
+      });
+
+      test('unpins dependencies with specified package', () {
+        const content = '''
+dependencies:
+  foo: ">=1.2.3 <2.0.0"
+  bar: ^2.3.4
+  baz: 3.4.5
+''';
+
+        const expected = '''
+dependencies:
+  foo: ^1.2.3
+  bar: ^2.3.4
+  baz: 3.4.5
+''';
+
+        final result = instance.applyConstraintsTo(
+          content,
+          packages: [
+            ('foo', null),
+            ('bar', null),
+          ],
+          pin: false,
+        );
+
+        expect(result, isNotNull);
+        expect(result, expected);
+      });
+
+      test('unpins dependencies with specified package and version', () {
+        const content = '''
+dependencies:
+  foo: ">=1.2.3 <2.0.0"
+  bar: ^2.3.4
+  baz: 3.4.5
+''';
+
+        const expected = '''
+dependencies:
+  foo: ^2.3.4
+  bar: ^3.4.5
+  baz: 3.4.5
+''';
+
+        final result = instance.applyConstraintsTo(
+          content,
+          packages: [
+            ('foo', '2.3.4'),
+            ('bar', '3.4.5'),
+          ],
+          pin: false,
         );
 
         expect(result, isNotNull);

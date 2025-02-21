@@ -25,8 +25,8 @@ class ConstrainPubspecVersions {
     bool includeDevDependencies = false,
     VersionBump bump = VersionBump.breaking,
     bool dryRun = false,
-    Iterable<String> packages = const [],
-    bool pin = false,
+    Iterable<(String, String?)> packages = const [],
+    bool? pin,
   }) {
     final file = fs.file(path);
 
@@ -63,8 +63,8 @@ class ConstrainPubspecVersions {
     String content, {
     Iterable<String> additionalKeys = const [],
     VersionBump bump = VersionBump.breaking,
-    Iterable<String> packages = const [],
-    bool pin = false,
+    Iterable<(String, String?)> packages = const [],
+    bool? pin,
   }) {
     final yaml = YamlEditor(content);
 
@@ -76,16 +76,25 @@ class ConstrainPubspecVersions {
     var changesMade = false;
 
     final uniquePackages = packages.toSet();
+    final packagesToVersions = {
+      for (final (name, version) in uniquePackages) name: version,
+    };
 
     for (final key in dependencies) {
       logger.detail('Constraining versions for $key');
       if (yaml[key] case final YamlMap deps) {
         for (final MapEntry(key: name, value: version) in deps.entries) {
-          if (uniquePackages.isNotEmpty && !uniquePackages.contains(name)) {
+          if (uniquePackages.isNotEmpty &&
+              !packagesToVersions.containsKey(name)) {
             continue;
           }
 
-          final depConstraint = constraint(name, version, bump: bump, pin: pin);
+          final depConstraint = constraint(
+            name,
+            packagesToVersions[name] ?? version,
+            bump: bump,
+            pin: pin,
+          );
 
           if (depConstraint == null) continue;
           if (depConstraint.version == version) continue;
@@ -109,7 +118,7 @@ class ConstrainPubspecVersions {
     dynamic name,
     dynamic version, {
     VersionBump bump = VersionBump.breaking,
-    bool pin = false,
+    bool? pin,
   }) {
     if (name is! String || version is! String) {
       return null;
@@ -133,8 +142,10 @@ class ConstrainPubspecVersions {
       return null;
     }
 
-    if (pin) {
+    if (pin case true) {
       return (name: name, version: semVersion.toString());
+    } else if (pin case false) {
+      return (name: name, version: '^$semVersion');
     }
 
     final nextVersion = switch (bump) {

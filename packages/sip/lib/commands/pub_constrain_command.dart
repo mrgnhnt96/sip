@@ -1,3 +1,4 @@
+import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
@@ -39,6 +40,7 @@ class PubConstrainCommand extends Command<ExitCode> with DartOrFlutterMixin {
       ..addFlag(
         'dev_dependencies',
         abbr: 'd',
+        aliases: ['dev'],
         negatable: false,
         help: 'Constrain dev_dependencies as well.',
       )
@@ -52,8 +54,9 @@ class PubConstrainCommand extends Command<ExitCode> with DartOrFlutterMixin {
       )
       ..addFlag(
         'pin',
-        negatable: false,
-        help: 'Pin the version of the package.',
+        help: 'Pin the version of the package (^1.0.0 -> 1.0.0). '
+            'Unpins otherwise (1.0.0 -> ^1.0.0)',
+        defaultsTo: null,
       )
       ..addFlag(
         'dart-only',
@@ -97,11 +100,26 @@ class PubConstrainCommand extends Command<ExitCode> with DartOrFlutterMixin {
     return '$first [packages] [arguments]';
   }
 
+  /// Returns a list of packages and their versions (if specified).
+  Iterable<(String, String?)> packages(ArgResults argResults) sync* {
+    for (final package in argResults.rest) {
+      final version = package.split(':');
+      switch (version) {
+        case [final String package, final String version]:
+          yield (package, version);
+        case [final String package]:
+          yield (package, null);
+        default:
+          throw ArgumentError('Invalid package: $package');
+      }
+    }
+  }
+
   @override
   Future<ExitCode> run([List<String>? args]) async {
     final argResults = args != null ? argParser.parse(args) : this.argResults!;
 
-    final packages = {...argResults.rest};
+    final packages = this.packages(argResults).toList();
 
     final recursive = argResults['recursive'] as bool;
     final dartOnly = argResults['dart-only'] as bool;
@@ -109,7 +127,7 @@ class PubConstrainCommand extends Command<ExitCode> with DartOrFlutterMixin {
     final includeDevDependencies = argResults['dev_dependencies'] as bool;
     final versionBump = VersionBump.values.byName(argResults['bump'] as String);
     final dryRun = argResults['dry-run'] as bool;
-    final pin = argResults['pin'] as bool;
+    final pin = argResults['pin'] as bool?;
 
     warnDartOrFlutter(
       isDartOnly: dartOnly,
