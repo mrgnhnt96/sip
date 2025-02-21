@@ -38,7 +38,7 @@ To view the flags that can be passed to `sip run`, you can run `sip run --help`.
 
 ```yaml
 build_runner:
-    build: dart run build_runner build --delete-conflicting-outputs
+  build: dart run build_runner build --delete-conflicting-outputs
 ```
 
 ```bash
@@ -60,8 +60,8 @@ Since each script (in a list) is run in a separate process, the environment vari
 # scripts.yaml
 
 build:
-    (command): flutter build apk
-    (env): .env
+  (command): flutter build apk
+  (env): .env
 ```
 
 If there is a script required to run to generate the environment variables, you can pass the script to the `(env)` key.
@@ -70,10 +70,10 @@ If there is a script required to run to generate the environment variables, you 
 # scripts.yaml
 
 build:
-    (command): flutter build apk
-    (env):
-        file: .env
-        command: dart run generate_env.dart
+  (command): flutter build apk
+  (env):
+    file: .env
+    command: dart run generate_env.dart
 ```
 
 This command will only run once, right before the `(command)` is run.
@@ -226,13 +226,52 @@ dependencies:
   dio: ">=4.0.0 <5.0.0"
 ```
 
-If you would like to constrain only certain dependencies, you can pass the package's names as arguments.
+If you would like to constrain only certain dependencies, you can pass the package's names as arguments, and (optionally) the version to constrain to.
 
 ```bash
-sip pub constrain provider shared_preferences
+sip pub constrain provider shared_preferences:2.3.0
 ```
 
 ```yaml
+# pubspec.yaml (AFTER)
+name: package
+
+dependencies:
+  provider: ">=5.0.0 <6.0.0"
+  shared_preferences: ">=2.3.0 <3.0.0"
+  ...
+```
+
+If you would like to pin the version of the dependency, you can pass the `--pin` flag.
+
+```bash
+sip pub constrain provider shared_preferences --pin
+```
+
+```yaml
+# pubspec.yaml (AFTER)
+name: package
+
+dependencies:
+  provider: 5.0.0
+  shared_preferences: 2.0.0
+  ...
+```
+
+Or you can unpin the version of the dependency by passing the `--no-pin` flag.
+
+```bash
+sip pub constrain provider shared_preferences --no-pin
+```
+
+```yaml
+# pubspec.yaml (AFTER)
+name: package
+
+dependencies:
+  provider: ^5.0.0
+  shared_preferences: ^2.0.0
+```
 
 Flags:
 
@@ -242,6 +281,8 @@ Flags:
 - **dry-run**: Print the changes that will be made without actually making the changes.
 - **dart-only**: Only constrain dart dependencies.
 - **flutter-only**: Only constrain flutter dependencies.
+- **pin**: Pin the version of the dependency.
+- **no-pin**: Unpin the version of the dependency.
 
 ## Running Tests
 
@@ -332,8 +373,8 @@ By default, sip will use `dart` & `flutter` as the default executable commands. 
 # scripts.yaml
 
 (executables):
-    dart: fvm dart
-    flutter: fvm flutter
+  dart: fvm dart
+  flutter: fvm flutter
 ```
 
 ### Defining a script
@@ -356,8 +397,8 @@ The value of the script can be a string or a list of strings.
 # scripts.yaml
 
 build_runner:
-    - cd packages/core && dart run build_runner build --delete-conflicting-outputs
-    - cd packages/data && dart run build_runner build --delete-conflicting-outputs
+  - cd packages/core && dart run build_runner build --delete-conflicting-outputs
+  - cd packages/data && dart run build_runner build --delete-conflicting-outputs
 ```
 
 ```bash
@@ -384,8 +425,8 @@ You can nest scripts within other scripts. This helps with reusability and organ
 # scripts.yaml
 
 format:
-    ui: cd packages/ui && dart format .
-    core: cd packages/core && dart format .
+  ui: cd packages/ui && dart format .
+  core: cd packages/core && dart format .
 ```
 
 If you would like to define a script to run **_and_** nest scripts, you can use the `(command)` key to define the command to run.
@@ -394,9 +435,9 @@ If you would like to define a script to run **_and_** nest scripts, you can use 
 # scripts.yaml
 
 format:
-    (command): dart format .
-    ui: cd packages/ui && dart format .
-    core: cd packages/core && dart format .
+  (command): dart format .
+  ui: cd packages/ui && dart format .
+  core: cd packages/core && dart format .
 ```
 
 ```bash
@@ -450,9 +491,9 @@ Chain references together to access nested scripts.
 # scripts.yaml
 
 pub:
-    (command): dart pub
-    get: '{$pub} get'
-    ui: cd packages/ui && {$pub:get}
+  (command): dart pub
+  get: "{$pub} get"
+  ui: cd packages/ui && {$pub:get}
 ```
 
 ```bash
@@ -528,8 +569,8 @@ To define a private key, prepend the key with the `_` symbol.
 # scripts.yaml
 
 format:
-    _hidden: dart format .
-    (command): cd packages/ui && {$format:_hidden}
+  _hidden: dart format .
+  (command): cd packages/ui && {$format:_hidden}
 ```
 
 ### Bail
@@ -553,8 +594,8 @@ Optionally, you can always set a script to fail by using the `(bail):` key in th
 # scripts.yaml
 
 format:
-    (bail): # leave blank, or set to: `true`, `yes`, `y`
-    (command): dart format
+  (bail): # leave blank, or set to: `true`, `yes`, `y`
+  (command): dart format
 ```
 
 ```bash
@@ -574,8 +615,8 @@ Running scripts concurrently can be useful when you have multiple commands that 
 # scripts.yaml
 
 test:
-    - cd packages/ui && dart test
-    - cd packages/core && dart test
+  - cd packages/ui && dart test
+  - cd packages/core && dart test
 ```
 
 ```bash
@@ -600,13 +641,13 @@ The commands will be grouped together and run concurrently. Meaning that you can
 # scripts.yaml
 
 format:
-    (command):
-        - echo "Running format"
-        # ---- start concurrent group
-        - (+) cd packages/ui && dart format .
-        - (+) cd packages/core && dart format .
-        # ---- end concurrent group
-        - echo "Finished running format"
+  (command):
+    - echo "Running format"
+    # ---- start concurrent group
+    - (+) cd packages/ui && dart format .
+    - (+) cd packages/core && dart format .
+    # ---- end concurrent group
+    - echo "Finished running format"
 ```
 
 ### Variables
@@ -626,15 +667,15 @@ If you need to create your own variable, you can define them under the `(variabl
 ```yaml
 # scripts.yaml
 (variables):
-    # Check if flutter is installed and that the project is a flutter project
-    dartOrFlutter: |-
-      if [ -n "$(which flutter)" ] && grep -q flutter pubspec.lock; then
-          COMMAND="flutter"
-      else
-          COMMAND="dart"
-      fi
+  # Check if flutter is installed and that the project is a flutter project
+  dartOrFlutter: |-
+    if [ -n "$(which flutter)" ] && grep -q flutter pubspec.lock; then
+        COMMAND="flutter"
+    else
+        COMMAND="dart"
+    fi
 
-      $COMMAND
+    $COMMAND
 
 deps: cd packages/ui && {dartOrFlutter} pub get
 ```
@@ -659,52 +700,52 @@ $ sip run deps
 # scripts.yaml
 
 (variables):
-    flutter: fvm flutter
+  flutter: fvm flutter
 
 # The name of the script
 build_runner:
-    # The command to run
-    build: dart run build_runner build --delete-conflicting-outputs
-    watch:
-        # The description of the script
-        (description): Run build_runner in watch mode
+  # The command to run
+  build: dart run build_runner build --delete-conflicting-outputs
+  watch:
+    # The description of the script
+    (description): Run build_runner in watch mode
 
-        # The alternative way to define the command
-        (command): dart run build_runner watch --delete-conflicting-outputs
+    # The alternative way to define the command
+    (command): dart run build_runner watch --delete-conflicting-outputs
 
-        # The aliases for the script
-        (aliases):
-            - w
+    # The aliases for the script
+    (aliases):
+      - w
 
 test:
-    # {--coverage} is an optional argument, if it is provided, it will be passed into the command, otherwise it will be ignored
-    (command): '{flutter} test {--coverage}'
+  # {--coverage} is an optional argument, if it is provided, it will be passed into the command, otherwise it will be ignored
+  (command): "{flutter} test {--coverage}"
 
-    # {$test} references the defined script `test`. The flag `--coverage=coverage` will activate the coverage flag found in`test`, passing it (--coverage) and it's value (=coverage) to the `test` command
-    # Supported flag formats:
-    #    e.g. --flag  |  --flag=value  |  --flag value1 value2
-    # Supports multiple flags
-    #    e.g. --flag1 --flag2=value2 --flag3 value3 value4
-    coverage: "{$test} --coverage=coverage"
+  # {$test} references the defined script `test`. The flag `--coverage=coverage` will activate the coverage flag found in`test`, passing it (--coverage) and it's value (=coverage) to the `test` command
+  # Supported flag formats:
+  #    e.g. --flag  |  --flag=value  |  --flag value1 value2
+  # Supports multiple flags
+  #    e.g. --flag1 --flag2=value2 --flag3 value3 value4
+  coverage: "{$test} --coverage=coverage"
 
 echo:
-    dirs:
-        - echo "{packageRoot}" # The directory that the pubspec.yaml file is in
-        - echo "{scriptsRoot}" # The directory that the scripts.yaml file is in
-        - echo "{cwd}" # The current directory that you are in
+  dirs:
+    - echo "{packageRoot}" # The directory that the pubspec.yaml file is in
+    - echo "{scriptsRoot}" # The directory that the scripts.yaml file is in
+    - echo "{cwd}" # The current directory that you are in
 
 format:
-    _command: dart format .
-    (command):
-        - echo "Running format"
-        # ---- start concurrent commands
-        - (+) {$format:ui} # References the Format UI command
-        - (+) {$format:data} # References the Format Data command
-        - (+) {$format:application} # References the Format Application command
-        # ---- end concurrent commands
-        - echo "Finished running format"
+  _command: dart format .
+  (command):
+    - echo "Running format"
+    # ---- start concurrent commands
+    - (+) {$format:ui} # References the Format UI command
+    - (+) {$format:data} # References the Format Data command
+    - (+) {$format:application} # References the Format Application command
+    # ---- end concurrent commands
+    - echo "Finished running format"
 
-    ui: cd packages/ui && {$format:_command}
-    data: cd packages/data && {$format:_command}
-    application: cd application && {$format:_command}
+  ui: cd packages/ui && {$format:_command}
+  data: cd packages/data && {$format:_command}
+  application: cd application && {$format:_command}
 ```
