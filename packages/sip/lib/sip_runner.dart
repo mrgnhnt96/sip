@@ -35,6 +35,9 @@ class SipRunner extends CommandRunner<ExitCode> {
     required FileSystem fs,
     required CWD cwd,
     required PubUpdater pubUpdater,
+    required RunOneScript runOneScript,
+    required RunManyScripts runManyScripts,
+    required KeyPressListener keyPressListener,
     required this.logger,
   }) : super(
           'sip',
@@ -71,6 +74,8 @@ class SipRunner extends CommandRunner<ExitCode> {
         bindings: bindings,
         logger: logger,
         cwd: cwd,
+        runManyScripts: runManyScripts,
+        runOneScript: runOneScript,
       ),
     );
     addCommand(
@@ -82,6 +87,8 @@ class SipRunner extends CommandRunner<ExitCode> {
         logger: logger,
         bindings: bindings,
         scriptsYaml: scriptsYaml,
+        runManyScripts: runManyScripts,
+        runOneScript: runOneScript,
       ),
     );
     addCommand(
@@ -93,6 +100,8 @@ class SipRunner extends CommandRunner<ExitCode> {
         logger: logger,
         cwd: cwd,
         scriptsYaml: scriptsYaml,
+        runManyScripts: runManyScripts,
+        runOneScript: runOneScript,
       ),
     );
     addCommand(
@@ -115,8 +124,10 @@ class SipRunner extends CommandRunner<ExitCode> {
         bindings: bindings,
         fs: fs,
         logger: logger,
-        keyPressListener: KeyPressListener(logger: logger),
+        keyPressListener: keyPressListener,
         scriptsYaml: scriptsYaml,
+        runManyScripts: runManyScripts,
+        runOneScript: runOneScript,
       ),
     );
   }

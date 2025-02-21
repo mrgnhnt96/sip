@@ -57,6 +57,11 @@ void main() {
           ..createSync(recursive: true)
           ..writeAsStringSync('');
 
+        final runOneScript = RunOneScript(
+          bindings: bindings,
+          logger: logger,
+        );
+
         final command = ScriptRunCommand(
           bindings: bindings,
           cwd: CWDImpl(fs: fs),
@@ -67,6 +72,12 @@ void main() {
             pubspecYaml: PubspecYamlImpl(fs: fs),
             scriptsYaml: ScriptsYamlImpl(fs: fs),
           ),
+          runManyScripts: RunManyScripts(
+            bindings: bindings,
+            logger: logger,
+            runOneScript: runOneScript,
+          ),
+          runOneScript: runOneScript,
         );
 
         return command;

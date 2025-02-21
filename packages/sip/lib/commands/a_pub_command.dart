@@ -7,6 +7,7 @@ import 'package:file/file.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/domain/bindings.dart';
+import 'package:sip_cli/domain/command_result.dart';
 import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/pubspec_lock.dart';
@@ -28,6 +29,8 @@ abstract class APubCommand extends Command<ExitCode> with DartOrFlutterMixin {
     required this.logger,
     required this.fs,
     required this.scriptsYaml,
+    required this.runManyScripts,
+    required this.runOneScript,
     bool runConcurrently = true,
   }) {
     argParser
@@ -81,6 +84,8 @@ abstract class APubCommand extends Command<ExitCode> with DartOrFlutterMixin {
   final FileSystem fs;
   @override
   final ScriptsYaml scriptsYaml;
+  final RunManyScripts runManyScripts;
+  final RunOneScript runOneScript;
 
   ({Duration? dart, Duration? flutter})? get retryAfter => null;
 
@@ -169,38 +174,50 @@ abstract class APubCommand extends Command<ExitCode> with DartOrFlutterMixin {
     }
 
     if (concurrent) {
-      final runners = [
+      final label =
+          'Running ${lightCyan.wrap('pub $name ${pubFlags.join(' ')}')}';
+
+      final runners = <(Iterable<CommandToRun>, Future<List<CommandResult>>)>[
         if (separated) ...[
           if (commands.dart.isNotEmpty)
-            RunManyScripts(
-              commands: commands.dart,
-              bindings: bindings,
-              logger: logger,
-              retryAfter: retryAfter?.dart,
+            (
+              commands.dart,
+              runManyScripts.run(
+                label: label,
+                bail: bail,
+                commands: commands.dart.toList(),
+                sequentially: true,
+                retryAfter: retryAfter?.dart,
+              ),
             ),
           if (commands.flutter.isNotEmpty)
-            RunManyScripts(
-              commands: commands.flutter,
-              bindings: bindings,
-              logger: logger,
-              retryAfter: retryAfter?.flutter,
+            (
+              commands.flutter,
+              runManyScripts.run(
+                label: label,
+                bail: bail,
+                commands: commands.flutter.toList(),
+                sequentially: true,
+                retryAfter: retryAfter?.flutter,
+              ),
             ),
         ] else
-          RunManyScripts(
-            commands: commands.ordered.map((e) => e.$2),
-            bindings: bindings,
-            logger: logger,
+          (
+            commands.ordered.map((e) => e.$2),
+            runManyScripts.run(
+              label: label,
+              bail: bail,
+              commands: commands.ordered.map((e) => e.$2).toList(),
+              sequentially: true,
+            ),
           ),
       ];
 
       ExitCode? exitCode;
-      for (final runner in runners) {
-        final exitCodes = await runner.run(
-          label: 'Running ${lightCyan.wrap('pub $name ${pubFlags.join(' ')}')}',
-          bail: bail,
-        );
+      for (final (commands, runner) in runners) {
+        final exitCodes = await runner;
 
-        exitCodes.printErrors(runner.commands, logger);
+        exitCodes.printErrors(commands, logger);
 
         final result = exitCodes.exitCode(logger);
         if (result != ExitCode.success) {
@@ -220,13 +237,11 @@ abstract class APubCommand extends Command<ExitCode> with DartOrFlutterMixin {
     for (final (tool, command) in commands.ordered) {
       logger.info('\nRunning ${lightCyan.wrap(command.command)}');
 
-      final result = await RunOneScript(
+      final result = await runOneScript.run(
         command: command,
-        bindings: bindings,
-        logger: logger,
         showOutput: true,
         retryAfter: tool.isDart ? retryAfter?.dart : retryAfter?.flutter,
-      ).run();
+      );
 
       if (result.exitCodeReason != ExitCode.success) {
         if (exitCode != ExitCode.success) {

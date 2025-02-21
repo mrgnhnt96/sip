@@ -30,6 +30,10 @@ void main() {
       mockLogger = _MockLogger();
 
       fs = MemoryFileSystem.test();
+      final runOneScript = RunOneScript(
+        bindings: mockBindings,
+        logger: mockLogger,
+      );
 
       tester = _Tester(
         bindings: mockBindings,
@@ -39,6 +43,12 @@ void main() {
         fs: fs,
         logger: mockLogger,
         scriptsYaml: ScriptsYamlImpl(fs: fs),
+        runManyScripts: RunManyScripts(
+          bindings: mockBindings,
+          logger: mockLogger,
+          runOneScript: runOneScript,
+        ),
+        runOneScript: runOneScript,
       );
     });
 
@@ -686,6 +696,8 @@ class _Tester extends TesterMixin {
     required this.pubspecLock,
     required this.pubspecYaml,
     required this.scriptsYaml,
+    required this.runManyScripts,
+    required this.runOneScript,
   });
   @override
   final Bindings bindings;
@@ -707,6 +719,12 @@ class _Tester extends TesterMixin {
 
   @override
   final PubspecYaml pubspecYaml;
+
+  @override
+  final RunManyScripts runManyScripts;
+
+  @override
+  final RunOneScript runOneScript;
 }
 
 class _MockBindings extends Mock implements Bindings {}

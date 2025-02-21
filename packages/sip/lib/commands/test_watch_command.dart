@@ -11,6 +11,8 @@ import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/package_to_test.dart';
 import 'package:sip_cli/domain/pubspec_lock.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
+import 'package:sip_cli/domain/run_many_scripts.dart';
+import 'package:sip_cli/domain/run_one_script.dart';
 import 'package:sip_cli/domain/scripts_yaml.dart';
 import 'package:sip_cli/domain/test_scope.dart';
 import 'package:sip_cli/utils/exit_code.dart';
@@ -27,6 +29,8 @@ class TestWatchCommand extends Command<ExitCode> with TesterMixin {
     required this.pubspecYaml,
     required this.keyPressListener,
     required this.scriptsYaml,
+    required this.runManyScripts,
+    required this.runOneScript,
   }) : argParser = ArgParser(usageLineLength: 120) {
     addTestFlags(this);
 
@@ -107,6 +111,12 @@ class TestWatchCommand extends Command<ExitCode> with TesterMixin {
   final ScriptsYaml scriptsYaml;
 
   final KeyPressListener keyPressListener;
+
+  @override
+  final RunManyScripts runManyScripts;
+
+  @override
+  final RunOneScript runOneScript;
 
   void writeWaitingMessage(TestScope scope, {required bool runConcurrently}) {
     var testScope = darkGray.wrap('Test Scope: ')!;

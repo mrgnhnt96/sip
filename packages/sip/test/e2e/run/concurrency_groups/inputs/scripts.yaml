@@ -1,0 +1,51 @@
+all_concurrent:
+  - "(+) wait 1"
+  - "(+) wait 2"
+  - "(+) wait 3"
+
+partial_concurrent:
+  - "(+) wait 4"
+  - "(+) wait 5"
+  - "echo 6"
+
+no_concurrent:
+  - "wait 1; echo 1"
+  - "wait 1; echo 2"
+  - "wait 1; echo 3"
+
+combined:
+  - "{$all_concurrent}"
+  - "{$partial_concurrent}"
+  - "{$no_concurrent}"
+
+combined_concurrent:
+  - "{$all_concurrent}"
+  - "(+) {$partial_concurrent}"
+  - "(+) {$no_concurrent}"
+
+_combined_expected:
+  # first group
+  - "(+) wait 1"
+  - "(+) wait 2"
+  - "(+) wait 3"
+  # wait till group 1 then run second group
+  - "(+) wait 4"
+  - "(+) wait 5"
+  - "echo 6"
+  # wait til group 2 then run third group
+  - "wait 1; echo 1"
+  - "wait 1; echo 2"
+  - "wait 1; echo 3"
+
+_combined_concurrent_expected:
+  # first group
+  - "(+) wait 1"
+  - "(+) wait 2"
+  - "(+) wait 3"
+  # wait till group 1 then run second group
+  - "(+) (+) wait 4"
+  - "(+) (+) wait 5"
+  - "(+) echo 6"
+  - "(+) wait 1; echo 1"
+  - "(+) wait 1; echo 2"
+  - "(+) wait 1; echo 3"

@@ -8,6 +8,8 @@ import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/package_to_test.dart';
 import 'package:sip_cli/domain/pubspec_lock_impl.dart';
 import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
+import 'package:sip_cli/domain/run_many_scripts.dart';
+import 'package:sip_cli/domain/run_one_script.dart';
 import 'package:sip_cli/domain/scripts_yaml_impl.dart';
 import 'package:sip_cli/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/utils/key_press_listener.dart';
@@ -24,6 +26,11 @@ void main() {
 
       mockLogger = _MockLogger();
 
+      final runOneScript = RunOneScript(
+        bindings: _MockBindings(),
+        logger: mockLogger,
+      );
+
       testWatchCommand = TestWatchCommand(
         bindings: _MockBindings(),
         findFile: FindFile(fs: fs),
@@ -33,6 +40,12 @@ void main() {
         pubspecYaml: PubspecYamlImpl(fs: fs),
         keyPressListener: KeyPressListener(logger: mockLogger),
         scriptsYaml: ScriptsYamlImpl(fs: fs),
+        runManyScripts: RunManyScripts(
+          bindings: _MockBindings(),
+          logger: mockLogger,
+          runOneScript: runOneScript,
+        ),
+        runOneScript: runOneScript,
       );
     });
 

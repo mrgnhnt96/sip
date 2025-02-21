@@ -138,6 +138,7 @@ $ sip format ui
       script,
       scriptConfig,
       flags: optionalFlags(keys),
+      scriptGroup: null,
     );
 
     for (final resolved in resolvedScripts) {
@@ -156,9 +157,9 @@ $ sip format ui
 
     final ResolveScript(:resolvedScripts, :envConfig) = resolveScript;
 
-    for (var i = 0; i < resolvedScripts.length; i++) {
-      final resolved = resolvedScripts.elementAt(i);
+    for (final resolved in resolvedScripts) {
       var runConcurrently = false;
+      var waitForPrevious = true;
 
       var command = switch (resolved.command) {
         final String command => command,
@@ -171,18 +172,24 @@ $ sip format ui
         );
 
         runConcurrently = true;
+        var count = 0;
         while (command.startsWith(Identifiers.concurrent)) {
+          count++;
           command = command.substring(Identifiers.concurrent.length);
         }
+
+        waitForPrevious = count == 1;
       }
 
       yield CommandToRun(
         command: command.trim(),
         label: command.trim(),
+        group: resolved.group,
         runConcurrently: runConcurrently,
         workingDirectory: directory,
         keys: resolved.script.keys,
         envConfig: resolved.envConfig,
+        runPreviousFirst: waitForPrevious,
       );
     }
   }

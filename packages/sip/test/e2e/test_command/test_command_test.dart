@@ -10,6 +10,8 @@ import 'package:sip_cli/domain/filter_type.dart';
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/pubspec_lock_impl.dart';
 import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
+import 'package:sip_cli/domain/run_many_scripts.dart';
+import 'package:sip_cli/domain/run_one_script.dart';
 import 'package:sip_cli/domain/scripts_yaml_impl.dart';
 import 'package:test/test.dart';
 
@@ -29,6 +31,8 @@ void main() {
 
       fs = MemoryFileSystem.test();
 
+      final runOneScript = RunOneScript(bindings: bindings, logger: logger);
+
       command = TestRunCommand(
         pubspecYaml: PubspecYamlImpl(fs: fs),
         fs: fs,
@@ -37,6 +41,12 @@ void main() {
         pubspecLock: PubspecLockImpl(fs: fs),
         findFile: FindFile(fs: fs),
         scriptsYaml: ScriptsYamlImpl(fs: fs),
+        runManyScripts: RunManyScripts(
+          bindings: bindings,
+          logger: logger,
+          runOneScript: runOneScript,
+        ),
+        runOneScript: runOneScript,
       );
 
       final cwd = fs.directory(path.join('packages', 'sip'))

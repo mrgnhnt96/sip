@@ -22,6 +22,8 @@ class CleanCommand extends Command<ExitCode> {
     required this.logger,
     required this.cwd,
     required this.scriptsYaml,
+    required this.runManyScripts,
+    required this.runOneScript,
   }) {
     argParser
       ..addFlag(
@@ -56,6 +58,8 @@ class CleanCommand extends Command<ExitCode> {
   final Logger logger;
   final Bindings bindings;
   final CWD cwd;
+  final RunManyScripts runManyScripts;
+  final RunOneScript runOneScript;
 
   @override
   Future<ExitCode> run([List<String>? args]) async {
@@ -118,13 +122,11 @@ class CleanCommand extends Command<ExitCode> {
     ExitCode exitCode;
 
     if (isConcurrent) {
-      final runner = RunManyScripts(
-        commands: commands,
-        bindings: bindings,
-        logger: logger,
+      final results = await runManyScripts.run(
+        commands: commands.toList(),
+        sequentially: false,
+        bail: false,
       );
-
-      final results = await runner.run(bail: false);
 
       results.printErrors(commands, logger);
 
@@ -133,14 +135,10 @@ class CleanCommand extends Command<ExitCode> {
       exitCode = ExitCode.success;
 
       for (final command in commands) {
-        final runner = RunOneScript(
+        final result = await runOneScript.run(
           command: command,
-          bindings: bindings,
-          logger: logger,
           showOutput: true,
         );
-
-        final result = await runner.run();
 
         result.printError(command, logger);
 

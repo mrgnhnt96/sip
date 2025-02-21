@@ -52,6 +52,8 @@ class ScriptRunCommand extends Command<ExitCode>
     required this.bindings,
     required this.logger,
     required this.cwd,
+    required this.runOneScript,
+    required this.runManyScripts,
   }) : argParser = AnyArgParser() {
     addFlags();
 
@@ -100,6 +102,8 @@ class ScriptRunCommand extends Command<ExitCode>
   final Logger logger;
   @override
   final CWD cwd;
+  final RunOneScript runOneScript;
+  final RunManyScripts runManyScripts;
 
   @override
   String get description => 'Runs a script';
@@ -204,16 +208,11 @@ class ScriptRunCommand extends Command<ExitCode>
             ),
         ];
 
-        final result = await switch (noConcurrent) {
-          true => RunManyScripts.new,
-          false => RunManyScripts.sequentially,
-        }(
-          commands: commandsToRun,
-          bindings: bindings,
-          logger: logger,
-        ).run(
+        final result = await runManyScripts.run(
           bail: true,
           label: 'Preparing env',
+          sequentially: noConcurrent,
+          commands: commandsToRun.toList(),
         );
 
         if (result.hasFailures) {
@@ -227,11 +226,11 @@ class ScriptRunCommand extends Command<ExitCode>
     }
 
     if (!disableConcurrency && concurrent) {
-      final exitCodes = await RunManyScripts(
-        commands: commands,
-        bindings: bindings,
-        logger: logger,
-      ).run(bail: bail);
+      final exitCodes = await runManyScripts.run(
+        commands: commands.toList(),
+        bail: bail,
+        sequentially: false,
+      );
 
       exitCodes.printErrors(commands, logger);
 
@@ -269,11 +268,11 @@ class ScriptRunCommand extends Command<ExitCode>
 
       logger.write(darkGray.wrap('---'));
 
-      final exitCodes = await RunManyScripts(
-        commands: concurrentRuns,
-        bindings: bindings,
-        logger: logger,
-      ).run(bail: bail);
+      final exitCodes = await runManyScripts.run(
+        commands: concurrentRuns.toList(),
+        bail: bail,
+        sequentially: true,
+      );
 
       exitCodes.printErrors(concurrentRuns, logger);
 
@@ -286,15 +285,32 @@ class ScriptRunCommand extends Command<ExitCode>
     }
 
     Future<ExitCode> runScripts() async {
-      for (final command in commands) {
+      int? runningGroup;
+      for (var i = 0; i < commands.length; i++) {
+        final command = commands.elementAt(i);
+        runningGroup ??= command.group;
+
         if (!disableConcurrency) {
-          if (command.runConcurrently) {
+          final shouldRunConcurrent = switch (command.runConcurrently) {
+            false => false,
+            _ => switch ((command.group, command.runPreviousFirst)) {
+                (final group, _) when group == runningGroup => true,
+                (_, true) => false,
+                _ => true,
+              },
+          };
+          if (shouldRunConcurrent) {
             concurrentRuns.add(command);
             continue;
           } else if (concurrentRuns.isNotEmpty) {
             if (await runMany() case final ExitCode exitCode) {
               return exitCode;
             }
+            // Go back one step
+            i--;
+            // Set the group to the next command
+            runningGroup = command.group;
+            continue;
           }
         }
 
@@ -310,12 +326,10 @@ class ScriptRunCommand extends Command<ExitCode>
 
         logger.info(darkGray.wrap(label));
 
-        final exitCode = await RunOneScript(
+        final exitCode = await runOneScript.run(
           command: command,
-          bindings: bindings,
-          logger: logger,
           showOutput: true,
-        ).run();
+        );
 
         exitCode.printError(command, logger);
 

@@ -145,11 +145,17 @@ class Variables with WorkingDirectory {
   Iterable<ResolveScript> replace(
     Script script,
     ScriptsConfig config, {
+    required ScriptGroup? scriptGroup,
     EnvConfig? parentEnvConfig,
     OptionalFlags? flags,
   }) sync* {
+    var group = scriptGroup;
     late final sipVariables = populate();
-    Iterable<ResolveScript> resolve(String command, Script script) sync* {
+    Iterable<ResolveScript> resolve(
+      String command,
+      Script script,
+      ScriptGroup group,
+    ) sync* {
       yield* replaceVariables(
         command,
         sipVariables: sipVariables,
@@ -157,6 +163,7 @@ class Variables with WorkingDirectory {
         flags: flags,
         script: script,
         envConfigOfParent: parentEnvConfig,
+        group: group,
       );
     }
 
@@ -164,7 +171,7 @@ class Variables with WorkingDirectory {
       if (script.env?.commands case final commands)
         for (final command in commands ?? <String>[])
           EnvConfig(
-            commands: resolve(command, script)
+            commands: resolve(command, script, const ScriptGroup.none())
                 .map((e) => e.command)
                 .whereType<String>(),
             files: script.env?.files,
@@ -178,7 +185,17 @@ class Variables with WorkingDirectory {
 
     final commands = <ResolveScript>[];
     for (final command in script.commands) {
-      final resolved = resolve(command, script).toList();
+      if (group?.script != script) {
+        group = group?.next(script);
+      }
+
+      group ??= ScriptGroup(script);
+
+      final resolved = resolve(
+        command,
+        script,
+        group,
+      ).toList();
 
       commands.addAll(resolved);
       envConfig.addAll([
@@ -186,7 +203,7 @@ class Variables with WorkingDirectory {
         for (final e in resolved)
           for (final command in e.envConfig?.commands ?? <String>[])
             EnvConfig(
-              commands: resolve(command, script)
+              commands: resolve(command, script, const ScriptGroup.none())
                   .map((e) => e.command)
                   .whereType<String>(),
               files: e.envConfig?.files,
@@ -199,6 +216,7 @@ class Variables with WorkingDirectory {
       resolvedScripts: commands,
       envConfig: envConfig.combine(directory: directory),
       script: script,
+      group: group?.id ?? 0,
     );
   }
 
@@ -207,6 +225,7 @@ class Variables with WorkingDirectory {
     required Map<String, String?> sipVariables,
     required ScriptsConfig config,
     required Script script,
+    required ScriptGroup group,
     EnvConfig? envConfigOfParent,
     OptionalFlags? flags,
   }) sync* {
@@ -220,18 +239,27 @@ class Variables with WorkingDirectory {
           script.envConfig(directory: directory),
         ].combine(directory: directory),
         script: script,
+        group: group.id,
       );
 
       return;
     }
 
-    Iterable<String> resolvedCommands = [command];
+    Iterable<ResolveScript> resolvedCommands = [
+      ResolveScript.command(
+        command: command,
+        envConfig: null,
+        script: script,
+        group: 69,
+      ),
+    ];
     final resolvedEnvCommands = <EnvConfig?>{};
 
     final parentEnvConfig = script.envConfig(directory: directory);
 
     for (final match in matches) {
       final variable = match.group(1);
+      final partToReplace = match.group(0)!;
 
       if (variable == null) {
         continue;
@@ -246,17 +274,20 @@ class Variables with WorkingDirectory {
           throw Exception('Script path $variable is invalid');
         }
 
-        for (final replaced in replace(
+        final replacedScripts = replace(
           found,
           config,
           flags: flags,
           parentEnvConfig: parentEnvConfig,
-        )) {
+          scriptGroup: group,
+        );
+
+        for (final replaced in replacedScripts) {
           resolvedEnvCommands.add(replaced.envConfig);
 
           final commandsToCopy = [...resolvedCommands];
 
-          final copied = List.generate(
+          final copied = List<ResolveScript>.generate(
               resolvedCommands.length * replaced.resolvedScripts.length,
               (index) {
             final commandIndex = index % replaced.resolvedScripts.length;
@@ -269,9 +300,12 @@ class Variables with WorkingDirectory {
 
             final commandsToCopyIndex =
                 index ~/ replaced.resolvedScripts.length;
-            final commandsToCopyCommand = commandsToCopy[commandsToCopyIndex];
+            final copy =
+                commandsToCopy[commandsToCopyIndex].copy(group: replaced.group)
+                  ..revertCommandToOriginal()
+                  ..replaceCommandPart(partToReplace, command);
 
-            return commandsToCopyCommand.replaceAll(match.group(0)!, command);
+            return copy;
           });
 
           resolvedCommands = copied;
@@ -284,9 +318,9 @@ class Variables with WorkingDirectory {
         // flags are optional, so if not found, replace with empty string
         final flag = flags?[variable] ?? '';
 
-        resolvedCommands = resolvedCommands.map(
-          (e) => e.replaceAll(match.group(0)!, flag),
-        );
+        for (final command in resolvedCommands) {
+          command.replaceCommandPart(partToReplace, flag);
+        }
 
         continue;
       }
@@ -297,38 +331,83 @@ class Variables with WorkingDirectory {
         throw Exception('Variable $variable is not defined');
       }
 
-      resolvedCommands = resolvedCommands.map(
-        (e) => e.replaceAll(match.group(0)!, sipValue),
-      );
+      for (final command in resolvedCommands) {
+        command.replaceCommandPart(partToReplace, sipValue);
+      }
     }
 
-    for (final command in resolvedCommands) {
-      yield ResolveScript.command(
-        command: command,
+    yield* resolvedCommands.map(
+      (e) => e.copy(
         envConfig: resolvedEnvCommands.combine(directory: directory),
-        script: script,
-      );
-    }
+      ),
+    );
   }
 }
 
 class ResolveScript {
-  const ResolveScript({
+  ResolveScript({
     required this.resolvedScripts,
     required this.envConfig,
     required this.script,
-  }) : command = null;
+    required this.group,
+  }) : originalCommand = null;
 
-  const ResolveScript.command({
-    required String this.command,
+  ResolveScript._({
+    required this.resolvedScripts,
     required this.envConfig,
     required this.script,
-  }) : resolvedScripts = const [];
+    required this.group,
+    required this.originalCommand,
+    required String? replacedCommand,
+  }) : _replacedCommand = replacedCommand;
+
+  ResolveScript.command({
+    required String command,
+    required this.envConfig,
+    required this.script,
+    required this.group,
+  })  : resolvedScripts = const [],
+        originalCommand = command;
 
   final Script script;
-  final String? command;
+  final String? originalCommand;
   final Iterable<ResolveScript> resolvedScripts;
   final EnvConfig? envConfig;
+  final int group;
+
+  String? _replacedCommand;
+
+  void replaceCommandPart(String part, String replacement) {
+    _replacedCommand ??= command;
+    _replacedCommand = _replacedCommand?.replaceAll(part, replacement);
+  }
+
+  ResolveScript copy({
+    int? group,
+    EnvConfig? envConfig,
+  }) {
+    return ResolveScript._(
+      resolvedScripts: resolvedScripts,
+      envConfig: envConfig ?? this.envConfig,
+      script: script,
+      group: group ?? this.group,
+      originalCommand: originalCommand,
+      replacedCommand: _replacedCommand,
+    );
+  }
+
+  void revertCommandToOriginal() {
+    _replacedCommand = null;
+  }
+
+  Iterable<ResolveScript> get flatten => {
+        if (command != null)
+          this
+        else if (resolvedScripts.isNotEmpty)
+          ...resolvedScripts.expand((e) => e.flatten),
+      };
+
+  String? get command => _replacedCommand ?? originalCommand;
 }
 
 extension _ScriptX on Script {
@@ -342,6 +421,35 @@ extension _ScriptX on Script {
       commands: {...env.commands},
       files: {...env.files},
       workingDirectory: directory,
+    );
+  }
+}
+
+class ScriptGroup {
+  const ScriptGroup(Script this.script) : id = 0;
+  const ScriptGroup._({
+    required Script this.script,
+    required this.id,
+  });
+  const ScriptGroup.none()
+      : script = null,
+        id = -1;
+
+  final Script? script;
+  final int id;
+
+  static int min = 0;
+
+  ScriptGroup next(Script script) {
+    var newId = id + 1;
+    if (newId <= min) {
+      newId = min + 1;
+    }
+    min = newId;
+
+    return ScriptGroup._(
+      script: script,
+      id: newId,
     );
   }
 }

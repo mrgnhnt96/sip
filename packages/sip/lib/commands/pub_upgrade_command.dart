@@ -17,6 +17,8 @@ class PubUpgradeCommand extends APubCommand {
     required super.fs,
     required super.logger,
     required super.scriptsYaml,
+    required super.runManyScripts,
+    required super.runOneScript,
   }) {
     argParser.addFlag(
       'offline',
