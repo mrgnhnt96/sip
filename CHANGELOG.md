@@ -1,3 +1,11 @@
+# 0.15.0 | 2.22.2025
+
+## Features
+
+- Add support to `sip pub constrain` command to constrain specific packages to a specific version
+- Add support to `sip pub constrain` command to unpin (`--no-pin`)
+  - e.g. `provider: 5.0.0` will be unpinned to `^5.0.0`
+
 # 0.14.6 | 1.18.2025
 
 ## Features
