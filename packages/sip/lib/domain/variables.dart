@@ -37,7 +37,14 @@ class Variables with WorkingDirectory {
     variables[Vars.scriptsRoot] =
         scriptsRoot == null ? null : path.dirname(scriptsRoot);
 
+    final executables = scriptsYaml.executables();
+
     variables[Vars.cwd] = cwd.path;
+    for (final MapEntry(:key, :value) in (executables ?? {}).entries) {
+      if (value is! String) continue;
+
+      variables[key] = value;
+    }
 
     final definedVariables = scriptsYaml.variables();
     for (final MapEntry(:key, :value) in (definedVariables ?? {}).entries) {

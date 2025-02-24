@@ -11,18 +11,24 @@ import 'package:test/test.dart';
 
 void main() {
   group(Variables, () {
-    late Variables variables;
     late FileSystem fs;
+    late File pubspec;
+    late File scripts;
 
     setUp(() {
       fs = MemoryFileSystem.test();
+
+      pubspec = fs.file(PubspecYaml.fileName);
+      scripts = fs.file(ScriptsYaml.fileName);
     });
 
     void createPubspecAndScripts() {
-      fs.file(PubspecYaml.fileName).createSync(recursive: true);
-      fs.file(ScriptsYaml.fileName).createSync(recursive: true);
+      pubspec.createSync(recursive: true);
+      scripts.createSync(recursive: true);
+    }
 
-      variables = Variables(
+    Variables variables() {
+      return Variables(
         pubspecYaml: PubspecYamlImpl(fs: fs),
         scriptsYaml: ScriptsYamlImpl(fs: fs),
         cwd: CWDImpl(fs: fs),
@@ -30,20 +36,31 @@ void main() {
     }
 
     group('#populate', () {
-      group('directory variables', () {
-        test('should populate', () {
-          createPubspecAndScripts();
+      setUp(createPubspecAndScripts);
 
-          final populated = variables.populate();
+      test('should add projectRoot, scriptsRoot, and cwd', () {
+        final populated = variables().populate();
 
-          expect(populated['projectRoot'], isNotNull);
-          expect(populated['scriptsRoot'], isNotNull);
-          expect(populated['cwd'], isNotNull);
+        expect(populated['projectRoot'], isNotNull);
+        expect(populated['scriptsRoot'], isNotNull);
+        expect(populated['cwd'], isNotNull);
 
-          expect(populated['projectRoot'], path.separator);
-          expect(populated['scriptsRoot'], path.separator);
-          expect(populated['cwd'], path.separator);
-        });
+        expect(populated['projectRoot'], path.separator);
+        expect(populated['scriptsRoot'], path.separator);
+        expect(populated['cwd'], path.separator);
+      });
+
+      test('should add executables', () {
+        scripts.writeAsStringSync('''
+(executables):
+  flutter: fvm flutter
+  dart: fvm dart
+''');
+
+        final populated = variables().populate();
+
+        expect(populated['flutter'], 'fvm flutter');
+        expect(populated['dart'], 'fvm dart');
       });
     });
 
