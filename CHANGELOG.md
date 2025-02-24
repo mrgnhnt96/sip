@@ -1,3 +1,17 @@
+# 0.15.1 | 2.24.2025
+
+## Features
+
+- Add executables to variables to be used in commands
+
+  ```yaml
+  (executables):
+    flutter: fvm flutter
+    dart: fvm dart
+
+  build_runner: "{dart} run build_runner build"
+  ```
+
 # 0.15.0 | 2.22.2025
 
 ## Features
