@@ -7,11 +7,12 @@ class PackageToTest {
     required String packagePath,
     this.optimizedPath,
   }) {
+    final segments = p.split(packagePath);
     this.packagePath = switch (packagePath) {
-      _ when packagePath.contains('${p.separator}test') =>
-        packagePath.split('${p.separator}test').first,
-      _ when packagePath.contains('${p.separator}lib') =>
-        packagePath.split('${p.separator}lib').first,
+      _ when segments.contains('test') =>
+        p.joinAll(segments.takeWhile((e) => e != 'test')),
+      _ when segments.contains('lib') =>
+        p.joinAll(segments.takeWhile((e) => e != 'lib')),
       _ => packagePath,
     };
   }
@@ -19,4 +20,9 @@ class PackageToTest {
   final DetermineFlutterOrDart tool;
   late final String packagePath;
   String? optimizedPath;
+
+  @override
+  String toString() {
+    return '(packagePath: $packagePath, optimizedPath: $optimizedPath)';
+  }
 }

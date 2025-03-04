@@ -18,14 +18,15 @@ import 'package:test/test.dart';
 void main() {
   group('env files e2e', () {
     late FileSystem fs;
-    late _MockBindings mockBindings;
-    late Logger mockLogger;
+    late _TestBindings bindings;
+    late Logger logger;
 
     setUp(() {
-      mockBindings = _MockBindings();
-      mockLogger = _MockLogger();
+      bindings = _TestBindings();
+      logger = _MockLogger();
 
-      when(() => mockLogger.progress(any())).thenReturn(_MockProgress());
+      when(() => logger.level).thenReturn(Level.quiet);
+      when(() => logger.progress(any())).thenReturn(_MockProgress());
 
       fs = MemoryFileSystem.test();
 
@@ -57,9 +58,9 @@ void main() {
           ..writeAsStringSync('');
 
         final command = ScriptRunCommand(
-          bindings: mockBindings,
+          bindings: bindings,
           cwd: CWDImpl(fs: fs),
-          logger: mockLogger,
+          logger: logger,
           scriptsYaml: ScriptsYamlImpl(fs: fs),
           variables: Variables(
             cwd: CWDImpl(fs: fs),
@@ -81,7 +82,7 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 100));
 
         expect(
-          mockBindings.scripts,
+          bindings.scripts,
           [
             'cd /packages/sip || exit 1',
             '',
@@ -110,7 +111,7 @@ void main() {
   });
 }
 
-class _MockBindings implements Bindings {
+class _TestBindings implements Bindings {
   final List<String> scripts = [];
 
   @override
@@ -130,9 +131,6 @@ class _MockBindings implements Bindings {
   }
 }
 
-class _MockLogger extends Mock implements Logger {
-  @override
-  Level get level => Level.quiet;
-}
+class _MockLogger extends Mock implements Logger {}
 
 class _MockProgress extends Mock implements Progress {}
