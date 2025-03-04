@@ -502,7 +502,7 @@ void main() {
         tests!;
 
         expect(tests.length, 1);
-        expect(tests.first.packagePath, 'test');
+        expect(tests.first.packagePath, '');
       });
 
       test(

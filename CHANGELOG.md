@@ -1,3 +1,9 @@
+# 0.15.2 | 3.4.2025
+
+## Fix
+
+- Fix issue where test directories were not identified correctly when parent directory starts with`test`
+
 # 0.15.1 | 2.24.2025
 
 ## Features
