@@ -285,35 +285,34 @@ class ScriptRunCommand extends Command<ExitCode>
     }
 
     Future<ExitCode> runScripts() async {
-      int? runningGroup;
       for (var i = 0; i < commands.length; i++) {
         final command = commands.elementAt(i);
-        runningGroup ??= command.group;
 
         if (!disableConcurrency) {
-          final shouldRunConcurrent = switch (command.runConcurrently) {
-            false => false,
-            _ => switch ((command.group, command.runPreviousFirst)) {
-                (final group, _) when group == runningGroup => true,
-                (_, true) => false,
-                _ => true,
-              },
-          };
-          if (shouldRunConcurrent) {
+          if (command.runConcurrently) {
             concurrentRuns.add(command);
-            continue;
-          } else if (concurrentRuns.isNotEmpty) {
+
+            if (!command.needsRunBeforeNext) {
+              continue;
+            }
+          }
+
+          if (concurrentRuns.isNotEmpty) {
             if (await runMany() case final ExitCode exitCode) {
               return exitCode;
             }
-            // Go back one step
-            i--;
-            // Set the group to the next command
-            runningGroup = command.group;
+            // no need to go back one step if the command is set
+            // to run before the next
+            if (!command.needsRunBeforeNext) {
+              // Go back one step to get the command that is skipped
+              i--;
+            }
+
             continue;
           }
         }
 
+        // Run 1 single command
         logger.write(darkGray.wrap('---\n'));
         final lines = command.label.split('\n');
         String label;

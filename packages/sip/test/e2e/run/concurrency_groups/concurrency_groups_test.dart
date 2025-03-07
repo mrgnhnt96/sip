@@ -86,16 +86,16 @@ void main() {
       fs.currentDirectory = cwd;
     });
 
-    test('runs gracefully', () async {
+    ScriptRunCommand setupScripts() {
       final input = io.File(
-        path.join(
+        path.joinAll([
           'test',
           'e2e',
           'run',
           'concurrency_groups',
           'inputs',
           'scripts.yaml',
-        ),
+        ]),
       ).readAsStringSync();
 
       fs.file(ScriptsYaml.fileName)
@@ -105,7 +105,7 @@ void main() {
         ..createSync(recursive: true)
         ..writeAsStringSync('');
 
-      final command = ScriptRunCommand(
+      return ScriptRunCommand(
         bindings: bindings,
         cwd: CWDImpl(fs: fs),
         logger: logger,
@@ -118,8 +118,167 @@ void main() {
         runManyScripts: runManyScripts,
         runOneScript: runOneScript,
       );
+    }
+
+    test('should run concurrent groups and isolate non-concurrent groups',
+        () async {
+      final command = setupScripts();
 
       await command.run(['combined']);
+      {
+        final expected = [
+          [
+            ...[
+              'wait 1',
+              'wait 2',
+            ].map(
+              (e) => CommandToRun(
+                command: e,
+                label: e,
+                workingDirectory: '/packages/sip',
+                keys: const ['combined'],
+                needsRunBeforeNext: false,
+                bail: false,
+                runConcurrently: true,
+              ),
+            ),
+            const CommandToRun(
+              command: 'wait 3',
+              label: 'wait 3',
+              workingDirectory: '/packages/sip',
+              keys: ['combined'],
+              needsRunBeforeNext: true,
+              bail: false,
+              runConcurrently: true,
+            ),
+          ],
+          [
+            ...[
+              'wait 4',
+              'wait 5',
+            ].map(
+              (e) => CommandToRun(
+                command: e,
+                label: e,
+                workingDirectory: '/packages/sip',
+                keys: const ['combined'],
+                needsRunBeforeNext: false,
+                bail: false,
+                runConcurrently: true,
+              ),
+            ),
+          ],
+        ];
+
+        final results = <List<CommandToRun>>[];
+
+        verify(
+          () => runManyScripts.run(
+            commands: any(
+              named: 'commands',
+              that: isA<List<CommandToRun>>().having(
+                (items) {
+                  return items;
+                },
+                'has correct scripts',
+                (Object? items) {
+                  results.add(items! as List<CommandToRun>);
+                  return true;
+                },
+              ),
+            ),
+            sequentially: true,
+            bail: false,
+            label: any(named: 'label'),
+            maxAttempts: any(named: 'maxAttempts'),
+            retryAfter: any(named: 'retryAfter'),
+          ),
+        ).called(2);
+
+        expect(results, expected);
+      }
+
+      {
+        final expected = [
+          ...[
+            'wait 1; echo 1',
+            'wait 1; echo 2',
+          ].map((e) {
+            return CommandToRun(
+              command: e,
+              label: e,
+              workingDirectory: '/packages/sip',
+              keys: const ['combined'],
+              needsRunBeforeNext: false,
+              bail: false,
+              runConcurrently: false,
+            );
+          }),
+          const CommandToRun(
+            command: 'wait 1; echo 3',
+            label: 'wait 1; echo 3',
+            workingDirectory: '/packages/sip',
+            keys: ['combined'],
+            needsRunBeforeNext: true,
+            bail: false,
+            runConcurrently: false,
+          ),
+        ];
+
+        final results = <CommandToRun>[];
+
+        verify(
+          () => runOneScript.run(
+            command: any(
+              named: 'command',
+              that: isA<CommandToRun>().having(
+                (items) {
+                  return items;
+                },
+                'has correct script',
+                (Object? items) {
+                  results.add(items! as CommandToRun);
+
+                  return true;
+                },
+              ),
+            ),
+            showOutput: any(named: 'showOutput'),
+            maxAttempts: any(named: 'maxAttempts'),
+            retryAfter: any(named: 'retryAfter'),
+          ),
+        ).called(3);
+
+        expect(results, expected);
+      }
+    });
+
+    test('should run concurrent group', () async {
+      final command = setupScripts();
+
+      await command.run(['all_concurrent']);
+
+      final expected = [
+        [
+          ...[
+            'wait 1',
+            'wait 2',
+            'wait 3',
+          ].map(
+            (e) => CommandToRun(
+              command: e,
+              label: e,
+              workingDirectory: '/packages/sip',
+              keys: const ['all_concurrent'],
+              needsRunBeforeNext: false,
+              bail: false,
+              runConcurrently: true,
+            ),
+          ),
+        ],
+      ];
+
+      final results = <List<CommandToRun>>[];
 
       verify(
         () => runManyScripts.run(
@@ -130,21 +289,10 @@ void main() {
                 return items;
               },
               'has correct scripts',
-              [
-                ...[
-                  'wait 1',
-                  'wait 2',
-                  'wait 3',
-                ].map(
-                  (e) => CommandToRun(
-                    command: e,
-                    workingDirectory: '/packages/sip',
-                    keys: const ['combined'],
-                    runPreviousFirst: true,
-                    bail: false,
-                  ),
-                ),
-              ],
+              (Object? items) {
+                results.add(items! as List<CommandToRun>);
+                return true;
+              },
             ),
           ),
           sequentially: true,
@@ -155,9 +303,152 @@ void main() {
         ),
       ).called(1);
 
-      // verify calls to the multi and single script runners
-      expect(true, isFalse);
+      expect(results, expected);
     });
+
+    test('should run non-concurrent group', () async {
+      final command = setupScripts();
+
+      await command.run(['no_concurrent']);
+
+      final expected = [
+        ...[
+          'wait 1; echo 1',
+          'wait 1; echo 2',
+          'wait 1; echo 3',
+        ].map(
+          (e) => CommandToRun(
+            command: e,
+            label: e,
+            workingDirectory: '/packages/sip',
+            keys: const ['no_concurrent'],
+            needsRunBeforeNext: false,
+            bail: false,
+            runConcurrently: false,
+          ),
+        ),
+      ];
+
+      final results = <CommandToRun>[];
+
+      verify(
+        () => runOneScript.run(
+          command: any(
+            named: 'command',
+            that: isA<CommandToRun>().having(
+              (items) {
+                return items;
+              },
+              'has correct scripts',
+              (Object? items) {
+                results.add(items! as CommandToRun);
+                return true;
+              },
+            ),
+          ),
+          showOutput: any(named: 'showOutput'),
+          maxAttempts: any(named: 'maxAttempts'),
+          retryAfter: any(named: 'retryAfter'),
+        ),
+      ).called(3);
+
+      expect(results, expected);
+    });
+
+    test('should run partial-concurrent group', () async {
+      final command = setupScripts();
+
+      await command.run(['partial_concurrent']);
+
+      {
+        final expected = [
+          [
+            ...[
+              'wait 4',
+              'wait 5',
+            ].map(
+              (e) => CommandToRun(
+                command: e,
+                label: e,
+                workingDirectory: '/packages/sip',
+                keys: const ['partial_concurrent'],
+                needsRunBeforeNext: false,
+                bail: false,
+                runConcurrently: true,
+              ),
+            ),
+          ],
+        ];
+
+        final results = <List<CommandToRun>>[];
+
+        verify(
+          () => runManyScripts.run(
+            commands: any(
+              named: 'commands',
+              that: isA<List<CommandToRun>>().having(
+                (items) {
+                  return items;
+                },
+                'has correct scripts',
+                (Object? items) {
+                  results.add(items! as List<CommandToRun>);
+                  return true;
+                },
+              ),
+            ),
+            sequentially: true,
+            bail: false,
+            label: any(named: 'label'),
+            maxAttempts: any(named: 'maxAttempts'),
+            retryAfter: any(named: 'retryAfter'),
+          ),
+        ).called(1);
+
+        expect(results, expected);
+      }
+
+      {
+        final expected = [
+          const CommandToRun(
+            command: 'echo 6',
+            label: 'echo 6',
+            workingDirectory: '/packages/sip',
+            keys: ['partial_concurrent'],
+            needsRunBeforeNext: false,
+            bail: false,
+            runConcurrently: false,
+          ),
+        ];
+
+        final results = <CommandToRun>[];
+
+        verify(
+          () => runOneScript.run(
+            command: any(
+              named: 'command',
+              that: isA<CommandToRun>().having(
+                (items) {
+                  return items;
+                },
+                'has correct scripts',
+                (Object? items) {
+                  results.add(items! as CommandToRun);
+                  return true;
+                },
+              ),
+            ),
+            showOutput: any(named: 'showOutput'),
+            maxAttempts: any(named: 'maxAttempts'),
+            retryAfter: any(named: 'retryAfter'),
+          ),
+        ).called(1);
+
+        expect(results, expected);
+      }
+    });
+
+    test('should combine groups when leading with concurrency', () async {});
   });
 }
 

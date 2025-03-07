@@ -138,7 +138,6 @@ $ sip format ui
       script,
       scriptConfig,
       flags: optionalFlags(keys),
-      scriptGroup: null,
     );
 
     for (final resolved in resolvedScripts) {
@@ -159,7 +158,6 @@ $ sip format ui
 
     for (final resolved in resolvedScripts) {
       var runConcurrently = false;
-      var waitForPrevious = true;
 
       var command = switch (resolved.command) {
         final String command => command,
@@ -172,24 +170,19 @@ $ sip format ui
         );
 
         runConcurrently = true;
-        var count = 0;
         while (command.startsWith(Identifiers.concurrent)) {
-          count++;
           command = command.substring(Identifiers.concurrent.length);
         }
-
-        waitForPrevious = count == 1;
       }
 
       yield CommandToRun(
         command: command.trim(),
         label: command.trim(),
-        group: resolved.group,
         runConcurrently: runConcurrently,
         workingDirectory: directory,
         keys: resolved.script.keys,
         envConfig: resolved.envConfig,
-        runPreviousFirst: waitForPrevious,
+        needsRunBeforeNext: resolved.needsRunBeforeNext,
       );
     }
   }
@@ -217,7 +210,7 @@ $ sip format ui
 
       assert(resolveScript != null, 'commands should not be null');
       yield CommandsToRunResult(
-        commands: _commandsToRun(result),
+        commands: _commandsToRun(result).toList(),
         bail: bail,
         combinedEnvConfig: resolveScript?.envConfig,
       );
@@ -227,7 +220,7 @@ $ sip format ui
 
 class CommandsToRunResult {
   const CommandsToRunResult({
-    required Iterable<CommandToRun> this.commands,
+    required List<CommandToRun> this.commands,
     required this.bail,
     required this.combinedEnvConfig,
   }) : exitCode = null;
@@ -237,7 +230,7 @@ class CommandsToRunResult {
         combinedEnvConfig = null;
 
   final ExitCode? exitCode;
-  final Iterable<CommandToRun>? commands;
+  final List<CommandToRun>? commands;
   final EnvConfig? combinedEnvConfig;
   final bool bail;
 }

@@ -145,16 +145,13 @@ class Variables with WorkingDirectory {
   Iterable<ResolveScript> replace(
     Script script,
     ScriptsConfig config, {
-    required ScriptGroup? scriptGroup,
     EnvConfig? parentEnvConfig,
     OptionalFlags? flags,
   }) sync* {
-    var group = scriptGroup;
     late final sipVariables = populate();
     Iterable<ResolveScript> resolve(
       String command,
       Script script,
-      ScriptGroup group,
     ) sync* {
       yield* replaceVariables(
         command,
@@ -163,7 +160,6 @@ class Variables with WorkingDirectory {
         flags: flags,
         script: script,
         envConfigOfParent: parentEnvConfig,
-        group: group,
       );
     }
 
@@ -171,7 +167,7 @@ class Variables with WorkingDirectory {
       if (script.env?.commands case final commands)
         for (final command in commands ?? <String>[])
           EnvConfig(
-            commands: resolve(command, script, const ScriptGroup.none())
+            commands: resolve(command, script)
                 .map((e) => e.command)
                 .whereType<String>(),
             files: script.env?.files,
@@ -185,16 +181,9 @@ class Variables with WorkingDirectory {
 
     final commands = <ResolveScript>[];
     for (final command in script.commands) {
-      if (group?.script != script) {
-        group = group?.next(script);
-      }
-
-      group ??= ScriptGroup(script);
-
       final resolved = resolve(
         command,
         script,
-        group,
       ).toList();
 
       commands.addAll(resolved);
@@ -203,7 +192,7 @@ class Variables with WorkingDirectory {
         for (final e in resolved)
           for (final command in e.envConfig?.commands ?? <String>[])
             EnvConfig(
-              commands: resolve(command, script, const ScriptGroup.none())
+              commands: resolve(command, script)
                   .map((e) => e.command)
                   .whereType<String>(),
               files: e.envConfig?.files,
@@ -216,7 +205,7 @@ class Variables with WorkingDirectory {
       resolvedScripts: commands,
       envConfig: envConfig.combine(directory: directory),
       script: script,
-      group: group?.id ?? 0,
+      needsRunBeforeNext: false,
     );
   }
 
@@ -225,7 +214,6 @@ class Variables with WorkingDirectory {
     required Map<String, String?> sipVariables,
     required ScriptsConfig config,
     required Script script,
-    required ScriptGroup group,
     EnvConfig? envConfigOfParent,
     OptionalFlags? flags,
   }) sync* {
@@ -239,7 +227,7 @@ class Variables with WorkingDirectory {
           script.envConfig(directory: directory),
         ].combine(directory: directory),
         script: script,
-        group: group.id,
+        needsRunBeforeNext: false,
       );
 
       return;
@@ -250,7 +238,7 @@ class Variables with WorkingDirectory {
         command: command,
         envConfig: null,
         script: script,
-        group: 69,
+        needsRunBeforeNext: false,
       ),
     ];
     final resolvedEnvCommands = <EnvConfig?>{};
@@ -279,7 +267,6 @@ class Variables with WorkingDirectory {
           config,
           flags: flags,
           parentEnvConfig: parentEnvConfig,
-          scriptGroup: group,
         );
 
         for (final replaced in replacedScripts) {
@@ -300,10 +287,8 @@ class Variables with WorkingDirectory {
 
             final commandsToCopyIndex =
                 index ~/ replaced.resolvedScripts.length;
-            final copy =
-                commandsToCopy[commandsToCopyIndex].copy(group: replaced.group)
-                  ..revertCommandToOriginal()
-                  ..replaceCommandPart(partToReplace, command);
+            final copy = commandsToCopy[commandsToCopyIndex].copy()
+              ..replaceCommandPart(partToReplace, command);
 
             return copy;
           });
@@ -336,11 +321,39 @@ class Variables with WorkingDirectory {
       }
     }
 
-    yield* resolvedCommands.map(
-      (e) => e.copy(
-        envConfig: resolvedEnvCommands.combine(directory: directory),
-      ),
-    );
+    final commandsWithEnv = resolvedCommands
+        .map(
+          (e) => e.copy(
+            envConfig: resolvedEnvCommands.combine(directory: directory),
+          ),
+        )
+        .toList();
+
+    if (script.commands.length == 1) {
+      yield* commandsWithEnv;
+      return;
+    }
+
+    final commandIndex = script.commands.indexOf(command);
+
+    if (commandIndex == -1) {
+      throw Exception('Command $command not found in script ${script.name}');
+    }
+
+    final hasConcurrency = script.commands
+        .elementAt(commandIndex)
+        .startsWith(Identifiers.concurrent);
+
+    if (hasConcurrency) {
+      yield* commandsWithEnv;
+      return;
+    }
+
+    final commands = commandsWithEnv.toList();
+    final last = commands.removeLast();
+
+    yield* commands;
+    yield last.copy(needsRunBeforeNext: true);
   }
 }
 
@@ -349,15 +362,15 @@ class ResolveScript {
     required this.resolvedScripts,
     required this.envConfig,
     required this.script,
-    required this.group,
+    required this.needsRunBeforeNext,
   }) : originalCommand = null;
 
   ResolveScript._({
     required this.resolvedScripts,
     required this.envConfig,
     required this.script,
-    required this.group,
     required this.originalCommand,
+    required this.needsRunBeforeNext,
     required String? replacedCommand,
   }) : _replacedCommand = replacedCommand;
 
@@ -365,7 +378,7 @@ class ResolveScript {
     required String command,
     required this.envConfig,
     required this.script,
-    required this.group,
+    required this.needsRunBeforeNext,
   })  : resolvedScripts = const [],
         originalCommand = command;
 
@@ -373,7 +386,7 @@ class ResolveScript {
   final String? originalCommand;
   final Iterable<ResolveScript> resolvedScripts;
   final EnvConfig? envConfig;
-  final int group;
+  final bool needsRunBeforeNext;
 
   String? _replacedCommand;
 
@@ -383,21 +396,17 @@ class ResolveScript {
   }
 
   ResolveScript copy({
-    int? group,
     EnvConfig? envConfig,
+    bool? needsRunBeforeNext,
   }) {
     return ResolveScript._(
       resolvedScripts: resolvedScripts,
       envConfig: envConfig ?? this.envConfig,
       script: script,
-      group: group ?? this.group,
       originalCommand: originalCommand,
       replacedCommand: _replacedCommand,
+      needsRunBeforeNext: needsRunBeforeNext ?? this.needsRunBeforeNext,
     );
-  }
-
-  void revertCommandToOriginal() {
-    _replacedCommand = null;
   }
 
   Iterable<ResolveScript> get flatten => {
@@ -421,35 +430,6 @@ extension _ScriptX on Script {
       commands: {...env.commands},
       files: {...env.files},
       workingDirectory: directory,
-    );
-  }
-}
-
-class ScriptGroup {
-  const ScriptGroup(Script this.script) : id = 0;
-  const ScriptGroup._({
-    required Script this.script,
-    required this.id,
-  });
-  const ScriptGroup.none()
-      : script = null,
-        id = -1;
-
-  final Script? script;
-  final int id;
-
-  static int min = 0;
-
-  ScriptGroup next(Script script) {
-    var newId = id + 1;
-    if (newId <= min) {
-      newId = min + 1;
-    }
-    min = newId;
-
-    return ScriptGroup._(
-      script: script,
-      id: newId,
     );
   }
 }
