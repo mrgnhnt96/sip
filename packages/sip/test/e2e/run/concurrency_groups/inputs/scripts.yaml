@@ -21,6 +21,10 @@ combined:
 combined_concurrent:
   - "{$all_concurrent}"
   - "(+) {$partial_concurrent}"
+
+everything_concurrent:
+  - "(+) {$all_concurrent}"
+  - "(+) {$partial_concurrent}"
   - "(+) {$no_concurrent}"
 
 _combined_expected:

@@ -528,6 +528,65 @@ void main() {
 
       expect(results, expected);
     });
+
+    test('should combine all groups when leading with concurrency', () async {
+      final command = setupScripts();
+
+      await command.run(['everything_concurrent']);
+
+      final expected = [
+        [
+          ...[
+            'wait 1',
+            'wait 2',
+            'wait 3',
+            'wait 4',
+            'wait 5',
+            'echo 6',
+            'wait 1; echo 1',
+            'wait 1; echo 2',
+            'wait 1; echo 3',
+          ].map(
+            (e) => CommandToRun(
+              command: e,
+              label: e,
+              workingDirectory: '/packages/sip',
+              keys: const ['everything_concurrent'],
+              needsRunBeforeNext: false,
+              bail: false,
+              runConcurrently: true,
+            ),
+          ),
+        ]
+      ];
+
+      final results = <List<CommandToRun>>[];
+
+      verify(
+        () => runManyScripts.run(
+          commands: any(
+            named: 'commands',
+            that: isA<List<CommandToRun>>().having(
+              (items) {
+                return items;
+              },
+              'has correct scripts',
+              (Object? items) {
+                results.add(items! as List<CommandToRun>);
+                return true;
+              },
+            ),
+          ),
+          sequentially: true,
+          bail: false,
+          label: any(named: 'label'),
+          maxAttempts: any(named: 'maxAttempts'),
+          retryAfter: any(named: 'retryAfter'),
+        ),
+      ).called(1);
+
+      expect(results, expected);
+    });
   });
 }
 
