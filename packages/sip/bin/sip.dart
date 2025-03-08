@@ -12,6 +12,11 @@ import 'package:sip_cli/sip_runner.dart';
 import 'package:sip_cli/utils/key_press_listener.dart';
 
 void main(List<String> arguments) async {
+  ProcessSignal.sigint.watch().listen(
+        (signal) => exit(1),
+        cancelOnError: true,
+      );
+
   final args = List<String>.from(arguments);
 
   var loud = false;
