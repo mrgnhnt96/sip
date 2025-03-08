@@ -1,5 +1,7 @@
 // ignore_for_file: cascade_invocations
 
+import 'dart:async';
+
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
@@ -18,30 +20,6 @@ import 'package:sip_cli/utils/exit_code_extensions.dart';
 import 'package:sip_cli/utils/run_script_helper.dart';
 import 'package:sip_cli/utils/stopwatch_extensions.dart';
 import 'package:sip_cli/utils/working_directory.dart';
-
-// TODO(mrgnhnt): Handle when the user presses Ctrl+C
-/*
-var attemptsToKill = 0;
-    final stream = Platform.isWindows
-        ? ProcessSignal.sigint.watch()
-        : StreamGroup.merge(
-            [
-              ProcessSignal.sigterm.watch(),
-              ProcessSignal.sigint.watch(),
-            ],
-          );
-
-    _killSubscription ??= stream.listen((event) {
-      logger.detail('Received SIGINT');
-      if (attemptsToKill > 0) {
-        exit(1);
-      } else if (attemptsToKill == 0) {
-        stop().ignore();
-      }
-
-      attemptsToKill++;
-    });
-*/
 
 /// The command to run a script
 class ScriptRunCommand extends Command<ExitCode>
@@ -150,7 +128,7 @@ class ScriptRunCommand extends Command<ExitCode>
 
     final bail = result.bail ^ (argResults['bail'] as bool? ?? false);
 
-    Future<ExitCode> runCommands() => _run(
+    Future<ExitCode> runCommands() => _runCommands(
           argResults: argResults,
           bail: bail,
           concurrent: concurrent,
@@ -182,7 +160,7 @@ class ScriptRunCommand extends Command<ExitCode>
     return runCommands();
   }
 
-  Future<ExitCode> _run({
+  Future<ExitCode> _runCommands({
     required ArgResults argResults,
     required bool bail,
     required bool concurrent,

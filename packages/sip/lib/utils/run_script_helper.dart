@@ -7,6 +7,7 @@ import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/domain/cwd.dart';
 import 'package:sip_cli/domain/env_config.dart';
 import 'package:sip_cli/domain/optional_flags.dart';
+import 'package:sip_cli/domain/resolve_script.dart';
 import 'package:sip_cli/domain/script.dart';
 import 'package:sip_cli/domain/scripts_config.dart';
 import 'package:sip_cli/domain/scripts_yaml.dart';
