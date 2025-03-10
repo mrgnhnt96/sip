@@ -13,6 +13,7 @@ class CommandToRun extends Equatable {
     this.envConfig,
     this.runConcurrently = false,
     this.filterOutput,
+    this.needsRunBeforeNext = false,
     String? label,
   }) : label = label ?? command;
 
@@ -24,6 +25,13 @@ class CommandToRun extends Equatable {
   final EnvConfig? envConfig;
   final FilterType? filterOutput;
   final bool bail;
+
+  /// Whether to run the previous command first.
+  ///
+  /// This is useful to "break" up the commands into smaller concurrent groups
+  ///
+  /// This does not apply if [runConcurrently] is false
+  final bool needsRunBeforeNext;
 
   @override
   List<Object?> get props => _$props;

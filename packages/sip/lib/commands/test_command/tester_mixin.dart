@@ -40,6 +40,8 @@ abstract mixin class TesterMixin {
   FileSystem get fs;
   Bindings get bindings;
   ScriptsYaml get scriptsYaml;
+  RunManyScripts get runManyScripts;
+  RunOneScript get runOneScript;
 
   ({
     List<String> both,
@@ -350,13 +352,9 @@ abstract mixin class TesterMixin {
         logger.detail('Script: ${darkGray.wrap(command.command)}');
       }
 
-      final runMany = RunManyScripts(
-        commands: commandsToRun,
-        bindings: bindings,
-        logger: logger,
-      );
-
-      final exitCodes = await runMany.run(
+      final exitCodes = await runManyScripts.run(
+        commands: commandsToRun.toList(),
+        sequentially: false,
         label: 'Running tests ',
         bail: bail,
       );
@@ -370,19 +368,16 @@ abstract mixin class TesterMixin {
 
     for (final command in commandsToRun) {
       logger.detail(command.command);
-      final scriptRunner = RunOneScript(
-        command: command,
-        bindings: bindings,
-        logger: logger,
-        showOutput: true,
-        filter: command.filterOutput,
-      );
 
       final stopwatch = Stopwatch()..start();
 
       logger.info(darkGray.wrap(command.label));
 
-      final result = await scriptRunner.run();
+      final result = await runOneScript.run(
+        command: command,
+        showOutput: true,
+        filter: command.filterOutput,
+      );
 
       final time = (stopwatch..stop()).format();
 

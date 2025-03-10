@@ -9,8 +9,14 @@ import 'package:sip_cli/domain/bindings_impl.dart';
 import 'package:sip_cli/domain/domain.dart';
 import 'package:sip_cli/domain/variables.dart';
 import 'package:sip_cli/sip_runner.dart';
+import 'package:sip_cli/utils/key_press_listener.dart';
 
 void main(List<String> arguments) async {
+  ProcessSignal.sigint.watch().listen(
+        (signal) => exit(1),
+        cancelOnError: true,
+      );
+
   final args = List<String>.from(arguments);
 
   var loud = false;
@@ -35,11 +41,23 @@ void main(List<String> arguments) async {
   const scriptsYaml = ScriptsYamlImpl(fs: fs);
   const pubspecYaml = PubspecYamlImpl(fs: fs);
   const cwd = CWDImpl(fs: fs);
+  final bindings = BindingsImpl(
+    logger: logger,
+  );
+
+  final runOneScript = RunOneScript(
+    bindings: bindings,
+    logger: logger,
+  );
+
+  final runManyScripts = RunManyScripts(
+    bindings: bindings,
+    logger: logger,
+    runOneScript: runOneScript,
+  );
 
   final exitCode = await SipRunner(
-    bindings: BindingsImpl(
-      logger: logger,
-    ),
+    bindings: bindings,
     scriptsYaml: scriptsYaml,
     findFile: const FindFile(fs: fs),
     pubspecLock: const PubspecLockImpl(fs: fs),
@@ -53,6 +71,9 @@ void main(List<String> arguments) async {
     logger: logger,
     cwd: cwd,
     pubUpdater: PubUpdater(),
+    runOneScript: runOneScript,
+    runManyScripts: runManyScripts,
+    keyPressListener: KeyPressListener(logger: logger),
   ).run(args);
 
   logger.detail('$args Finishing with: $exitCode');

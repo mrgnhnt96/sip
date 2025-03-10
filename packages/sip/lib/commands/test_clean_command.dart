@@ -6,6 +6,8 @@ import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/pubspec_lock.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
+import 'package:sip_cli/domain/run_many_scripts.dart';
+import 'package:sip_cli/domain/run_one_script.dart';
 import 'package:sip_cli/domain/scripts_yaml.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 
@@ -18,6 +20,8 @@ class TestCleanCommand extends Command<ExitCode> with TesterMixin {
     required this.pubspecLock,
     required this.pubspecYaml,
     required this.scriptsYaml,
+    required this.runManyScripts,
+    required this.runOneScript,
   });
 
   @override
@@ -46,6 +50,12 @@ class TestCleanCommand extends Command<ExitCode> with TesterMixin {
 
   @override
   final ScriptsYaml scriptsYaml;
+
+  @override
+  final RunManyScripts runManyScripts;
+
+  @override
+  final RunOneScript runOneScript;
 
   @override
   Future<ExitCode> run() async {

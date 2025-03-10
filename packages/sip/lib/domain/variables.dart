@@ -4,6 +4,7 @@ import 'package:sip_cli/domain/cwd.dart';
 import 'package:sip_cli/domain/env_config.dart';
 import 'package:sip_cli/domain/optional_flags.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
+import 'package:sip_cli/domain/resolve_script.dart';
 import 'package:sip_cli/domain/script.dart';
 import 'package:sip_cli/domain/scripts_config.dart';
 import 'package:sip_cli/domain/scripts_yaml.dart';
@@ -149,7 +150,10 @@ class Variables with WorkingDirectory {
     OptionalFlags? flags,
   }) sync* {
     late final sipVariables = populate();
-    Iterable<ResolveScript> resolve(String command, Script script) sync* {
+    Iterable<ResolveScript> resolve(
+      String command,
+      Script script,
+    ) sync* {
       yield* replaceVariables(
         command,
         sipVariables: sipVariables,
@@ -178,7 +182,10 @@ class Variables with WorkingDirectory {
 
     final commands = <ResolveScript>[];
     for (final command in script.commands) {
-      final resolved = resolve(command, script).toList();
+      final resolved = resolve(
+        command,
+        script,
+      ).toList();
 
       commands.addAll(resolved);
       envConfig.addAll([
@@ -199,6 +206,7 @@ class Variables with WorkingDirectory {
       resolvedScripts: commands,
       envConfig: envConfig.combine(directory: directory),
       script: script,
+      needsRunBeforeNext: false,
     );
   }
 
@@ -220,18 +228,27 @@ class Variables with WorkingDirectory {
           script.envConfig(directory: directory),
         ].combine(directory: directory),
         script: script,
+        needsRunBeforeNext: false,
       );
 
       return;
     }
 
-    Iterable<String> resolvedCommands = [command];
+    Iterable<ResolveScript> resolvedCommands = [
+      ResolveScript.command(
+        command: command,
+        envConfig: null,
+        script: script,
+        needsRunBeforeNext: false,
+      ),
+    ];
     final resolvedEnvCommands = <EnvConfig?>{};
 
     final parentEnvConfig = script.envConfig(directory: directory);
 
     for (final match in matches) {
       final variable = match.group(1);
+      final partToReplace = match.group(0)!;
 
       if (variable == null) {
         continue;
@@ -246,17 +263,19 @@ class Variables with WorkingDirectory {
           throw Exception('Script path $variable is invalid');
         }
 
-        for (final replaced in replace(
+        final replacedScripts = replace(
           found,
           config,
           flags: flags,
           parentEnvConfig: parentEnvConfig,
-        )) {
+        );
+
+        for (final replaced in replacedScripts) {
           resolvedEnvCommands.add(replaced.envConfig);
 
           final commandsToCopy = [...resolvedCommands];
 
-          final copied = List.generate(
+          final copied = List<ResolveScript>.generate(
               resolvedCommands.length * replaced.resolvedScripts.length,
               (index) {
             final commandIndex = index % replaced.resolvedScripts.length;
@@ -269,9 +288,10 @@ class Variables with WorkingDirectory {
 
             final commandsToCopyIndex =
                 index ~/ replaced.resolvedScripts.length;
-            final commandsToCopyCommand = commandsToCopy[commandsToCopyIndex];
+            final copy = commandsToCopy[commandsToCopyIndex].copy()
+              ..replaceCommandPart(partToReplace, command);
 
-            return commandsToCopyCommand.replaceAll(match.group(0)!, command);
+            return copy;
           });
 
           resolvedCommands = copied;
@@ -284,9 +304,9 @@ class Variables with WorkingDirectory {
         // flags are optional, so if not found, replace with empty string
         final flag = flags?[variable] ?? '';
 
-        resolvedCommands = resolvedCommands.map(
-          (e) => e.replaceAll(match.group(0)!, flag),
-        );
+        for (final command in resolvedCommands) {
+          command.replaceCommandPart(partToReplace, flag);
+        }
 
         continue;
       }
@@ -297,38 +317,45 @@ class Variables with WorkingDirectory {
         throw Exception('Variable $variable is not defined');
       }
 
-      resolvedCommands = resolvedCommands.map(
-        (e) => e.replaceAll(match.group(0)!, sipValue),
-      );
+      for (final command in resolvedCommands) {
+        command.replaceCommandPart(partToReplace, sipValue);
+      }
     }
 
-    for (final command in resolvedCommands) {
-      yield ResolveScript.command(
-        command: command,
-        envConfig: resolvedEnvCommands.combine(directory: directory),
-        script: script,
-      );
+    final commandsWithEnv = resolvedCommands
+        .map(
+          (e) => e.copy(
+            envConfig: resolvedEnvCommands.combine(directory: directory),
+          ),
+        )
+        .toList();
+
+    if (script.commands.length == 1) {
+      yield* commandsWithEnv;
+      return;
     }
+
+    final commandIndex = script.commands.indexOf(command);
+
+    if (commandIndex == -1) {
+      throw Exception('Command $command not found in script ${script.name}');
+    }
+
+    final hasConcurrency = script.commands
+        .elementAt(commandIndex)
+        .startsWith(Identifiers.concurrent);
+
+    if (hasConcurrency) {
+      yield* commandsWithEnv;
+      return;
+    }
+
+    final commands = commandsWithEnv.toList();
+    final last = commands.removeLast();
+
+    yield* commands;
+    yield last.copy(needsRunBeforeNext: true);
   }
-}
-
-class ResolveScript {
-  const ResolveScript({
-    required this.resolvedScripts,
-    required this.envConfig,
-    required this.script,
-  }) : command = null;
-
-  const ResolveScript.command({
-    required String this.command,
-    required this.envConfig,
-    required this.script,
-  }) : resolvedScripts = const [];
-
-  final Script script;
-  final String? command;
-  final Iterable<ResolveScript> resolvedScripts;
-  final EnvConfig? envConfig;
 }
 
 extension _ScriptX on Script {

@@ -1,5 +1,7 @@
 // ignore_for_file: cascade_invocations
 
+import 'dart:async';
+
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
@@ -19,30 +21,6 @@ import 'package:sip_cli/utils/run_script_helper.dart';
 import 'package:sip_cli/utils/stopwatch_extensions.dart';
 import 'package:sip_cli/utils/working_directory.dart';
 
-// TODO(mrgnhnt): Handle when the user presses Ctrl+C
-/*
-var attemptsToKill = 0;
-    final stream = Platform.isWindows
-        ? ProcessSignal.sigint.watch()
-        : StreamGroup.merge(
-            [
-              ProcessSignal.sigterm.watch(),
-              ProcessSignal.sigint.watch(),
-            ],
-          );
-
-    _killSubscription ??= stream.listen((event) {
-      logger.detail('Received SIGINT');
-      if (attemptsToKill > 0) {
-        exit(1);
-      } else if (attemptsToKill == 0) {
-        stop().ignore();
-      }
-
-      attemptsToKill++;
-    });
-*/
-
 /// The command to run a script
 class ScriptRunCommand extends Command<ExitCode>
     with RunScriptHelper, WorkingDirectory {
@@ -52,6 +30,8 @@ class ScriptRunCommand extends Command<ExitCode>
     required this.bindings,
     required this.logger,
     required this.cwd,
+    required this.runOneScript,
+    required this.runManyScripts,
   }) : argParser = AnyArgParser() {
     addFlags();
 
@@ -100,6 +80,8 @@ class ScriptRunCommand extends Command<ExitCode>
   final Logger logger;
   @override
   final CWD cwd;
+  final RunOneScript runOneScript;
+  final RunManyScripts runManyScripts;
 
   @override
   String get description => 'Runs a script';
@@ -146,7 +128,7 @@ class ScriptRunCommand extends Command<ExitCode>
 
     final bail = result.bail ^ (argResults['bail'] as bool? ?? false);
 
-    Future<ExitCode> runCommands() => _run(
+    Future<ExitCode> runCommands() => _runCommands(
           argResults: argResults,
           bail: bail,
           concurrent: concurrent,
@@ -178,7 +160,7 @@ class ScriptRunCommand extends Command<ExitCode>
     return runCommands();
   }
 
-  Future<ExitCode> _run({
+  Future<ExitCode> _runCommands({
     required ArgResults argResults,
     required bool bail,
     required bool concurrent,
@@ -204,16 +186,11 @@ class ScriptRunCommand extends Command<ExitCode>
             ),
         ];
 
-        final result = await switch (noConcurrent) {
-          true => RunManyScripts.new,
-          false => RunManyScripts.sequentially,
-        }(
-          commands: commandsToRun,
-          bindings: bindings,
-          logger: logger,
-        ).run(
+        final result = await runManyScripts.run(
           bail: true,
           label: 'Preparing env',
+          sequentially: noConcurrent,
+          commands: commandsToRun.toList(),
         );
 
         if (result.hasFailures) {
@@ -227,11 +204,11 @@ class ScriptRunCommand extends Command<ExitCode>
     }
 
     if (!disableConcurrency && concurrent) {
-      final exitCodes = await RunManyScripts(
-        commands: commands,
-        bindings: bindings,
-        logger: logger,
-      ).run(bail: bail);
+      final exitCodes = await runManyScripts.run(
+        commands: commands.toList(),
+        bail: bail,
+        sequentially: false,
+      );
 
       exitCodes.printErrors(commands, logger);
 
@@ -269,11 +246,11 @@ class ScriptRunCommand extends Command<ExitCode>
 
       logger.write(darkGray.wrap('---'));
 
-      final exitCodes = await RunManyScripts(
-        commands: concurrentRuns,
-        bindings: bindings,
-        logger: logger,
-      ).run(bail: bail);
+      final exitCodes = await runManyScripts.run(
+        commands: concurrentRuns.toList(),
+        bail: bail,
+        sequentially: true,
+      );
 
       exitCodes.printErrors(concurrentRuns, logger);
 
@@ -286,18 +263,34 @@ class ScriptRunCommand extends Command<ExitCode>
     }
 
     Future<ExitCode> runScripts() async {
-      for (final command in commands) {
+      for (var i = 0; i < commands.length; i++) {
+        final command = commands.elementAt(i);
+
         if (!disableConcurrency) {
           if (command.runConcurrently) {
             concurrentRuns.add(command);
-            continue;
-          } else if (concurrentRuns.isNotEmpty) {
+
+            if (!command.needsRunBeforeNext) {
+              continue;
+            }
+          }
+
+          if (concurrentRuns.isNotEmpty) {
             if (await runMany() case final ExitCode exitCode) {
               return exitCode;
             }
+            // no need to go back one step if the command is set
+            // to run before the next
+            if (!command.needsRunBeforeNext) {
+              // Go back one step to get the command that is skipped
+              i--;
+            }
+
+            continue;
           }
         }
 
+        // Run 1 single command
         logger.write(darkGray.wrap('---\n'));
         final lines = command.label.split('\n');
         String label;
@@ -310,12 +303,10 @@ class ScriptRunCommand extends Command<ExitCode>
 
         logger.info(darkGray.wrap(label));
 
-        final exitCode = await RunOneScript(
+        final exitCode = await runOneScript.run(
           command: command,
-          bindings: bindings,
-          logger: logger,
           showOutput: true,
-        ).run();
+        );
 
         exitCode.printError(command, logger);
 

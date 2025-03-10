@@ -14,6 +14,8 @@ class PubDepsCommand extends APubCommand {
     required super.bindings,
     required super.findFile,
     required super.scriptsYaml,
+    required super.runManyScripts,
+    required super.runOneScript,
   }) : super(runConcurrently: false) {
     argParser.addOption(
       'style',

@@ -14,6 +14,8 @@ class PubDowngradeCommand extends APubCommand {
     required super.bindings,
     required super.findFile,
     required super.scriptsYaml,
+    required super.runManyScripts,
+    required super.runOneScript,
   }) {
     argParser.addFlag(
       'offline',

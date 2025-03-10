@@ -10,6 +10,8 @@ import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/pubspec_lock.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
+import 'package:sip_cli/domain/run_many_scripts.dart';
+import 'package:sip_cli/domain/run_one_script.dart';
 import 'package:sip_cli/domain/scripts_yaml.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 import 'package:sip_cli/utils/key_press_listener.dart';
@@ -24,6 +26,8 @@ class TestCommand extends Command<ExitCode> {
     required FindFile findFile,
     required KeyPressListener keyPressListener,
     required ScriptsYaml scriptsYaml,
+    required RunManyScripts runManyScripts,
+    required RunOneScript runOneScript,
   }) {
     addSubcommand(
       TestRunCommand(
@@ -34,6 +38,8 @@ class TestCommand extends Command<ExitCode> {
         pubspecLock: pubspecLock,
         pubspecYaml: pubspecYaml,
         scriptsYaml: scriptsYaml,
+        runManyScripts: runManyScripts,
+        runOneScript: runOneScript,
       ),
     );
 
@@ -46,6 +52,8 @@ class TestCommand extends Command<ExitCode> {
         pubspecLock: pubspecLock,
         pubspecYaml: pubspecYaml,
         scriptsYaml: scriptsYaml,
+        runManyScripts: runManyScripts,
+        runOneScript: runOneScript,
       ),
     );
 
@@ -59,6 +67,8 @@ class TestCommand extends Command<ExitCode> {
         pubspecYaml: pubspecYaml,
         keyPressListener: keyPressListener,
         scriptsYaml: scriptsYaml,
+        runManyScripts: runManyScripts,
+        runOneScript: runOneScript,
       ),
     );
   }

@@ -9,24 +9,20 @@ import 'package:sip_cli/domain/filter_type.dart';
 
 class RunOneScript {
   const RunOneScript({
-    required this.command,
     required this.bindings,
     required this.logger,
-    required this.showOutput,
-    this.retryAfter,
-    this.maxAttempts = 3,
-    this.filter,
   });
 
-  final CommandToRun command;
   final Bindings bindings;
-  final bool showOutput;
   final Logger logger;
-  final Duration? retryAfter;
-  final int maxAttempts;
-  final FilterType? filter;
 
-  Future<CommandResult> run() async {
+  Future<CommandResult> run({
+    required CommandToRun command,
+    required bool showOutput,
+    Duration? retryAfter,
+    int maxAttempts = 3,
+    FilterType? filter,
+  }) async {
     var cmd = command.command;
 
     logger.detail('Env files: ${command.envConfig?.files}');
@@ -79,7 +75,6 @@ $cmd
     );
 
     CommandResult codeResult;
-    final retryAfter = this.retryAfter;
     if (retryAfter == null) {
       logger.detail('Not retrying');
       final result = await runScript;

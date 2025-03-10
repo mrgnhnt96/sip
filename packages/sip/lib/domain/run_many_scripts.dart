@@ -9,35 +9,27 @@ import 'package:sip_cli/utils/exit_code.dart';
 
 class RunManyScripts {
   const RunManyScripts({
-    required this.commands,
     required this.bindings,
     required this.logger,
-    this.retryAfter,
-    this.maxAttempts = 3,
-  }) : sequentially = false;
-
-  const RunManyScripts.sequentially({
-    required this.commands,
-    required this.bindings,
-    required this.logger,
-    this.retryAfter,
-    this.maxAttempts = 3,
-  }) : sequentially = true;
+    required this.runOneScript,
+  });
 
   final Bindings bindings;
-  final Iterable<CommandToRun> commands;
   final Logger logger;
-  final bool sequentially;
-  final Duration? retryAfter;
-  final int maxAttempts;
+  final RunOneScript runOneScript;
 
   Future<List<CommandResult>> run({
+    required List<CommandToRun> commands,
     required bool bail,
+    required bool sequentially,
+    Duration? retryAfter,
+    int maxAttempts = 3,
     String label = 'Running ',
   }) async {
     final runner = _run(
       commands,
       bail: bail,
+      sequentially: sequentially,
     );
 
     final results = <CommandResult>[];
@@ -83,6 +75,9 @@ class RunManyScripts {
   Stream<CommandResult> _run(
     Iterable<CommandToRun> commands, {
     required bool bail,
+    required bool sequentially,
+    Duration? retryAfter,
+    int maxAttempts = 3,
   }) async* {
     logger.write('\n');
 
@@ -96,10 +91,8 @@ class RunManyScripts {
     }
 
     for (final command in commands) {
-      final script = RunOneScript(
+      final script = runOneScript.run(
         command: command,
-        bindings: bindings,
-        logger: logger,
         showOutput: false,
         retryAfter: retryAfter,
         maxAttempts: maxAttempts,
@@ -107,12 +100,12 @@ class RunManyScripts {
       );
 
       if (sequentially) {
-        yield await script.run();
+        yield await script;
       } else {
         final label = command.label.truncate();
         logger.info(darkGray.wrap(label));
 
-        script.run().then(controller.add).ignore();
+        script.then(controller.add).ignore();
       }
     }
 

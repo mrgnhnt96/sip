@@ -14,5 +14,8 @@ extension _$CommandToRunAutoequal on CommandToRun {
         runConcurrently,
         keys,
         envConfig,
+        filterOutput,
+        bail,
+        needsRunBeforeNext,
       ];
 }

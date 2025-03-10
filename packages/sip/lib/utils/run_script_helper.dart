@@ -7,6 +7,7 @@ import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/domain/cwd.dart';
 import 'package:sip_cli/domain/env_config.dart';
 import 'package:sip_cli/domain/optional_flags.dart';
+import 'package:sip_cli/domain/resolve_script.dart';
 import 'package:sip_cli/domain/script.dart';
 import 'package:sip_cli/domain/scripts_config.dart';
 import 'package:sip_cli/domain/scripts_yaml.dart';
@@ -156,8 +157,7 @@ $ sip format ui
 
     final ResolveScript(:resolvedScripts, :envConfig) = resolveScript;
 
-    for (var i = 0; i < resolvedScripts.length; i++) {
-      final resolved = resolvedScripts.elementAt(i);
+    for (final resolved in resolvedScripts) {
       var runConcurrently = false;
 
       var command = switch (resolved.command) {
@@ -183,6 +183,7 @@ $ sip format ui
         workingDirectory: directory,
         keys: resolved.script.keys,
         envConfig: resolved.envConfig,
+        needsRunBeforeNext: resolved.needsRunBeforeNext,
       );
     }
   }
@@ -210,7 +211,7 @@ $ sip format ui
 
       assert(resolveScript != null, 'commands should not be null');
       yield CommandsToRunResult(
-        commands: _commandsToRun(result),
+        commands: _commandsToRun(result).toList(),
         bail: bail,
         combinedEnvConfig: resolveScript?.envConfig,
       );
@@ -220,7 +221,7 @@ $ sip format ui
 
 class CommandsToRunResult {
   const CommandsToRunResult({
-    required Iterable<CommandToRun> this.commands,
+    required List<CommandToRun> this.commands,
     required this.bail,
     required this.combinedEnvConfig,
   }) : exitCode = null;
@@ -230,7 +231,7 @@ class CommandsToRunResult {
         combinedEnvConfig = null;
 
   final ExitCode? exitCode;
-  final Iterable<CommandToRun>? commands;
+  final List<CommandToRun>? commands;
   final EnvConfig? combinedEnvConfig;
   final bool bail;
 }

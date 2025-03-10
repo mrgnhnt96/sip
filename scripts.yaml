@@ -9,8 +9,17 @@ _packages:
 
 pana: "{$_packages} dart pub run pana"
 
-format: "{$_packages} dart format ."
-analyze: "{$_packages} dart analyze ."
+format:
+  - "(+) {$_packages} dart format ."
+  - "(+) {$_packages} dart format ."
+  - "(+) {$_packages} dart format ."
+analyze: "(+) {$_packages} dart analyze ."
+
+some:
+  - "{$format}"
+  - "echo ''"
+  - "{$analyze}"
+  - "sip run test"
 
 barrel: cd packages/sip && dart run barreler build
 

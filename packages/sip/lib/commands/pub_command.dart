@@ -11,6 +11,8 @@ import 'package:sip_cli/domain/constrain_pubspec_versions.dart';
 import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/pubspec_lock.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
+import 'package:sip_cli/domain/run_many_scripts.dart';
+import 'package:sip_cli/domain/run_one_script.dart';
 import 'package:sip_cli/domain/scripts_yaml.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 
@@ -24,6 +26,8 @@ class PubCommand extends Command<ExitCode> {
     required Logger logger,
     required Bindings bindings,
     required ScriptsYaml scriptsYaml,
+    required RunManyScripts runManyScripts,
+    required RunOneScript runOneScript,
   }) {
     addSubcommand(
       PubGetCommand(
@@ -34,6 +38,8 @@ class PubCommand extends Command<ExitCode> {
         logger: logger,
         bindings: bindings,
         scriptsYaml: scriptsYaml,
+        runManyScripts: runManyScripts,
+        runOneScript: runOneScript,
       ),
     );
     addSubcommand(
@@ -45,6 +51,8 @@ class PubCommand extends Command<ExitCode> {
         logger: logger,
         bindings: bindings,
         scriptsYaml: scriptsYaml,
+        runManyScripts: runManyScripts,
+        runOneScript: runOneScript,
       ),
     );
     addSubcommand(
@@ -56,6 +64,8 @@ class PubCommand extends Command<ExitCode> {
         logger: logger,
         bindings: bindings,
         scriptsYaml: scriptsYaml,
+        runManyScripts: runManyScripts,
+        runOneScript: runOneScript,
       ),
     );
     addSubcommand(
@@ -67,6 +77,8 @@ class PubCommand extends Command<ExitCode> {
         logger: logger,
         bindings: bindings,
         scriptsYaml: scriptsYaml,
+        runManyScripts: runManyScripts,
+        runOneScript: runOneScript,
       ),
     );
     addSubcommand(
