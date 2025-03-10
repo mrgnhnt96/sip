@@ -1,3 +1,10 @@
+# 0.16.0 | 3.10.2025
+
+## Features
+
+- Scope concurrency to original scripts
+- Add listener to watch for SIGINT signal to stop the process
+
 # 0.15.2 | 3.4.2025
 
 ## Fix
