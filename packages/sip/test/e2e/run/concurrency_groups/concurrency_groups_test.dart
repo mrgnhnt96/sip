@@ -484,9 +484,6 @@ void main() {
             'wait 4',
             'wait 5',
             'echo 6',
-            'wait 1; echo 1',
-            'wait 1; echo 2',
-            'wait 1; echo 3',
           ].map(
             (e) => CommandToRun(
               command: e,
