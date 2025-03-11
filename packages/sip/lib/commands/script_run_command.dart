@@ -249,7 +249,7 @@ class ScriptRunCommand extends Command<ExitCode>
       final exitCodes = await runManyScripts.run(
         commands: concurrentRuns.toList(),
         bail: bail,
-        sequentially: true,
+        sequentially: false,
       );
 
       exitCodes.printErrors(concurrentRuns, logger);
