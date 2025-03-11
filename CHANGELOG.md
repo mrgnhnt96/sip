@@ -1,3 +1,9 @@
+# 0.16.1 | 3.11.2025
+
+## Fixes
+
+- Issue where concurrency commands could run sequentially, unintentionally
+
 # 0.16.0 | 3.10.2025
 
 ## Features
