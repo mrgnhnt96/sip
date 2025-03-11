@@ -187,7 +187,7 @@ void main() {
                 },
               ),
             ),
-            sequentially: true,
+            sequentially: false,
             bail: false,
             label: any(named: 'label'),
             maxAttempts: any(named: 'maxAttempts'),
