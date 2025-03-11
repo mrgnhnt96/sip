@@ -48,8 +48,8 @@ class PubDowngradeCommand extends APubCommand {
 
   @override
   List<String> get pubFlags => [
-        if (argResults!['offline'] as bool) '--offline',
-        if (argResults!['dry-run'] as bool) '--dry-run',
-        if (argResults!['tighten'] as bool) '--tighten',
+        if (argResults?['offline'] case true) '--offline',
+        if (argResults?['dry-run'] case true) '--dry-run',
+        if (argResults?['tighten'] case true) '--tighten',
       ];
 }

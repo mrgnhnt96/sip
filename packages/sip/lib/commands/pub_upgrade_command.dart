@@ -65,13 +65,13 @@ class PubUpgradeCommand extends APubCommand {
 
   @override
   List<String> get pubFlags => [
-        if (argResults!['offline'] as bool) '--offline',
-        if (argResults!['dry-run'] as bool) '--dry-run',
-        if (argResults!['precompile'] as bool) '--precompile',
-        if (argResults!['tighten'] as bool) '--tighten',
-        if (argResults!['major-versions'] as bool) '--major-versions',
-        if (argResults!['unlock-transitive'] as bool) '--unlock-transitive',
-        if (argResults!.rest.isNotEmpty) ...argResults!.rest,
+        if (argResults?['offline'] case true) '--offline',
+        if (argResults?['dry-run'] case true) '--dry-run',
+        if (argResults?['precompile'] case true) '--precompile',
+        if (argResults?['tighten'] case true) '--tighten',
+        if (argResults?['major-versions'] case true) '--major-versions',
+        if (argResults?['unlock-transitive'] case true) '--unlock-transitive',
+        if (argResults?.rest case final rest? when rest.isNotEmpty) ...rest,
       ];
 
   @override
