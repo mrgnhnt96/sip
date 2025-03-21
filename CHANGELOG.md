@@ -1,3 +1,11 @@
+# 0.16.2 | 3.21.2025
+
+## Enhancements
+
+- When running pub commands, ignore pubspecs within directories that start with a dot
+- Add working directory to error output
+- Add index of command to error output
+
 # 0.16.1 | 3.11.2025
 
 ## Fixes
