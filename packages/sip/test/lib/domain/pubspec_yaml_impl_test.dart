@@ -68,9 +68,25 @@ void main() {
         expect(all.first, endsWith('pubspec.yaml'));
       });
 
-      test('should ignore pubspecs within .dart_tool directory', () async {
+      test(
+          'should ignore pubspecs that are within a'
+          ' directory that starts with a dot', () async {
         fs.file('pubspec.yaml').createSync();
         fs.file('.dart_tool/pubspec.yaml').createSync(recursive: true);
+        fs.file('.git/sub/pubspec.yaml').createSync(recursive: true);
+        fs.file('.flutter/sub/pubspec.yaml').createSync(recursive: true);
+        fs.file('.revali/sub/pubspec.yaml').createSync(recursive: true);
+
+        final all = await tester.all(recursive: true);
+
+        expect(all, isNotNull);
+        expect(all.length, 1);
+        expect(all.first, endsWith('pubspec.yaml'));
+      });
+
+      test('should ignore pubspecs within build directory', () async {
+        fs.file('pubspec.yaml').createSync();
+        fs.file('build/pubspec.yaml').createSync(recursive: true);
 
         final all = await tester.all(recursive: true);
 

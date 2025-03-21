@@ -55,13 +55,13 @@ class PubspecYamlImpl extends FindYaml implements PubspecYaml {
 
     return sortedPubspecs
       ..removeWhere((e) {
-        // if within a build directory, ignore
-        if (e.contains('${path.separator}build${path.separator}')) {
+        final segments = e.split(path.separator);
+
+        if (segments.contains('build')) {
           return true;
         }
 
-        // if within a .dart_tool directory, ignore
-        if (e.contains('${path.separator}.dart_tool${path.separator}')) {
+        if (segments.any((e) => e.startsWith('.'))) {
           return true;
         }
 
