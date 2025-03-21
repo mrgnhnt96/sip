@@ -11,6 +11,7 @@ extension ListExitCodeX on List<CommandResult> {
       this[i]._printError(
         index: i,
         label: commands[i].keys.join(' '),
+        workingDirectory: commands[i].workingDirectory,
         logger: logger,
       );
     }
@@ -42,6 +43,7 @@ extension CommandResultX on CommandResult {
   void _printError({
     required int? index,
     required String label,
+    required String workingDirectory,
     required Logger logger,
   }) {
     if (exitCodeReason == ExitCode.success) return;
@@ -61,8 +63,12 @@ extension CommandResultX on CommandResult {
     }
 
     logger.write(
-      '\n${red.wrap('✗')}  Script ${lightCyan.wrap('sip run $label')} '
-      'failed with exit code ${lightRed.wrap(exitCodeReason.toString())}\n',
+      [
+        '\n${red.wrap('✗')}  Script ${lightCyan.wrap('sip run $label')} ',
+        '${darkGray.wrap('Directory: $workingDirectory')}',
+        if (index != null) '${darkGray.wrap('Command Index: $index')}',
+        'failed with exit code ${lightRed.wrap(exitCodeReason.toString())}\n',
+      ].join('\n'),
     );
   }
 
@@ -72,6 +78,7 @@ extension CommandResultX on CommandResult {
     _printError(
       index: null,
       label: command.keys.join(' '),
+      workingDirectory: command.workingDirectory,
       logger: logger,
     );
   }
