@@ -350,6 +350,11 @@ class Variables with WorkingDirectory {
       return;
     }
 
+    if (commandsWithEnv case [final command]) {
+      yield command;
+      return;
+    }
+
     final commands = commandsWithEnv.toList();
     final last = commands.removeLast();
 

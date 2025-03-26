@@ -564,7 +564,6 @@ cd packages/domain
               commands: {'pub env command'},
               files: {'some/path/to/test/.env'},
             ),
-            needsRunBeforeNext: true,
           );
 
           expect(result.commands?.elementAt(0), pubExpected);
@@ -579,7 +578,6 @@ cd packages/domain
               commands: {'other env command'},
               files: {'some/path/to/other/.env'},
             ),
-            needsRunBeforeNext: true,
           );
 
           expect(result.commands?.elementAt(1), otherExpected);
@@ -649,7 +647,6 @@ cd packages/domain
               commands: {'all env command', 'pub env command'},
               files: {'some/path/to/all/.env', 'some/path/to/test/.env'},
             ),
-            needsRunBeforeNext: true,
           );
 
           expect(result.commands?.elementAt(0), pubExpected);
@@ -664,7 +661,6 @@ cd packages/domain
               commands: {'all env command', 'other env command'},
               files: {'some/path/to/all/.env', 'some/path/to/other/.env'},
             ),
-            needsRunBeforeNext: true,
           );
 
           expect(result.commands?.elementAt(1), otherExpected);
