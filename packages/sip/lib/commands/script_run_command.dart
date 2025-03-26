@@ -43,6 +43,13 @@ class ScriptRunCommand extends Command<ExitCode>
     );
 
     argParser.addFlag(
+      'print',
+      abbr: 'p',
+      negatable: false,
+      help: 'Prints the commands that would be run without executing them.',
+    );
+
+    argParser.addFlag(
       'bail',
       negatable: false,
       help: 'Stop on first error',
@@ -97,6 +104,7 @@ class ScriptRunCommand extends Command<ExitCode>
     final argResults = argParser.parse(args ?? this.argResults?.rest ?? []);
     final neverQuit = argResults['never-exit'] as bool? ?? false;
     final listOut = argResults['list'] as bool? ?? false;
+    final printOnly = argResults['print'] as bool? ?? false;
 
     if (argResults['help'] as bool? ?? false) {
       printUsage();
@@ -119,6 +127,18 @@ class ScriptRunCommand extends Command<ExitCode>
     }
 
     final result = commandsToRun(keys, listOut: listOut).single;
+
+    if (printOnly) {
+      result.commands?.forEach((e) {
+        logger
+          ..write(e.command)
+          ..write('\n')
+          ..write(cyan.wrap('---' * 8))
+          ..write('\n')
+          ..write('\n');
+      });
+      return ExitCode.success;
+    }
 
     if (result.exitCode case final ExitCode exitCode) {
       return exitCode;
@@ -165,7 +185,7 @@ class ScriptRunCommand extends Command<ExitCode>
     required bool bail,
     required bool concurrent,
     required bool disableConcurrency,
-    required Iterable<CommandToRun> commands,
+    required List<CommandToRun> commands,
     required EnvConfig? combinedEnvConfig,
   }) async {
     if (combinedEnvConfig case EnvConfig()) {
@@ -209,7 +229,7 @@ class ScriptRunCommand extends Command<ExitCode>
 
     if (!disableConcurrency && concurrent) {
       final exitCodes = await runManyScripts.run(
-        commands: commands.toList(),
+        commands: commands,
         bail: bail,
         sequentially: false,
       );
@@ -294,7 +314,6 @@ class ScriptRunCommand extends Command<ExitCode>
               i--;
               logger.detail(cyan.wrap('BACK PEDALING: $i'));
             }
-
             continue;
           }
         }
