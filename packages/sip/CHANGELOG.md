@@ -1,3 +1,14 @@
+# 0.16.3 | 3.26.2025
+
+## Fixes
+
+- Issue where a command that contains variables/flags would be skipped when following a concurrent command
+
+## Enhancements
+
+- Add `--print` flag to `sip run` command
+  - Prints out the commands that would be run without executing them
+
 # 0.16.2 | 3.21.2025
 
 ## Enhancements
