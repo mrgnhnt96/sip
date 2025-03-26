@@ -22,16 +22,18 @@ extension ListExitCodeX on List<CommandResult> {
       ..remove(ExitCode.success.code);
 
     if (mapped.isEmpty) {
-      logger.detail('Many exit codes: $this, returning success');
+      logger.detail('Many exit codes: returning success');
       return ExitCode.success;
     }
 
     if (mapped.length == 1) {
-      logger.detail('Many exit codes: $this, returning ${mapped.values.first}');
+      logger.detail(
+        'Many exit codes: ${join('\n')}, returning ${mapped.values.first}',
+      );
       return mapped.values.first.exitCodeReason;
     }
 
-    logger.detail('Many exit codes: $this, returning unavailable');
+    logger.detail('Many exit codes: ${join('\n')}, returning unavailable');
     return ExitCode.unavailable;
   }
 

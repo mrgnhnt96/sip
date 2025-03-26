@@ -55,14 +55,6 @@ $cmd
       printOutput = false;
     }
 
-    logger.detail(
-      '''
---------- SCRIPT ---------
-$cmd
---------------------------
-''',
-    );
-
     if (filter case final filter?) {
       logger.detail('Filter type: $filter');
     }
@@ -76,7 +68,6 @@ $cmd
 
     CommandResult codeResult;
     if (retryAfter == null) {
-      logger.detail('Not retrying');
       final result = await runScript;
 
       if (filter != null && showOutput) {
@@ -115,7 +106,7 @@ $cmd
       }
 
       logger.detail(
-        'Native failed to exit after $maxAttempts attempts, '
+        'Failed to exit after $maxAttempts attempts, '
         'running without retries',
       );
 
@@ -128,7 +119,7 @@ $cmd
       codeResult = result;
     }
 
-    logger.detail('Native exited with ${codeResult.exitCode}');
+    logger.detail('Exited with ${codeResult.exitCode}');
 
     return codeResult;
   }

@@ -157,7 +157,7 @@ $ sip format ui
 
     final ResolveScript(:resolvedScripts, :envConfig) = resolveScript;
 
-    for (final resolved in resolvedScripts) {
+    for (final (index, resolved) in resolvedScripts.indexed) {
       var runConcurrently = false;
 
       var command = switch (resolved.command) {
@@ -167,7 +167,7 @@ $ sip format ui
 
       if (command.startsWith(Identifiers.concurrent)) {
         logger.detail(
-          'Running concurrently: "${darkGray.wrap(command)}"',
+          'Running concurrently: "${cyan.wrap('$index')}"',
         );
 
         runConcurrently = true;

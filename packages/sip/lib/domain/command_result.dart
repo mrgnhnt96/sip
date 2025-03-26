@@ -47,6 +47,15 @@ class CommandResult {
   }
 
   @override
-  String toString() =>
-      'CommandResult(exitCode: $exitCode, output: $output, error: $error)';
+  String toString() {
+    final buffer = StringBuffer()..write('CommandResult($exitCode');
+    if (output.trim() case final output when output.isNotEmpty) {
+      buffer.write(', output: $output');
+    }
+    if (error.trim() case final error when error.isNotEmpty) {
+      buffer.write(', error: $error');
+    }
+    buffer.write(')');
+    return buffer.toString();
+  }
 }

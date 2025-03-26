@@ -203,6 +203,10 @@ class ScriptRunCommand extends Command<ExitCode>
       }
     }
 
+    if (bail) {
+      logger.warn('Bail is set, stopping on first error');
+    }
+
     if (!disableConcurrency && concurrent) {
       final exitCodes = await runManyScripts.run(
         commands: commands.toList(),
@@ -215,9 +219,7 @@ class ScriptRunCommand extends Command<ExitCode>
       return exitCodes.exitCode(logger);
     }
 
-    if (bail) {
-      logger.warn('Bail is set, stopping on first error');
-    }
+    logger.detail(cyan.wrap('RUNNING ONE COMMAND?'));
 
     ExitCode? failureExitCode;
 
@@ -225,7 +227,9 @@ class ScriptRunCommand extends Command<ExitCode>
       List<CommandResult> exitCodes,
       List<CommandToRun> commands,
     ) {
-      logger.detail('Checking for bail ($bail), bail: $exitCodes');
+      logger.detail(
+        'Checking for bail ($bail), bail: ${exitCodes.join('\n')}',
+      );
 
       final exitCode = exitCodes.exitCode(logger);
 
@@ -264,6 +268,8 @@ class ScriptRunCommand extends Command<ExitCode>
 
     Future<ExitCode> runScripts() async {
       for (var i = 0; i < commands.length; i++) {
+        logger.detail(cyan.wrap('INDEX: $i'));
+
         final command = commands.elementAt(i);
 
         if (!disableConcurrency) {
@@ -276,6 +282,8 @@ class ScriptRunCommand extends Command<ExitCode>
           }
 
           if (concurrentRuns.isNotEmpty) {
+            logger.detail('\nRUNNING MANY COMMANDS\n');
+
             if (await runMany() case final ExitCode exitCode) {
               return exitCode;
             }
@@ -284,22 +292,22 @@ class ScriptRunCommand extends Command<ExitCode>
             if (!command.needsRunBeforeNext) {
               // Go back one step to get the command that is skipped
               i--;
+              logger.detail(cyan.wrap('BACK PEDALING: $i'));
             }
 
             continue;
           }
         }
 
+        logger.detail('\nRUNNING ONE COMMAND\n');
+
         // Run 1 single command
         logger.write(darkGray.wrap('---\n'));
-        final lines = command.label.split('\n');
-        String label;
-
-        if (lines.length > 1) {
-          label = [lines.first, '...'].join('\n');
-        } else {
-          label = command.label;
-        }
+        final label = switch (command.label.split('\n')) {
+          [final first] => first,
+          [final first, ...] => [first, '...'].join('\n'),
+          [] => '',
+        };
 
         logger.info(darkGray.wrap(label));
 
