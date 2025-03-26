@@ -125,18 +125,6 @@ void main() {
 
       await command.run(['test-suite']);
       {
-        final expected = [
-          'SERVER ONE',
-          'SERVER TWO',
-          'SERVER THREE',
-          'CLIENT ONE',
-          'CLIENT TWO',
-          'CLIENT THREE',
-          'CLIENT WS ONE',
-          'CLIENT WS TWO',
-          'CLIENT WS THREE',
-        ];
-
         final results = <List<CommandToRun>>[];
 
         verify(
