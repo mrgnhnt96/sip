@@ -11,5 +11,6 @@ extension _$EnvConfigAutoequal on EnvConfig {
         files,
         commands,
         workingDirectory,
+        variables,
       ];
 }

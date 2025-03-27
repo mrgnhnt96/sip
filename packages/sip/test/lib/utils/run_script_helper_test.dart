@@ -98,6 +98,7 @@ void main() {
             commands: {'echo "env"'},
             files: {'some/path/to/test/.env'},
             workingDirectory: '/',
+            variables: {},
           );
 
           expect(result.resolveScript?.envConfig, expectedConfig);
@@ -123,6 +124,7 @@ void main() {
             commands: {"echo 'ref'"},
             files: {'some/path/to/test/.env'},
             workingDirectory: '/',
+            variables: {},
           );
 
           expect(result.resolveScript?.envConfig, expectedConfig);
@@ -160,6 +162,7 @@ void main() {
               'some/path/to/test/.env',
               'some/path/to/other/.env',
             },
+            variables: {},
           );
 
           expect(result.resolveScript?.envConfig, expectedConfig);
@@ -195,6 +198,7 @@ void main() {
             files: {
               'some/path/to/test/.env',
             },
+            variables: {},
           );
 
           expect(result.resolveScript?.envConfig, expectedConfig);
@@ -436,6 +440,7 @@ cd packages/domain
             commands: {'echo "env"'},
             files: {'some/path/to/test/.env'},
             workingDirectory: 'some/path/to/test',
+            variables: {},
           );
 
           expect(result.combinedEnvConfig, envConfig);
@@ -489,6 +494,7 @@ cd packages/domain
               'some/path/to/test/.env',
               'some/path/to/other/.env',
             },
+            variables: {},
           );
 
           expect(result.combinedEnvConfig, combinedEnvConfig);
@@ -502,6 +508,7 @@ cd packages/domain
               workingDirectory: 'some/path/to/test',
               commands: {'pub env command', 'other env command'},
               files: {'some/path/to/test/.env', 'some/path/to/other/.env'},
+              variables: {},
             ),
           );
 
@@ -550,6 +557,7 @@ cd packages/domain
               'some/path/to/test/.env',
               'some/path/to/other/.env',
             },
+            variables: {},
           );
 
           expect(result.combinedEnvConfig, combinedEnvConfig);
@@ -563,6 +571,7 @@ cd packages/domain
               workingDirectory: 'some/path/to/test',
               commands: {'pub env command'},
               files: {'some/path/to/test/.env'},
+              variables: {},
             ),
           );
 
@@ -577,6 +586,7 @@ cd packages/domain
               workingDirectory: 'some/path/to/test',
               commands: {'other env command'},
               files: {'some/path/to/other/.env'},
+              variables: {},
             ),
           );
 
@@ -633,6 +643,7 @@ cd packages/domain
               'some/path/to/test/.env',
               'some/path/to/other/.env',
             },
+            variables: {},
           );
 
           expect(result.combinedEnvConfig, combinedEnvConfig);
@@ -646,6 +657,7 @@ cd packages/domain
               workingDirectory: 'some/path/to/test',
               commands: {'all env command', 'pub env command'},
               files: {'some/path/to/all/.env', 'some/path/to/test/.env'},
+              variables: {},
             ),
           );
 
@@ -660,6 +672,7 @@ cd packages/domain
               workingDirectory: 'some/path/to/test',
               commands: {'all env command', 'other env command'},
               files: {'some/path/to/all/.env', 'some/path/to/other/.env'},
+              variables: {},
             ),
           );
 

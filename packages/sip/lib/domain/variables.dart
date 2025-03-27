@@ -173,6 +173,7 @@ class Variables with WorkingDirectory {
                 .whereType<String>(),
             files: script.env?.files,
             workingDirectory: directory,
+            variables: script.env?.vars,
           ),
     };
 
@@ -198,6 +199,7 @@ class Variables with WorkingDirectory {
                   .whereType<String>(),
               files: e.envConfig?.files,
               workingDirectory: directory,
+              variables: e.envConfig?.variables,
             ),
       ]);
     }
@@ -225,7 +227,7 @@ class Variables with WorkingDirectory {
         command: command,
         envConfig: [
           envConfigOfParent,
-          script.envConfig(directory: directory),
+          script.envConfig(directory),
         ].combine(directory: directory),
         script: script,
         needsRunBeforeNext: false,
@@ -244,7 +246,7 @@ class Variables with WorkingDirectory {
     ];
     final resolvedEnvCommands = <EnvConfig?>{};
 
-    final parentEnvConfig = script.envConfig(directory: directory);
+    final parentEnvConfig = script.envConfig(directory);
 
     for (final match in matches) {
       final variable = match.group(1);
@@ -360,20 +362,5 @@ class Variables with WorkingDirectory {
 
     yield* commands;
     yield last.copy(needsRunBeforeNext: true);
-  }
-}
-
-extension _ScriptX on Script {
-  EnvConfig? envConfig({required String directory}) {
-    final env = this.env;
-    if (env == null) return null;
-
-    if (env.commands.isEmpty && env.files.isEmpty) return null;
-
-    return EnvConfig(
-      commands: {...env.commands},
-      files: {...env.files},
-      workingDirectory: directory,
-    );
   }
 }

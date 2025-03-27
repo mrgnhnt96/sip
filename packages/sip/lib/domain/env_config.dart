@@ -8,15 +8,19 @@ class EnvConfig extends Equatable {
     required this.commands,
     required this.files,
     required this.workingDirectory,
+    required this.variables,
   });
+
   const EnvConfig.empty()
       : commands = const [],
         files = const [],
-        workingDirectory = '';
+        workingDirectory = '',
+        variables = const {};
 
   final Iterable<String>? files;
   final Iterable<String>? commands;
   final String workingDirectory;
+  final Map<String, String>? variables;
 
   @override
   List<Object?> get props => _$props;
@@ -26,6 +30,7 @@ extension CombineEnvConfigEnvConfigX on Iterable<EnvConfig?> {
   EnvConfig? combine({required String directory}) {
     final commands = <String>{};
     final files = <String>{};
+    final variables = <String, String>{};
 
     for (final config in this) {
       if (config == null) continue;
@@ -39,14 +44,22 @@ extension CombineEnvConfigEnvConfigX on Iterable<EnvConfig?> {
       }
 
       files.addAll(config.files ?? []);
+
+      if (config.variables case final Map<String, String> vars
+          when vars.isNotEmpty) {
+        variables.addAll(vars);
+      }
     }
 
-    if (commands.isEmpty && files.isEmpty) return null;
+    if (commands.isEmpty && files.isEmpty && variables.isEmpty) {
+      return null;
+    }
 
     return EnvConfig(
       commands: commands,
       files: files,
       workingDirectory: directory,
+      variables: variables,
     );
   }
 }

@@ -28,7 +28,22 @@ class RunOneScript {
     logger.detail('Env files: ${command.envConfig?.files}');
 
     if (command.envConfig case final EnvConfig config) {
-      if (config.files case final files? when files.isNotEmpty) {
+      if (config.variables case final vars? when vars.isNotEmpty) {
+        logger.detail('Setting environment variables: $vars');
+
+        cmd = '\n$cmd';
+
+        for (final entry in vars.entries.toList().reversed) {
+          cmd = '''
+export ${entry.key}=${entry.value}
+$cmd''';
+        }
+      }
+
+      if (config.files?.toList().reversed case final files?
+          when files.isNotEmpty) {
+        logger.detail('Sourcing env files: ${files.join('\n')}');
+
         for (final file in files) {
           logger.detail('Sourcing env file $file');
           cmd = '''

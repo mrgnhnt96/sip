@@ -22,6 +22,16 @@ backend:
     (env):
       files: infra/private/be.local.env
       command: "{$env:generate:local}"
+      vars:
+        BE_ENV: local
+        APP_ENV: local
     (command): |
       cd backend || exit 1;
       dart run scripts/reset.dart
+
+override:
+  (env):
+    vars:
+      BE_ENV: override
+
+  (command): "{$backend:reset}"

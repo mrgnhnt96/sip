@@ -15,13 +15,28 @@ format:
   - "(+) {$_packages} dart format ."
 analyze: "(+) {$_packages} dart analyze ."
 
-some:
-  - "{$format}"
-  - "echo ''"
-  - "{$analyze}"
-  - "sip run test"
-
 barrel: cd packages/sip && dart run barreler build
+
+build_runner:
+  (aliases):
+    - b
+    - br
+  _: cd packages/sip && dart run build_runner
+  clean:
+    (command): "{$build_runner:_} clean"
+    (aliases):
+      - c
+      - cl
+
+  build:
+    (command): "{$build_runner:_} build --delete-conflicting-outputs"
+    (aliases):
+      - b
+  watch:
+    (command): "{$build_runner:_} watch --delete-conflicting-outputs"
+    (aliases):
+      - w
+      - wa
 
 clean: find . -name ".dart_tool" -type d -exec rm -rf {} +
 

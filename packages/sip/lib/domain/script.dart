@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:mason_logger/mason_logger.dart';
+import 'package:sip_cli/domain/env_config.dart';
 import 'package:sip_cli/domain/script_env.dart';
 import 'package:sip_cli/domain/scripts_config.dart';
 import 'package:sip_cli/utils/constants.dart';
@@ -84,6 +85,32 @@ class Script extends Equatable {
   final ScriptsConfig? scripts;
 
   Map<String, dynamic> toJson() => _$ScriptToJson(this);
+
+  EnvConfig? envConfig(String directory) {
+    final env = this.env;
+
+    if (env == null) {
+      return null;
+    }
+
+    switch (env) {
+      case ScriptEnv(
+          commands: [],
+          files: [],
+          vars: const {},
+        ):
+        return null;
+      default:
+        break;
+    }
+
+    return EnvConfig(
+      commands: {...env.commands},
+      files: {...env.files},
+      workingDirectory: directory,
+      variables: {...env.vars},
+    );
+  }
 
   String listOut({
     StringBuffer? buffer,

@@ -112,12 +112,54 @@ void main() {
             '  exit 1',
             'fi',
             '',
+            'export BE_ENV=local',
+            'export APP_ENV=local',
+            '',
             'cd backend || exit 1;',
             'dart run scripts/reset.dart',
             '',
           ],
         );
       });
+
+      test(
+        'should override env variables when re-defined',
+        () async {
+          await command.run(['override']);
+
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+
+          expect(
+            bindings.scripts,
+            [
+              'cd /packages/sip || exit 1',
+              '',
+              'cd infra || exit 1; pnv generate-env -i public/be.local.yaml -o private/ -f ~/.cant-run/local.key',
+              '',
+              'cd /packages/sip || exit 1',
+              '',
+              'cd infra || exit 1; pnv generate-env -i public/app.run-time.local.yaml -o private/ -f ~/.cant-run/local.key',
+              '',
+              'cd /packages/sip || exit 1',
+              '',
+              'if [ -f infra/private/be.local.env ]; then',
+              '  builtin source infra/private/be.local.env',
+              'else',
+              '  echo "ENV File infra/private/be.local.env not found"',
+              '  exit 1',
+              'fi',
+              '',
+              'export BE_ENV=override',
+              'export APP_ENV=local',
+              '',
+              'cd backend || exit 1;',
+              'dart run scripts/reset.dart',
+              '',
+            ],
+          );
+        },
+        skip: 'TODO(mrgnhnt): fix',
+      );
     });
   });
 }
