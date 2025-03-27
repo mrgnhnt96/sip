@@ -78,6 +78,42 @@ build:
 
 This command will only run once, right before the `(command)` is run.
 
+If you would like to set certain the environment variables, you can add `vars` to the `(env)` key.
+
+```yaml
+# scripts.yaml
+
+build:
+  (command): flutter build apk
+  (env):
+    vars:
+      FLUTTER_BUILD_MODE: release
+```
+
+This will set the `FLUTTER_BUILD_MODE` environment variable to `release` before running the `(command)`.
+
+> [!WARNING]
+> The `vars` will come **after** the `(env).file` is sourced, meaning that `(env).vars` will override the environment variables set in the `(env).file`.
+>
+> When referencing a script, the top most `(env)` variables will be prioritized.
+>
+> ```yaml
+> # scripts.yaml
+>
+> build:
+>   (env):
+>     vars:
+>       FLUTTER_BUILD_MODE: release
+>
+>   debug:
+>     (env):
+>       vars:
+>         FLUTTER_BUILD_MODE: debug
+>     (command): "{$build}"
+> ```
+>
+> Running the script `debug` will set the `FLUTTER_BUILD_MODE` environment variable to `debug`, while running the script `build` will set the `FLUTTER_BUILD_MODE` environment variable to `release`.
+
 ### Continuous Commands
 
 Sometimes, you may want to run a command continuously, even if the command fails.

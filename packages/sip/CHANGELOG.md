@@ -1,3 +1,9 @@
+# 0.17.0 | 3.27.2025
+
+## Features
+
+- Add support for defining env variables within `(env)`
+
 # 0.16.3 | 3.26.2025
 
 ## Fixes
