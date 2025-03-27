@@ -25,8 +25,6 @@ class RunOneScript {
   }) async {
     var cmd = command.command;
 
-    logger.detail('Env files: ${command.envConfig?.files}');
-
     if (command.envConfig case final EnvConfig config) {
       if (config.variables case final vars? when vars.isNotEmpty) {
         logger.detail('Setting environment variables: $vars');
@@ -58,6 +56,7 @@ $cmd''';
         }
       }
     }
+
     logger.detail('Setting directory to ${command.workingDirectory}');
     cmd = '''
 cd ${command.workingDirectory} || exit 1

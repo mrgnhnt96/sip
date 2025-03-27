@@ -94,6 +94,25 @@ This will set the `FLUTTER_BUILD_MODE` environment variable to `release` before 
 
 > [!WARNING]
 > The `vars` will come **after** the `(env).file` is sourced, meaning that `(env).vars` will override the environment variables set in the `(env).file`.
+>
+> When referencing a script, the top most `(env)` variables will be prioritized.
+>
+> ```yaml
+> # scripts.yaml
+>
+> build:
+>   (env):
+>     vars:
+>       FLUTTER_BUILD_MODE: release
+>
+>   debug:
+>     (env):
+>       vars:
+>         FLUTTER_BUILD_MODE: debug
+>     (command): "{$build}"
+> ```
+>
+> Running the script `debug` will set the `FLUTTER_BUILD_MODE` environment variable to `debug`, while running the script `build` will set the `FLUTTER_BUILD_MODE` environment variable to `release`.
 
 ### Continuous Commands
 

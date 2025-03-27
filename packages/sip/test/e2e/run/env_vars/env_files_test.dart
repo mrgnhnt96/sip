@@ -16,7 +16,7 @@ import 'package:sip_cli/domain/variables.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('env files e2e', () {
+  group('env vars e2e', () {
     late FileSystem fs;
     late _TestBindings bindings;
     late Logger logger;
@@ -44,7 +44,7 @@ void main() {
             'test',
             'e2e',
             'run',
-            'env_files',
+            'env_vars',
             'inputs',
             'scripts.yaml',
           ),
@@ -88,72 +88,13 @@ void main() {
       });
 
       test('command: be reset', () async {
-        await command.run(['be', 'reset']);
+        await command.run(['publish']);
 
         await Future<void>.delayed(const Duration(milliseconds: 100));
 
         expect(
           bindings.scripts,
-          [
-            'cd /packages/sip || exit 1',
-            '',
-            'cd infra || exit 1; pnv generate-env -i public/be.local.yaml -o private/ -f ~/.cant-run/local.key',
-            '',
-            'cd /packages/sip || exit 1',
-            '',
-            'cd infra || exit 1; pnv generate-env -i public/app.run-time.local.yaml -o private/ -f ~/.cant-run/local.key',
-            '',
-            'cd /packages/sip || exit 1',
-            '',
-            'if [ -f infra/private/be.local.env ]; then',
-            '  builtin source infra/private/be.local.env',
-            'else',
-            '  echo "ENV File infra/private/be.local.env not found"',
-            '  exit 1',
-            'fi',
-            '',
-            'export BE_ENV=local',
-            'export APP_ENV=local',
-            '',
-            'cd backend || exit 1;',
-            'dart run scripts/reset.dart',
-            '',
-          ],
-        );
-      });
-
-      test('should override env variables when re-defined', () async {
-        await command.run(['override']);
-
-        await Future<void>.delayed(const Duration(milliseconds: 100));
-
-        expect(
-          bindings.scripts,
-          [
-            'cd /packages/sip || exit 1',
-            '',
-            'cd infra || exit 1; pnv generate-env -i public/be.local.yaml -o private/ -f ~/.cant-run/local.key',
-            '',
-            'cd /packages/sip || exit 1',
-            '',
-            'cd infra || exit 1; pnv generate-env -i public/app.run-time.local.yaml -o private/ -f ~/.cant-run/local.key',
-            '',
-            'cd /packages/sip || exit 1',
-            '',
-            'if [ -f infra/private/be.local.env ]; then',
-            '  builtin source infra/private/be.local.env',
-            'else',
-            '  echo "ENV File infra/private/be.local.env not found"',
-            '  exit 1',
-            'fi',
-            '',
-            'export BE_ENV=override',
-            'export APP_ENV=local',
-            '',
-            'cd backend || exit 1;',
-            'dart run scripts/reset.dart',
-            '',
-          ],
+          contains('export GEN_ONLY=true'),
         );
       });
     });

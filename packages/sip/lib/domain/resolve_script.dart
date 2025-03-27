@@ -4,34 +4,39 @@ import 'package:sip_cli/domain/script.dart';
 class ResolveScript {
   ResolveScript({
     required this.resolvedScripts,
-    required this.envConfig,
+    required EnvConfig? envConfig,
     required this.script,
     required this.needsRunBeforeNext,
-  }) : originalCommand = null;
+  })  : originalCommand = null,
+        _envConfig = envConfig;
 
   ResolveScript._({
     required this.resolvedScripts,
-    required this.envConfig,
+    required EnvConfig? envConfig,
     required this.script,
     required this.originalCommand,
     required this.needsRunBeforeNext,
     required String? replacedCommand,
-  }) : _replacedCommand = replacedCommand;
+  })  : _replacedCommand = replacedCommand,
+        _envConfig = envConfig;
 
   ResolveScript.command({
     required String command,
-    required this.envConfig,
+    required EnvConfig? envConfig,
     required this.script,
     required this.needsRunBeforeNext,
   })  : resolvedScripts = const [],
-        originalCommand = command;
+        originalCommand = command,
+        _envConfig = envConfig;
 
   final Script script;
   final String? originalCommand;
   final Iterable<ResolveScript> resolvedScripts;
-  final EnvConfig? envConfig;
+  final EnvConfig? _envConfig;
   final bool needsRunBeforeNext;
 
+  EnvConfig? get envConfig =>
+      _envConfig?.forceVariableOverride(script.env?.vars);
   String? _replacedCommand;
 
   void replaceCommandPart(String part, String replacement) {

@@ -24,6 +24,20 @@ class EnvConfig extends Equatable {
 
   @override
   List<Object?> get props => _$props;
+
+  EnvConfig? forceVariableOverride(Map<String, String>? variables) {
+    final newVariables = <String, String>{
+      ...?this.variables,
+      ...?variables,
+    };
+
+    return EnvConfig(
+      commands: commands,
+      files: files,
+      workingDirectory: workingDirectory,
+      variables: newVariables,
+    );
+  }
 }
 
 extension CombineEnvConfigEnvConfigX on Iterable<EnvConfig?> {
@@ -49,10 +63,6 @@ extension CombineEnvConfigEnvConfigX on Iterable<EnvConfig?> {
           when vars.isNotEmpty) {
         variables.addAll(vars);
       }
-    }
-
-    if (commands.isEmpty && files.isEmpty && variables.isEmpty) {
-      return null;
     }
 
     return EnvConfig(
