@@ -65,6 +65,10 @@ extension CombineEnvConfigEnvConfigX on Iterable<EnvConfig?> {
       }
     }
 
+    if (commands.isEmpty && files.isEmpty && variables.isEmpty) {
+      return null;
+    }
+
     return EnvConfig(
       commands: commands,
       files: files,
