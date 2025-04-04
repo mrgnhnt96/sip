@@ -50,9 +50,7 @@ extension CombineEnvConfigEnvConfigX on Iterable<EnvConfig?> {
       if (config == null) continue;
 
       for (var command in config.commands ?? <String>[]) {
-        while (command.startsWith(Identifiers.concurrent)) {
-          command = command.substring(Identifiers.concurrent.length);
-        }
+        command = command.replaceAll(Identifiers.concurrent, '');
 
         commands.add(command);
       }

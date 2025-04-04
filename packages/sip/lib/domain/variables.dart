@@ -347,7 +347,7 @@ class Variables with WorkingDirectory {
 
     final hasConcurrency = script.commands
         .elementAt(commandIndex)
-        .startsWith(Identifiers.concurrent);
+        .contains(Identifiers.concurrent);
 
     if (hasConcurrency) {
       yield* commandsWithEnv;

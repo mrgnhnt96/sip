@@ -13,6 +13,7 @@ import 'package:sip_cli/domain/filter_type.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
 import 'package:sip_cli/domain/scripts_yaml.dart';
 import 'package:sip_cli/domain/variables.dart';
+import 'package:sip_cli/utils/constants.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -99,6 +100,11 @@ void main() {
         expect(
           bindings.scripts,
           contains('export RELEASE=false'),
+        );
+
+        expect(
+          bindings.scripts.join('\n'),
+          isNot(contains(Identifiers.concurrent)),
         );
       });
     });

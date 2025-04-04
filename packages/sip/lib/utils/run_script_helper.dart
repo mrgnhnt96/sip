@@ -165,15 +165,13 @@ $ sip format ui
         null => throw Exception('Command is null'),
       };
 
-      if (command.startsWith(Identifiers.concurrent)) {
+      if (command.contains(Identifiers.concurrent)) {
         logger.detail(
           'Running concurrently: "${cyan.wrap('$index')}"',
         );
 
         runConcurrently = true;
-        while (command.startsWith(Identifiers.concurrent)) {
-          command = command.substring(Identifiers.concurrent.length);
-        }
+        command = command.replaceAll(Identifiers.concurrent, '');
       }
 
       yield CommandToRun(
