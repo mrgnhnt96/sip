@@ -1,8 +1,13 @@
-# 0.17.1 | 4.3.2025
+# 0.17.2 | 4.3.2025
 
 ## Fixes
 
 - Issue where env would not be resolved completely if there were no env commands
+- Issue where concurrency commands resolution would fail when env configs were present
+
+## Enhancements
+
+- Improve "There's a new version available" message
 
 # 0.17.0 | 3.27.2025
 
