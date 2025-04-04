@@ -1,0 +1,52 @@
+bricks:
+  generate:
+    (aliases): gen
+    (command):
+      - |
+        cd development/generated_lints || exit 1
+
+        RELEASE_FLAG=""
+        if [ "$RELEASE" = true ]; then
+          RELEASE_FLAG="--release"
+        fi
+
+        echo "RELEASE_FLAG: $RELEASE_FLAG"
+        echo "RELEASE: $RELEASE"
+
+        dart run revali dev --generate-only $RELEASE_FLAG --recompile
+      - |
+        (+) cd mason || exit 1
+        dart run brick_oven cook analysis_server --output .
+      - |
+        cd mason/analysis_server/post_generate || exit 1
+        dart run lib/main.dart
+
+  bundle:
+    (bail):
+    _: |
+      cd mason || exit 1
+      dart run mason_cli:mason bundle analysis_server --type dart --output-dir bundles
+
+    (command):
+      - "{$bricks:bundle:release}"
+      - "{$bricks:bundle:debug}"
+
+    release:
+      (bail):
+      (env):
+        vars:
+          RELEASE: true
+      (command):
+        - "{$bricks:generate}"
+        - "{$bricks:bundle:_}"
+        - mv mason/bundles/analysis_server_bundle.dart mason/bundles/release.dart
+
+    debug:
+      (bail):
+      (env):
+        vars:
+          RELEASE: false
+      (command):
+        - "{$bricks:generate}"
+        - "{$bricks:bundle:_}"
+        - mv mason/bundles/analysis_server_bundle.dart mason/bundles/debug.dart
