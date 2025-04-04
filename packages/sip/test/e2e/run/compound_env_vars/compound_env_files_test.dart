@@ -10,7 +10,6 @@ import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/command_result.dart';
 import 'package:sip_cli/domain/domain.dart';
 import 'package:sip_cli/domain/filter_type.dart';
-import 'package:sip_cli/domain/limit_concurrency.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
 import 'package:sip_cli/domain/scripts_yaml.dart';
 import 'package:sip_cli/domain/variables.dart';
@@ -77,9 +76,6 @@ void main() {
             bindings: bindings,
             logger: logger,
             runOneScript: runOneScript,
-            limitConcurrency: LimitConcurrency(
-              logger: logger,
-            ),
           ),
           runOneScript: runOneScript,
         );
