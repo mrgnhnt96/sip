@@ -1,3 +1,9 @@
+# 0.17.1 | 4.3.2025
+
+## Fixes
+
+- Issue where env would not be resolved completely if there were no env commands
+
 # 0.17.0 | 3.27.2025
 
 ## Features
