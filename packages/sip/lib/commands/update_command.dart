@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:args/command_runner.dart';
@@ -87,5 +88,70 @@ class UpdateCommand extends Command<ExitCode> {
     );
 
     return ExitCode.success;
+  }
+
+  Future<void> checkForUpdate() async {
+    // don't wait on this, stop after 1 second
+    final exiter = Completer<({(bool, String)? result, bool exit})>();
+
+    Timer? timer;
+
+    timer = Timer(const Duration(seconds: 1), () {
+      exiter.complete((result: null, exit: true));
+    });
+
+    this.needsUpdate().then((value) {
+      exiter.complete((result: value, exit: false));
+    }).ignore();
+
+    final (:result, :exit) = await exiter.future;
+    timer.cancel();
+
+    if (exit) {
+      logger.detail('Skipping version check, timeout reached');
+      return;
+    }
+
+    final (needsUpdate, latestVersion) = result!;
+
+    if (needsUpdate) {
+      const changelog =
+          'https://github.com/mrgnhnt96/sip/blob/main/packages/sip/CHANGELOG.md';
+
+      final package = cyan.wrap('sip_cli');
+      final currentVersion = red.wrap(packageVersion);
+      final updateToVersion = green.wrap(latestVersion);
+      final updateCommand = yellow.wrap('sip update');
+      final changelogLink = darkGray.wrap('Changelog: $changelog') ?? '';
+
+      final lines = [
+        '┌${'─' * 83}┐',
+        '│ ${'New update for $package is available!'.padRightAnsi(81)} │',
+        // ignore: lines_longer_than_80_chars
+        '│ ${'You are using $currentVersion, the latest is $updateToVersion.'.padRightAnsi(81)} │',
+        // ignore: lines_longer_than_80_chars
+        '│ ${'Run `$updateCommand` to update to the latest version.'.padRightAnsi(81)} │',
+        '│ ${changelogLink.padRightAnsi(81)} │',
+        '└${'─' * 83}┘',
+        '',
+      ];
+
+      final message = lines.join('\n');
+
+      logger.write(message);
+    }
+  }
+}
+
+extension _StringX on String {
+  String padRightAnsi(int width) {
+    final visibleLength = stripAnsi().length;
+    final padding = width - visibleLength;
+    return this + ' ' * (padding > 0 ? padding : 0);
+  }
+
+  String stripAnsi() {
+    final ansiRegExp = RegExp(r'\x1B\[[0-9;]*m');
+    return replaceAll(ansiRegExp, '');
   }
 }

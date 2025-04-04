@@ -26,6 +26,7 @@ import 'package:sip_cli/utils/key_press_listener.dart';
 /// The command runner for the sip command line application
 class SipRunner extends CommandRunner<ExitCode> {
   SipRunner({
+    required this.ogArgs,
     required ScriptsYaml scriptsYaml,
     required PubspecLock pubspecLock,
     required PubspecYaml pubspecYaml,
@@ -132,6 +133,7 @@ class SipRunner extends CommandRunner<ExitCode> {
     );
   }
 
+  final List<String> ogArgs;
   final Logger logger;
   late final UpdateCommand updateCommand;
 
@@ -171,73 +173,17 @@ class SipRunner extends CommandRunner<ExitCode> {
         ..detail('$stack');
       exitCode = ExitCode.software;
     } finally {
-      if (args.isNotEmpty && args.first != 'update') {
-        final anyResult = (AnyArgParser()
-              ..addFlag(
-                'version-check',
-                defaultsTo: true,
-              ))
-            .parse(args);
-
-        if (anyResult['version-check'] as bool) {
-          logger.detail('Checking for updates');
-          await checkForUpdate();
-        } else {
-          logger.detail('Skipping version check');
-        }
-      } else {
+      if (ogArgs case ['update', ...]) {
         logger.detail('Skipping version check');
+      } else if (ogArgs.contains('--no-version-check')) {
+        logger.detail('Skipping version check');
+      } else {
+        logger.detail('Checking for updates');
+        await updateCommand.checkForUpdate();
       }
     }
 
     return exitCode;
-  }
-
-  Future<void> checkForUpdate() async {
-    // don't wait on this, stop after 1 second
-    final exiter = Completer<({(bool, String)? result, bool exit})>();
-
-    Timer? timer;
-
-    timer = Timer(const Duration(seconds: 1), () {
-      exiter.complete((result: null, exit: true));
-    });
-
-    updateCommand.needsUpdate().then((value) {
-      exiter.complete((result: value, exit: false));
-    }).ignore();
-
-    final (:result, :exit) = await exiter.future;
-    timer.cancel();
-
-    if (exit) {
-      logger.detail('Skipping version check, timeout reached');
-      return;
-    }
-
-    final (needsUpdate, latestVersion) = result!;
-
-    if (needsUpdate) {
-      const changelog =
-          'https://github.com/mrgnhnt96/sip/blob/main/packages/sip/CHANGELOG.md';
-
-      final package = cyan.wrap('sip_cli');
-      final currentVersion = red.wrap(packageVersion);
-      final updateToVersion = green.wrap(latestVersion);
-      final updateCommand = yellow.wrap('sip update');
-      final changelogLink = darkGray.wrap('Changelog: $changelog');
-
-      final message = '''
- ┌─────────────────────────────────────────────────────────────────────────────────┐ 
- │ New update for $package is available!                                            │ 
- │ You are using $currentVersion, the latest is $updateToVersion.                                       │ 
- │ Run `$updateCommand` to update to the latest version.                               │ 
- │ $changelogLink │ 
- └─────────────────────────────────────────────────────────────────────────────────┘ 
-''';
-
-      logger.write(message);
-    }
   }
 
   @override

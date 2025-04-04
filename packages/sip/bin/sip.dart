@@ -57,6 +57,7 @@ void main(List<String> arguments) async {
   );
 
   final exitCode = await SipRunner(
+    ogArgs: args,
     bindings: bindings,
     scriptsYaml: scriptsYaml,
     findFile: const FindFile(fs: fs),
