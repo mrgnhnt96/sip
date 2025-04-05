@@ -307,9 +307,15 @@ class ScriptRunCommand extends Command<ExitCode>
             if (await runMany() case final ExitCode exitCode) {
               return exitCode;
             }
+
+            final nextCommandIsNotConcurrent = switch (i) {
+              > 0 when i + 1 < commands.length =>
+                !commands.elementAt(i + 1).runConcurrently,
+              _ => false,
+            };
             // no need to go back one step if the command is set
             // to run before the next
-            if (!command.needsRunBeforeNext) {
+            if (!command.needsRunBeforeNext || nextCommandIsNotConcurrent) {
               // Go back one step to get the command that is skipped
               i--;
               logger.detail(cyan.wrap('BACK PEDALING: $i'));

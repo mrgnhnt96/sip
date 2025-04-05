@@ -200,6 +200,15 @@ void main() {
 
       {
         final expected = [
+          const CommandToRun(
+            command: 'echo 6',
+            label: 'echo 6',
+            workingDirectory: '/packages/sip',
+            keys: ['combined'],
+            needsRunBeforeNext: true,
+            bail: false,
+            runConcurrently: false,
+          ),
           ...[
             'wait 1; echo 1',
             'wait 1; echo 2',
@@ -247,7 +256,7 @@ void main() {
             maxAttempts: any(named: 'maxAttempts'),
             retryAfter: any(named: 'retryAfter'),
           ),
-        ).called(3);
+        ).called(4);
 
         expect(results, expected);
       }

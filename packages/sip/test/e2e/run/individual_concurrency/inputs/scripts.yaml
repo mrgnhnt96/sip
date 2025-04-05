@@ -1,0 +1,74 @@
+bricks:
+  setup: |
+    cd development/mason || exit 1
+    # check if mason_cli is installed
+    if ! command -v mason &> /dev/null; then
+      dart pub global activate mason
+    fi
+
+    mason get
+
+  create:
+    analysis_server: |
+      cd development/mason || exit 1
+      mason make analysis_server --output-dir ./gen
+
+      if [ $? -ne 0 ]; then
+        echo "Failed to create analysis_server"
+        exit 1
+      fi
+
+      cd gen || exit 1
+
+      dart pub get
+
+  generate:
+    (aliases): gen
+    (description): Generates the analysis server brick
+    (command):
+      - |
+        cd development/generated_lints || exit 1
+
+        RELEASE_FLAG=""
+        if [ "$RELEASE" = true ]; then
+          RELEASE_FLAG="--release"
+        fi
+
+        dart run revali dev --generate-only $RELEASE_FLAG --recompile
+      - |
+        (+) cd mason || exit 1
+        dart run brick_oven cook analysis_server --output .
+      - |
+        # Run the post_generate script
+        cd mason/analysis_server/post_generate || exit 1
+        dart run lib/main.dart || exit 1
+
+  bundle:
+    (bail):
+    _: |
+      cd mason || exit 1
+      dart run mason_cli:mason bundle analysis_server --type dart --output-dir bundles
+
+    (command):
+      - "{$bricks:bundle:release}"
+      - "{$bricks:bundle:debug}"
+
+    release:
+      (bail):
+      (env):
+        vars:
+          RELEASE: true
+      (command):
+        - "{$bricks:generate}"
+        - "{$bricks:bundle:_}"
+        - mv mason/bundles/analysis_server_bundle.dart mason/bundles/release.dart
+
+    debug:
+      (bail):
+      (env):
+        vars:
+          RELEASE: false
+      (command):
+        - "{$bricks:generate}"
+        - "{$bricks:bundle:_}"
+        - mv mason/bundles/analysis_server_bundle.dart mason/bundles/debug.dart
