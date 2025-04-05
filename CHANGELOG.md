@@ -1,3 +1,9 @@
+# 0.17.3 | 4.5.2025
+
+## Fixes
+
+- Issue where a command following a non-concurrent command would be skipped
+
 # 0.17.2 | 4.3.2025
 
 ## Fixes
