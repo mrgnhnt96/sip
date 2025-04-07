@@ -1,0 +1,21 @@
+test:
+  integration:
+    (command):
+      - "{$test:integration:_pre}"
+      - "{$test:integration:_}"
+    _pre: "{$generate:env}"
+    _: sh ./scripts/integration_test.sh
+    ios:
+      - "{$test:integration:_pre}"
+      - C=$({$test:integration:_} --platform="ios"); echo $C; $C
+    android:
+      - "{$test:integration:_pre}"
+      - C=$({$test:integration:_} --platform="android"); echo $C; $C
+    debug:
+      - "{$test:integration:_pre}"
+      - C=$({$test:integration:_} --debug); echo $C; $C
+
+generate:
+  env:
+    dev: echo "dev"
+    prod: echo "prod"
