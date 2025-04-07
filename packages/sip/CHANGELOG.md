@@ -1,3 +1,9 @@
+# 0.17.4 | 4.7.2025
+
+## Fixes
+
+- Crash when a reference does not contain any commands to run
+
 # 0.17.3 | 4.5.2025
 
 ## Fixes
