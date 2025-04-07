@@ -359,6 +359,10 @@ class Variables with WorkingDirectory {
       return;
     }
 
+    if (commandsWithEnv.isEmpty) {
+      return;
+    }
+
     final commands = commandsWithEnv.toList();
     final last = commands.removeLast();
 
