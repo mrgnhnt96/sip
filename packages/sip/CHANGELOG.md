@@ -1,3 +1,9 @@
+# 0.17.5 | 4.12.2025
+
+## Fixes
+
+- Issue where a reference command that contains concurrency would loop indefinitely
+
 # 0.17.4 | 4.7.2025
 
 ## Fixes
