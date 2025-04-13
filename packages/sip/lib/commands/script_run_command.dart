@@ -315,7 +315,8 @@ class ScriptRunCommand extends Command<ExitCode>
             };
             // no need to go back one step if the command is set
             // to run before the next
-            if (!command.needsRunBeforeNext || nextCommandIsNotConcurrent) {
+            if (!command.needsRunBeforeNext ||
+                (!command.runConcurrently && nextCommandIsNotConcurrent)) {
               // Go back one step to get the command that is skipped
               i--;
               logger.detail(cyan.wrap('BACK PEDALING: $i'));
