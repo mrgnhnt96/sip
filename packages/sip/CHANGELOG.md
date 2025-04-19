@@ -1,3 +1,10 @@
+# 0.17.6 | 4.19.2025
+
+## Enhancements
+
+- Always show the cursor when the process is interrupted
+  - Sometimes the cursor would not be visible when the process was interrupted and the cursor would remain hidden
+
 # 0.17.5 | 4.12.2025
 
 ## Fixes
