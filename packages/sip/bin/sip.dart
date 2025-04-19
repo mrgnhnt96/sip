@@ -13,9 +13,13 @@ import 'package:sip_cli/utils/key_press_listener.dart';
 
 void main(List<String> arguments) async {
   ProcessSignal.sigint.watch().listen(
-        (signal) => exit(1),
-        cancelOnError: true,
-      );
+    (signal) {
+      // always make sure that the cursor is visible
+      stdout.write('\x1b[?25h');
+      exit(1);
+    },
+    cancelOnError: true,
+  );
 
   final args = List<String>.from(arguments);
 
