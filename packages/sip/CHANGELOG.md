@@ -1,3 +1,10 @@
+# 0.17.8 | 5.2.2025
+
+## Enhancements
+
+- Add env variables to `env` after sourcing the env file
+- Improve test output formatting
+
 # 0.17.7 | 5.2.2025
 
 ## Fixes
