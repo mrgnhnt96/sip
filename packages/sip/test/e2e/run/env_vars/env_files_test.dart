@@ -87,7 +87,7 @@ void main() {
         command = prep();
       });
 
-      test('command: be reset', () async {
+      test('command: publish', () async {
         await command.run(['publish']);
 
         await Future<void>.delayed(const Duration(milliseconds: 100));
