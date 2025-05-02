@@ -339,6 +339,12 @@ class Variables with WorkingDirectory {
       return;
     }
 
+    final envCommandIndex = script.env?.commands.indexOf(command) ?? -1;
+    if (envCommandIndex != -1) {
+      yield* commandsWithEnv;
+      return;
+    }
+
     final commandIndex = script.commands.indexOf(command);
 
     if (commandIndex == -1) {

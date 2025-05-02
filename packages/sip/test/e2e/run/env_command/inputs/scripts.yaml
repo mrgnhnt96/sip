@@ -1,0 +1,23 @@
+env:
+  local: |
+    cd infra || exit 1
+    dart run pnv generate env --flavor local --output private --directory public
+
+server:
+  pocketbase:
+    migrate:
+      (env):
+        command: "{$env:local}"
+        files:
+          - infra/private/pocketbase.local.env
+      (command):
+        - |
+          cd backend/pocketbase || exit 1
+          MIGRATIONS_COUNT=$(ls -1 pb_migrations | wc -l)
+          if [ "$MIGRATIONS_COUNT" -eq 0 ]; then
+            echo "No migrations to apply"
+            exit 0
+          fi
+
+          echo "y" | ./pocketbase migrate down $MIGRATIONS_COUNT
+        - cd backend/pocketbase &&./pocketbase migrate up
