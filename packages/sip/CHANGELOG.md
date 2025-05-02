@@ -1,3 +1,9 @@
+# 0.17.7 | 5.2.2025
+
+## Fixes
+
+- Issue where env commands were not being resolved correctly
+
 # 0.17.6 | 4.19.2025
 
 ## Enhancements
