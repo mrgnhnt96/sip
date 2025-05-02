@@ -3,13 +3,19 @@ import 'dart:io';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:path/path.dart' as p;
 
+typedef FormattedTest = ({
+  String message,
+  ({int passing, int failing}) count,
+  bool isError
+});
+typedef Formatter = FormattedTest Function(String);
+
 enum FilterType {
   flutterTest,
   dartTest;
 
   bool Function(String)? get filter => _getFilter(this);
-  (String, {bool isError}) Function(String)? get formatter =>
-      _getFormatter(this);
+  Formatter? get formatter => _getFormatter(this);
 
   static FilterType? fromString(String? value) {
     return FilterType.values.asNameMap()[value];
@@ -24,7 +30,7 @@ bool Function(String)? _getFilter(FilterType? type) {
   };
 }
 
-(String, {bool isError}) Function(String)? _getFormatter(FilterType? type) {
+Formatter? _getFormatter(FilterType? type) {
   return switch (type) {
     FilterType.flutterTest => _formatFlutterTest,
     FilterType.dartTest => _formatDartTest,
@@ -32,7 +38,20 @@ bool Function(String)? _getFilter(FilterType? type) {
   };
 }
 
-(String, {bool isError}) _formatFlutterTest(String string) {
+final resetToStart = switch (stdout.hasTerminal) {
+  true => '\x1B[0G',
+  false => '',
+};
+final clearToEnd = switch (stdout.hasTerminal) {
+  true => '\x1B[K',
+  false => '',
+};
+final maxCol = switch (stdout.hasTerminal) {
+  true => stdout.terminalColumns,
+  false => 1000,
+};
+
+FormattedTest _formatFlutterTest(String string) {
   final m = resetAll.wrap(string) ?? '';
   final time = RegExp(r'\d+:\d+').firstMatch(m)?.group(0);
   final passing = RegExp(r'\+\d+').firstMatch(m)?.group(0);
@@ -60,9 +79,6 @@ bool Function(String)? _getFilter(FilterType? type) {
   };
 
   final hasError = m.contains('[E]');
-  const resetToStart = '\x1B[0G';
-  const clearToEnd = '\x1B[K';
-  final maxCol = stdout.terminalColumns;
 
   var testOverview = [
     if (time case final time?) time,
@@ -98,29 +114,30 @@ bool Function(String)? _getFilter(FilterType? type) {
     if (hasError) '\n',
   ].join();
 
-  return (message, isError: hasError);
+  final passingCount = int.tryParse(passing ?? '') ?? 0;
+  final failingCount = int.tryParse(failing ?? '') ?? 0;
+
+  return (
+    message: message,
+    count: (passing: passingCount, failing: failingCount),
+    isError: hasError
+  );
 }
 
-(String, {bool isError}) _formatDartTest(String string) {
+FormattedTest _formatDartTest(String string) {
   final m = resetAll.wrap(string) ?? '';
   final time = RegExp(r'\d+:\d+').firstMatch(m)?.group(0);
   final passing = RegExp(r'\+\d+').firstMatch(m)?.group(0);
   final failing = RegExp(r'-\d+').firstMatch(m)?.group(0);
-  var description = RegExp(r'[\-\+]\d+.*:(.*)').firstMatch(m)?.group(1);
-
-  final path =
-      RegExp(r'(\S*\.dart)').firstMatch(description ?? '')?.group(1)?.trim();
-
-  if (path case final path? when description != null) {
-    description = description.replaceAll(path, '');
-  }
-
-  description = description?.trim();
+  var description =
+      RegExp(r'[\-\+]\d+.*\.dart:(.*)').firstMatch(m)?.group(1)?.trim();
 
   final hasError = m.contains('[E]');
-  const resetToStart = '\x1B[0G';
-  const clearToEnd = '\x1B[K';
-  final maxCol = stdout.terminalColumns;
+
+  final path = switch (hasError) {
+    true => RegExp(r'(\S*\.dart)').firstMatch(m)?.group(1)?.trim(),
+    _ => null,
+  };
 
   var testOverview = [
     if (time case final time?) time,
@@ -154,5 +171,12 @@ bool Function(String)? _getFilter(FilterType? type) {
     if (hasError) '\n',
   ].join();
 
-  return (message, isError: hasError);
+  final passingCount = int.tryParse(passing ?? '') ?? 0;
+  final failingCount = int.tryParse(failing ?? '') ?? 0;
+
+  return (
+    message: message,
+    count: (passing: passingCount, failing: failingCount),
+    isError: hasError
+  );
 }

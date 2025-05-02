@@ -134,7 +134,8 @@ Future<void> _runScript(SendPort sendPort) async {
           return;
         }
 
-        (message, :isError) = result;
+        // TODO(MRGNHNT): calculate total tests run
+        (:message, count: _, :isError) = result;
       } catch (_) {
         return;
       }
