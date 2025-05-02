@@ -109,7 +109,6 @@ if [ -f infra/private/pocketbase.local.env ]; then
       export "$key"
     fi
   done < <(grep -vE '^\s*#' infra/private/pocketbase.local.env | grep -E '^[A-Za-z_][A-Za-z0-9_]*=')
-  echo "Sourced: infra/private/pocketbase.local.env"
 else
   echo "ENV File infra/private/pocketbase.local.env not found"
   exit 1
@@ -133,7 +132,6 @@ if [ -f infra/private/pocketbase.local.env ]; then
       export "$key"
     fi
   done < <(grep -vE '^\s*#' infra/private/pocketbase.local.env | grep -E '^[A-Za-z_][A-Za-z0-9_]*=')
-  echo "Sourced: infra/private/pocketbase.local.env"
 else
   echo "ENV File infra/private/pocketbase.local.env not found"
   exit 1

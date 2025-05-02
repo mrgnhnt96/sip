@@ -59,7 +59,6 @@ $cmd''';
 if [ -f $file ]; then
   builtin source $file
 $addToEnv
-  echo "Sourced: $file"
 else
   echo "ENV File $file not found"
   exit 1

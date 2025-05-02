@@ -112,7 +112,6 @@ if [ -f infra/private/be.local.env ]; then
       export "$key"
     fi
   done < <(grep -vE '^\s*#' infra/private/be.local.env | grep -E '^[A-Za-z_][A-Za-z0-9_]*=')
-  echo "Sourced: infra/private/be.local.env"
 else
   echo "ENV File infra/private/be.local.env not found"
   exit 1
@@ -150,7 +149,6 @@ if [ -f infra/private/be.local.env ]; then
       export "$key"
     fi
   done < <(grep -vE '^\s*#' infra/private/be.local.env | grep -E '^[A-Za-z_][A-Za-z0-9_]*=')
-  echo "Sourced: infra/private/be.local.env"
 else
   echo "ENV File infra/private/be.local.env not found"
   exit 1
