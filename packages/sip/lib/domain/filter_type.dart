@@ -67,6 +67,10 @@ FormattedTest _formatFlutterTest(String string) {
       ?.group(1)
       ?.trim();
 
+  final isLoading = RegExp(r': loading .*\.dart').hasMatch(m);
+  final isFinished = m.contains('All tests passed');
+  final hasError = m.contains('[E]');
+
   if (path case final path? when description != null) {
     description = description.replaceAll(path, '');
   }
@@ -77,8 +81,6 @@ FormattedTest _formatFlutterTest(String string) {
     String() => p.relative(path, from: p.current),
     _ => null,
   };
-
-  final hasError = m.contains('[E]');
 
   var testOverview = [
     if (time case final time?) time,
@@ -100,11 +102,14 @@ FormattedTest _formatFlutterTest(String string) {
     testOverview,
     if (relative case final relative? when hasError)
       darkGray.wrap('$relative |'),
-    if (description?.trim() case final String description)
+    if (description?.trim() case final String description
+        when description.isNotEmpty)
       switch (hasError) {
         true => red.wrap(fullDescription),
         _ => darkGray.wrap(description),
       },
+    if (isLoading) darkGray.wrap('loading tests...'),
+    if (isFinished) green.wrap('Ran all tests'),
   ].join(' ').trim();
 
   final message = [
@@ -130,8 +135,10 @@ FormattedTest _formatDartTest(String string) {
   final passing = RegExp(r'\+\d+').firstMatch(m)?.group(0);
   final failing = RegExp(r'-\d+').firstMatch(m)?.group(0);
   var description =
-      RegExp(r'[\-\+]\d+.*\.dart:(.*)').firstMatch(m)?.group(1)?.trim();
+      RegExp(r'[\-\+]\d+.*\.dart:?(.*)').firstMatch(m)?.group(1)?.trim();
 
+  final isLoading = RegExp(r': loading .*\.dart').hasMatch(m);
+  final isFinished = m.contains('All tests passed');
   final hasError = m.contains('[E]');
 
   final path = switch (hasError) {
@@ -157,11 +164,14 @@ FormattedTest _formatDartTest(String string) {
   final coreMessage = [
     testOverview,
     if (path case final path when hasError) darkGray.wrap('$path |'),
-    if (description?.trim() case final String description)
+    if (description?.trim() case final String description
+        when description.isNotEmpty)
       switch (hasError) {
         true => red.wrap(fullDescription),
         _ => darkGray.wrap(description),
       },
+    if (isLoading) darkGray.wrap('loading tests...'),
+    if (isFinished) green.wrap('Ran all tests'),
   ].whereType<String>().join(' ').trim();
 
   final message = [
