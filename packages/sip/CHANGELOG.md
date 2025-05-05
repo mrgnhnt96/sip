@@ -1,3 +1,9 @@
+# 0.17.10 | 5.5.2025
+
+## Fixes
+
+- Issue where test output was empty when it shouldn't be
+
 # 0.17.9 | 5.2.2025
 
 ## Enhancements
