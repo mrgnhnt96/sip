@@ -1,8 +1,12 @@
-# 0.17.10 | 5.5.2025
+# 0.17.11 | 5.5.2025
 
 ## Fixes
 
 - Issue where test output was empty when it shouldn't be
+
+## Enhancements
+
+- Add relative path to project root in test output
 
 # 0.17.9 | 5.2.2025
 
