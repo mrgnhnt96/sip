@@ -208,6 +208,7 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
       final command = createTestCommand(
         projectRoot: tool.directory(),
         relativeProjectRoot: path.relative(tool.directory()),
+        pathToProjectRoot: tool.directory(),
         tool: tool,
         flutterArgs: flutterArgs,
         dartArgs: dartArgs,

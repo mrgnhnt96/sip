@@ -287,6 +287,8 @@ abstract mixin class TesterMixin {
         projectRoot: packageToTest.packagePath,
         relativeProjectRoot:
             packageRootFor(path.relative(packageToTest.packagePath)),
+        pathToProjectRoot:
+            path.dirname(path.relative(packageToTest.packagePath)),
         flutterArgs: flutterArgs,
         tool: packageToTest.tool,
         dartArgs: dartArgs,
@@ -307,6 +309,7 @@ abstract mixin class TesterMixin {
     required String projectRoot,
     required DetermineFlutterOrDart tool,
     required String relativeProjectRoot,
+    required String pathToProjectRoot,
     required List<String> flutterArgs,
     required List<String> dartArgs,
     required List<String> tests,
@@ -327,6 +330,8 @@ abstract mixin class TesterMixin {
     var label = darkGray.wrap('Running (')!;
     label += cyan.wrap(command)!;
     label += darkGray.wrap(') tests in ')!;
+    label += darkGray.wrap(pathToProjectRoot)!;
+    label += darkGray.wrap(path.separator)!;
     label += yellow.wrap(relativeProjectRoot)!;
 
     return CommandToRun(
