@@ -1,3 +1,9 @@
+# 0.17.12 | 5.10.2025
+
+## Fixes
+
+- Issue where test would be blank when tests were skipped
+
 # 0.17.11 | 5.5.2025
 
 ## Fixes
