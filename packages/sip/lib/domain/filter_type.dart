@@ -5,7 +5,7 @@ import 'package:path/path.dart' as p;
 
 typedef FormattedTest = ({
   String message,
-  ({int passing, int failing}) count,
+  ({int passing, int failing, int skipped}) count,
   bool isError
 });
 typedef Formatter = FormattedTest Function(String);
@@ -54,9 +54,11 @@ final maxCol = switch (stdout.hasTerminal) {
 FormattedTest _formatFlutterTest(String string) {
   final m = resetAll.wrap(string) ?? '';
   final time = RegExp(r'\d+:\d+').firstMatch(m)?.group(0);
-  final passing = RegExp(r'\+\d+').firstMatch(m)?.group(0);
-  final failing = RegExp(r'-\d+').firstMatch(m)?.group(0);
-  var description = RegExp(r'[\+\-]\d+:(.*)')
+  final passing = RegExp(r'\+(\d+)').firstMatch(m)?.group(1);
+  final failing = RegExp(r'-(\d+)').firstMatch(m)?.group(1);
+  final skipped = RegExp(r'~(\d+)').firstMatch(m)?.group(1);
+
+  var description = RegExp(r'[\+\-\~]\d+:(.*)')
       .firstMatch(m)
       ?.group(1)
       ?.replaceAll(' ...', '')
@@ -84,13 +86,20 @@ FormattedTest _formatFlutterTest(String string) {
 
   var testOverview = [
     if (time case final time?) time,
-    if (passing case final passing?) green.wrap(passing),
-    if (failing case final failing?) red.wrap(failing),
+    if (passing case final passing?) green.wrap('+$passing'),
+    if (failing case final failing?) red.wrap('-$failing'),
+    if (skipped case final skipped?) yellow.wrap('~$skipped'),
   ].join(' ');
   testOverview = '$testOverview:';
 
   final totalLength =
       testOverview.length + (relative?.length ?? 0) + ' |'.length;
+
+  if (isFinished) {
+    description = 'Tests completed';
+  } else if (isLoading) {
+    description = 'loading tests...';
+  }
 
   final descriptionLength = description?.length ?? 0;
   final fullDescription = description;
@@ -104,12 +113,11 @@ FormattedTest _formatFlutterTest(String string) {
       darkGray.wrap('$relative |'),
     if (description?.trim() case final String description
         when description.isNotEmpty)
-      switch (hasError) {
-        true => red.wrap(fullDescription),
+      switch ((hasError, isFinished)) {
+        (true, _) => red.wrap(fullDescription),
+        (_, true) => green.wrap(description),
         _ => darkGray.wrap(description),
       },
-    if (isLoading) darkGray.wrap('loading tests...'),
-    if (isFinished) green.wrap('Ran all tests'),
   ].join(' ').trim();
 
   final message = [
@@ -121,10 +129,15 @@ FormattedTest _formatFlutterTest(String string) {
 
   final passingCount = int.tryParse(passing ?? '') ?? 0;
   final failingCount = int.tryParse(failing ?? '') ?? 0;
+  final skippedCount = int.tryParse(skipped ?? '') ?? 0;
 
   return (
     message: message,
-    count: (passing: passingCount, failing: failingCount),
+    count: (
+      passing: passingCount,
+      failing: failingCount,
+      skipped: skippedCount
+    ),
     isError: hasError
   );
 }
@@ -132,10 +145,12 @@ FormattedTest _formatFlutterTest(String string) {
 FormattedTest _formatDartTest(String string) {
   final m = resetAll.wrap(string) ?? '';
   final time = RegExp(r'\d+:\d+').firstMatch(m)?.group(0);
-  final passing = RegExp(r'\+\d+').firstMatch(m)?.group(0);
-  final failing = RegExp(r'-\d+').firstMatch(m)?.group(0);
+  final passing = RegExp(r'\+(\d+)').firstMatch(m)?.group(1);
+  final failing = RegExp(r'-(\d+)').firstMatch(m)?.group(1);
+  final skipped = RegExp(r'~(\d+)').firstMatch(m)?.group(1);
+
   var description =
-      RegExp(r'[\-\+]\d+.*\.dart:?(.*)').firstMatch(m)?.group(1)?.trim();
+      RegExp(r'[\-\+\~]\d+.*\.dart:?(.*)').firstMatch(m)?.group(1)?.trim();
 
   final isLoading = RegExp(r': loading .*\.dart').hasMatch(m);
   final isFinished = m.contains('All tests passed');
@@ -148,12 +163,19 @@ FormattedTest _formatDartTest(String string) {
 
   var testOverview = [
     if (time case final time?) time,
-    if (passing case final passing?) green.wrap(passing),
-    if (failing case final failing?) red.wrap(failing),
+    if (passing case final passing?) green.wrap('+$passing'),
+    if (failing case final failing?) red.wrap('-$failing'),
+    if (skipped case final skipped?) yellow.wrap('~$skipped'),
   ].join(' ');
   testOverview = '$testOverview:';
 
   final totalLength = testOverview.length + (path?.length ?? 0) + ' |'.length;
+
+  if (isFinished) {
+    description = 'Tests completed';
+  } else if (isLoading) {
+    description = 'loading tests...';
+  }
 
   final descriptionLength = description?.length ?? 0;
   final fullDescription = description;
@@ -161,17 +183,17 @@ FormattedTest _formatDartTest(String string) {
     description = description?.substring(0, maxCol - totalLength - 5);
   }
 
+  description = description?.trim();
+
   final coreMessage = [
     testOverview,
     if (path case final path when hasError) darkGray.wrap('$path |'),
-    if (description?.trim() case final String description
-        when description.isNotEmpty)
-      switch (hasError) {
-        true => red.wrap(fullDescription),
+    if (description case final String description when description.isNotEmpty)
+      switch ((hasError, isFinished)) {
+        (true, _) => red.wrap(fullDescription),
+        (_, true) => green.wrap(description),
         _ => darkGray.wrap(description),
       },
-    if (isLoading) darkGray.wrap('loading tests...'),
-    if (isFinished) green.wrap('Ran all tests'),
   ].whereType<String>().join(' ').trim();
 
   final message = [
@@ -183,10 +205,15 @@ FormattedTest _formatDartTest(String string) {
 
   final passingCount = int.tryParse(passing ?? '') ?? 0;
   final failingCount = int.tryParse(failing ?? '') ?? 0;
+  final skippedCount = int.tryParse(skipped ?? '') ?? 0;
 
   return (
     message: message,
-    count: (passing: passingCount, failing: failingCount),
+    count: (
+      passing: passingCount,
+      failing: failingCount,
+      skipped: skippedCount
+    ),
     isError: hasError
   );
 }
