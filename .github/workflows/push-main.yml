@@ -1,0 +1,28 @@
+name: Run Tests on Push to Main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: "stable"
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Install SIP
+        run: dart pub global activate --source path ./packages/sip
+
+      - name: Run SIP tests
+        run: sip test
