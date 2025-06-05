@@ -25,6 +25,7 @@ class AnyArgParser implements ArgParser {
     void Function(bool p1)? callback,
     bool hide = false,
     List<String> aliases = const [],
+    bool hideNegatedUsage = false,
   }) =>
       _argParser.addFlag(
         name,
@@ -35,6 +36,7 @@ class AnyArgParser implements ArgParser {
         callback: callback,
         hide: hide,
         aliases: aliases,
+        hideNegatedUsage: hideNegatedUsage,
       );
 
   @override
