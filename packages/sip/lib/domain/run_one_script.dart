@@ -44,21 +44,12 @@ $cmd''';
 
         for (final file in files) {
           logger.detail('Sourcing env file $file');
-          final addToEnv = [
-            r'''
-  while IFS='=' read -r key _; do
-    if [[ $key =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
-      export "$key"
-    fi
-  done < <(grep -vE '^\s*#' ''',
-            file,
-            " | grep -E '^[A-Za-z_][A-Za-z0-9_]*=')",
-          ].join();
 
           cmd = '''
 if [ -f $file ]; then
-  builtin source $file
-$addToEnv
+  set -o allexport
+  builtin source \$(realpath "$file")
+  set +o allexport
 else
   echo "ENV File $file not found"
   exit 1
