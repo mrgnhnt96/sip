@@ -17,8 +17,8 @@ class EnvConfig extends Equatable {
         workingDirectory = '',
         variables = const {};
 
-  final Iterable<String>? files;
-  final Iterable<String>? commands;
+  final List<String>? files;
+  final List<String>? commands;
   final String workingDirectory;
   final Map<String, String>? variables;
 
@@ -68,8 +68,8 @@ extension CombineEnvConfigEnvConfigX on Iterable<EnvConfig?> {
     }
 
     return EnvConfig(
-      commands: commands,
-      files: files,
+      commands: commands.toList(),
+      files: files.toList(),
       workingDirectory: directory,
       variables: variables,
     );

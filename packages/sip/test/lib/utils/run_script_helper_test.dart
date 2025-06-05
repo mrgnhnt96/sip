@@ -95,8 +95,8 @@ void main() {
 
           expect(result.exitCode, isNull);
           const expectedConfig = EnvConfig(
-            commands: {'echo "env"'},
-            files: {'some/path/to/test/.env'},
+            commands: ['echo "env"'],
+            files: ['some/path/to/test/.env'],
             workingDirectory: '/',
             variables: {},
           );
@@ -121,8 +121,8 @@ void main() {
 
           expect(result.exitCode, isNull);
           const expectedConfig = EnvConfig(
-            commands: {"echo 'ref'"},
-            files: {'some/path/to/test/.env'},
+            commands: ["echo 'ref'"],
+            files: ['some/path/to/test/.env'],
             workingDirectory: '/',
             variables: {},
           );
@@ -154,14 +154,8 @@ void main() {
           expect(result.exitCode, isNull);
           const expectedConfig = EnvConfig(
             workingDirectory: '/',
-            commands: {
-              'pub env command',
-              'other env command',
-            },
-            files: {
-              'some/path/to/test/.env',
-              'some/path/to/other/.env',
-            },
+            commands: ['pub env command', 'other env command'],
+            files: ['some/path/to/test/.env', 'some/path/to/other/.env'],
             variables: {},
           );
 
@@ -192,12 +186,8 @@ void main() {
           expect(result.exitCode, isNull);
           const expectedConfig = EnvConfig(
             workingDirectory: '/',
-            commands: {
-              'pub env command',
-            },
-            files: {
-              'some/path/to/test/.env',
-            },
+            commands: ['pub env command'],
+            files: ['some/path/to/test/.env'],
             variables: {},
           );
 
@@ -437,8 +427,8 @@ cd packages/domain
           expect(result.commands, hasLength(1));
 
           const envConfig = EnvConfig(
-            commands: {'echo "env"'},
-            files: {'some/path/to/test/.env'},
+            commands: ['echo "env"'],
+            files: ['some/path/to/test/.env'],
             workingDirectory: 'some/path/to/test',
             variables: {},
           );
@@ -486,14 +476,8 @@ cd packages/domain
 
           const combinedEnvConfig = EnvConfig(
             workingDirectory: 'some/path/to/test',
-            commands: {
-              'pub env command',
-              'other env command',
-            },
-            files: {
-              'some/path/to/test/.env',
-              'some/path/to/other/.env',
-            },
+            commands: ['pub env command', 'other env command'],
+            files: ['some/path/to/test/.env', 'some/path/to/other/.env'],
             variables: {},
           );
 
@@ -506,8 +490,8 @@ cd packages/domain
             keys: ['pub'],
             envConfig: EnvConfig(
               workingDirectory: 'some/path/to/test',
-              commands: {'pub env command', 'other env command'},
-              files: {'some/path/to/test/.env', 'some/path/to/other/.env'},
+              commands: ['other env command', 'pub env command'],
+              files: ['some/path/to/other/.env', 'some/path/to/test/.env'],
               variables: {},
             ),
           );
@@ -549,14 +533,8 @@ cd packages/domain
 
           const combinedEnvConfig = EnvConfig(
             workingDirectory: 'some/path/to/test',
-            commands: {
-              'pub env command',
-              'other env command',
-            },
-            files: {
-              'some/path/to/test/.env',
-              'some/path/to/other/.env',
-            },
+            commands: ['pub env command', 'other env command'],
+            files: ['some/path/to/test/.env', 'some/path/to/other/.env'],
             variables: {},
           );
 
@@ -569,8 +547,8 @@ cd packages/domain
             keys: ['all'],
             envConfig: EnvConfig(
               workingDirectory: 'some/path/to/test',
-              commands: {'pub env command'},
-              files: {'some/path/to/test/.env'},
+              commands: ['pub env command'],
+              files: ['some/path/to/test/.env'],
               variables: {},
             ),
           );
@@ -584,8 +562,8 @@ cd packages/domain
             keys: ['all'],
             envConfig: EnvConfig(
               workingDirectory: 'some/path/to/test',
-              commands: {'other env command'},
-              files: {'some/path/to/other/.env'},
+              commands: ['other env command'],
+              files: ['some/path/to/other/.env'],
               variables: {},
             ),
           );
@@ -633,16 +611,16 @@ cd packages/domain
 
           const combinedEnvConfig = EnvConfig(
             workingDirectory: 'some/path/to/test',
-            commands: {
+            commands: [
               'all env command',
               'pub env command',
               'other env command',
-            },
-            files: {
+            ],
+            files: [
               'some/path/to/all/.env',
               'some/path/to/test/.env',
               'some/path/to/other/.env',
-            },
+            ],
             variables: {},
           );
 
@@ -655,8 +633,8 @@ cd packages/domain
             keys: ['all'],
             envConfig: EnvConfig(
               workingDirectory: 'some/path/to/test',
-              commands: {'all env command', 'pub env command'},
-              files: {'some/path/to/all/.env', 'some/path/to/test/.env'},
+              commands: ['pub env command', 'all env command'],
+              files: ['some/path/to/test/.env', 'some/path/to/all/.env'],
               variables: {},
             ),
           );
@@ -670,8 +648,8 @@ cd packages/domain
             keys: ['all'],
             envConfig: EnvConfig(
               workingDirectory: 'some/path/to/test',
-              commands: {'all env command', 'other env command'},
-              files: {'some/path/to/all/.env', 'some/path/to/other/.env'},
+              commands: ['other env command', 'all env command'],
+              files: ['some/path/to/other/.env', 'some/path/to/all/.env'],
               variables: {},
             ),
           );

@@ -170,7 +170,8 @@ class Variables with WorkingDirectory {
           EnvConfig(
             commands: resolve(command, script)
                 .map((e) => e.command)
-                .whereType<String>(),
+                .whereType<String>()
+                .toList(),
             files: script.env?.files,
             workingDirectory: directory,
             variables: script.env?.vars,

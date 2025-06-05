@@ -105,8 +105,8 @@ class Script extends Equatable {
     }
 
     return EnvConfig(
-      commands: {...env.commands},
-      files: {...env.files},
+      commands: {...env.commands}.toList(),
+      files: {...env.files}.toList(),
       workingDirectory: directory,
       variables: {...env.vars},
     );
