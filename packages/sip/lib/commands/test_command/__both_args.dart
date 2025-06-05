@@ -142,11 +142,12 @@ List<String> parseArguments(
   required Set<String> initialArgs,
 }) {
   if (argResults == null) return [];
-  final args = <String>[...initialArgs];
 
   final arguments = [
     ...argResults.arguments,
   ];
+
+  var args = Args.parse([...initialArgs]);
 
   for (final option in options) {
     if (!argResults.wasParsed(option)) {
@@ -158,36 +159,30 @@ List<String> parseArguments(
       throw Exception('Unknown option: $option');
     }
 
-    final tempParser = AnyArgParser()..inject(definedOption);
-
-    final result = tempParser.parse(arguments);
+    final result = Args.parse(arguments);
     final value = result[option];
+    final original = result.original(option);
 
     if (value == null) {
       continue;
     }
 
     // We to check if the option has a replacement
-    dynamic option_ = option;
+    final key = flagReplacements[option] ?? option;
 
-    if (flagReplacements.containsKey(option)) {
-      option_ = flagReplacements[option];
-    }
-
-    if (value is List<String>) {
-      args.addAll(['--$option_', ...value]);
-    } else if (value is bool) {
-      if (value) {
-        args.add('--$option_');
-      } else {
-        args.add('--no-$option_');
-      }
-    } else {
-      args.addAll(['--$option_', '$value']);
-    }
+    args = args.merge(
+      Args(
+        args: {
+          key: ArgEntry(
+            original: original,
+            key: key,
+            value: value,
+          ),
+        },
+        rest: result.rest,
+      ),
+    );
   }
 
-  args.removeWhere((e) => e.isEmpty);
-
-  return args;
+  return [...args.toArgs(), ...args.rest];
 }

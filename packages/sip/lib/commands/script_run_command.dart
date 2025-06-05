@@ -5,7 +5,7 @@ import 'dart:async';
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
-import 'package:sip_cli/domain/any_arg_parser.dart';
+import 'package:sip_cli/commands/test_command/relaxed_arg_parser.dart';
 import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/command_result.dart';
 import 'package:sip_cli/domain/command_to_run.dart';
@@ -32,7 +32,7 @@ class ScriptRunCommand extends Command<ExitCode>
     required this.cwd,
     required this.runOneScript,
     required this.runManyScripts,
-  }) : argParser = AnyArgParser() {
+  }) : argParser = RelaxedArgParser() {
     addFlags();
 
     argParser.addFlag(
