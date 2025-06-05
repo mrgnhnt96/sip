@@ -7,11 +7,7 @@ part of 'script_env.dart';
 // **************************************************************************
 
 extension _$ScriptEnvAutoequal on ScriptEnv {
-  List<Object?> get _$props => [
-        files,
-        commands,
-        vars,
-      ];
+  List<Object?> get _$props => [files, commands, vars];
 }
 
 // **************************************************************************

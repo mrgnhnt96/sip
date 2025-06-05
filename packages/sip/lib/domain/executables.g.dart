@@ -7,10 +7,7 @@ part of 'executables.dart';
 // **************************************************************************
 
 extension _$ExecutablesAutoequal on Executables {
-  List<Object?> get _$props => [
-        dart,
-        flutter,
-      ];
+  List<Object?> get _$props => [dart, flutter];
 }
 
 // **************************************************************************

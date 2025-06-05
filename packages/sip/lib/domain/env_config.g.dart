@@ -7,10 +7,5 @@ part of 'env_config.dart';
 // **************************************************************************
 
 extension _$EnvConfigAutoequal on EnvConfig {
-  List<Object?> get _$props => [
-        files,
-        commands,
-        workingDirectory,
-        variables,
-      ];
+  List<Object?> get _$props => [files, commands, workingDirectory, variables];
 }

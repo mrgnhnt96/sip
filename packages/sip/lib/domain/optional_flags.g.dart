@@ -7,8 +7,5 @@ part of 'optional_flags.dart';
 // **************************************************************************
 
 extension _$OptionalFlagsAutoequal on OptionalFlags {
-  List<Object?> get _$props => [
-        _flags,
-        _parsed,
-      ];
+  List<Object?> get _$props => [_flags, _parsed];
 }

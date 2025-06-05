@@ -7,10 +7,7 @@ part of 'scripts_config.dart';
 // **************************************************************************
 
 extension _$ScriptsConfigAutoequal on ScriptsConfig {
-  List<Object?> get _$props => [
-        scripts,
-        parents,
-      ];
+  List<Object?> get _$props => [scripts, parents];
 }
 
 // **************************************************************************
