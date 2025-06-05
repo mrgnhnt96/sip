@@ -5,9 +5,7 @@ import 'dart:io';
 import 'package:file/local.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:pub_updater/pub_updater.dart';
-import 'package:sip_cli/domain/bindings_impl.dart';
 import 'package:sip_cli/domain/domain.dart';
-import 'package:sip_cli/domain/variables.dart';
 import 'package:sip_cli/sip_runner.dart';
 import 'package:sip_cli/utils/key_press_listener.dart';
 
