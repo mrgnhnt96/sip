@@ -1,14 +1,20 @@
 import 'dart:io';
 
-import 'package:mason_logger/mason_logger.dart';
+import 'package:sip_cli/domain/filter_type.dart' as filter;
 import 'package:sip_cli/domain/filter_type.dart';
 import 'package:test/test.dart';
 
 void main() {
   group(FilterType, () {
+    final resetToStart = filter.resetToStart(hasTerminal: true);
+    final clearToEnd = filter.clearToEnd(hasTerminal: true);
+
     group('#formatter', () {
       group(FilterType.dartTest, () {
-        final formatter = FilterType.dartTest.formatter!;
+        final formatter = FilterType.dartTest.formatter(
+          hasTerminal: true,
+          terminalColumns: 1000,
+        )!;
 
         test('should output seconds, index, and loading', () {
           const output = '00:00 +0: loading test/methods_test.dart';
@@ -19,7 +25,8 @@ void main() {
             :isError
           ) = formatter(output);
 
-          const expected = '00:00 +0: loading tests...';
+          final expected =
+              '${resetToStart}00:00 +0: loading tests...$clearToEnd';
 
           expect(formatted, expected);
           expect(isError, false);
@@ -37,7 +44,8 @@ void main() {
             :isError
           ) = formatter(output);
 
-          const expected = '00:03 +5: Tests completed';
+          final expected =
+              '${resetToStart}00:03 +5: Tests completed$clearToEnd';
 
           expect(formatted, expected);
           expect(isError, false);
@@ -56,10 +64,10 @@ void main() {
             :isError
           ) = formatter(output);
 
-          const expected =
-              '00:01 +178: env files e2e runs gracefully command: be reset';
+          final expected = '${resetToStart}00:01 +178: env files e2e runs '
+              'gracefully command: be reset$clearToEnd';
 
-          expect(resetAll.wrap(formatted), expected);
+          expect(formatted, expected);
           expect(isError, false);
           expect(passing, 178);
           expect(skipped, 0);
@@ -85,10 +93,11 @@ To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin
             :isError
           ) = formatter(output);
 
-          const expected =
-              '00:00 +132 -3: test/lib/domain/filter_type_test.dart | FilterType #formatter example [E]\n';
+          final expected =
+              '${resetToStart}00:00 +132 -3: test/lib/domain/filter_type_test.dart | '
+              'FilterType #formatter example [E]$clearToEnd\n';
 
-          expect(resetAll.wrap(formatted), expected);
+          expect(formatted, expected);
           expect(isError, true);
           expect(passing, 132);
           expect(skipped, 0);
@@ -105,9 +114,10 @@ To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin
             :isError
           ) = formatter(output);
 
-          const expected = '00:00 +132 ~2: FilterType #formatter example';
+          final expected = '${resetToStart}00:00 +132 ~2: FilterType '
+              '#formatter example$clearToEnd';
 
-          expect(resetAll.wrap(formatted), expected);
+          expect(formatted, expected);
           expect(isError, false);
           expect(passing, 132);
           expect(skipped, 2);
@@ -123,10 +133,10 @@ To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin
             :isError
           ) = formatter(output);
 
-          const expected =
-              '00:09 +96 ~2: Home Screen Trip shows when user has a trip';
+          final expected = '${resetToStart}00:09 +96 ~2: Home Screen Trip '
+              'shows when user has a trip$clearToEnd';
 
-          expect(resetAll.wrap(formatted), expected);
+          expect(formatted, expected);
           expect(isError, false);
           expect(passing, 96);
           expect(skipped, 2);
@@ -135,7 +145,10 @@ To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin
       });
 
       group(FilterType.flutterTest, () {
-        final formatter = FilterType.flutterTest.formatter!;
+        final formatter = FilterType.flutterTest.formatter(
+          hasTerminal: true,
+          terminalColumns: 1000,
+        )!;
 
         test('should output seconds, index, and loading', () {
           const output =
@@ -147,7 +160,8 @@ To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin
             :isError
           ) = formatter(output);
 
-          const expected = '00:01 +0: loading tests...';
+          final expected =
+              '${resetToStart}00:01 +0: loading tests...$clearToEnd';
 
           expect(formatted, expected);
           expect(isError, false);
@@ -165,7 +179,8 @@ To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin
             :isError
           ) = formatter(output);
 
-          const expected = '00:03 +5: Tests completed';
+          final expected =
+              '${resetToStart}00:03 +5: Tests completed$clearToEnd';
 
           expect(formatted, expected);
           expect(isError, false);
@@ -183,10 +198,11 @@ To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin
             :isError
           ) = formatter(output);
 
-          const expected = '00:09 +77: Single Friend Request shows when friend '
-              'requests is accepted';
+          final expected = '${resetToStart}00:09 +77: Single Friend Request '
+              'shows when friend '
+              'requests is accepted$clearToEnd';
 
-          expect(resetAll.wrap(formatted), expected);
+          expect(formatted, expected);
           expect(isError, false);
           expect(passing, 77);
           expect(skipped, 0);
@@ -214,10 +230,10 @@ To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin
                 :isError
               ) = formatter(output);
 
-              const expected =
-                  '00:00 +132 -3: test/lib/domain/filter_type_test.dart | FilterType #formatter example [E]\n';
+              final expected =
+                  '${resetToStart}00:00 +132 -3: test/lib/domain/filter_type_test.dart | FilterType #formatter example [E]$clearToEnd\n';
 
-              expect(resetAll.wrap(formatted), expected);
+              expect(formatted, expected);
               expect(isError, true);
               expect(passing, 132);
               expect(skipped, 0);
@@ -237,9 +253,10 @@ To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin
             :isError
           ) = formatter(output);
 
-          const expected = '00:00 +132 ~2: FilterType #formatter example';
+          final expected = '${resetToStart}00:00 +132 ~2: FilterType '
+              '#formatter example$clearToEnd';
 
-          expect(resetAll.wrap(formatted), expected);
+          expect(formatted, expected);
           expect(isError, false);
           expect(passing, 132);
           expect(skipped, 2);
@@ -255,10 +272,11 @@ To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin
             :isError
           ) = formatter(output);
 
-          const expected =
-              '00:09 +96 ~2: Home Screen Trip shows when user has a trip';
+          final expected =
+              '${resetToStart}00:09 +96 ~2: Home Screen Trip shows '
+              'when user has a trip$clearToEnd';
 
-          expect(resetAll.wrap(formatted), expected);
+          expect(formatted, expected);
           expect(isError, false);
           expect(passing, 96);
           expect(skipped, 2);

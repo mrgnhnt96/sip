@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:mason_logger/mason_logger.dart';
 import 'package:path/path.dart' as p;
 
@@ -15,7 +13,15 @@ enum FilterType {
   dartTest;
 
   bool Function(String)? get filter => _getFilter(this);
-  Formatter? get formatter => _getFormatter(this);
+  Formatter? formatter({
+    required bool hasTerminal,
+    required int terminalColumns,
+  }) =>
+      _getFormatter(
+        this,
+        hasTerminal: hasTerminal,
+        terminalColumns: terminalColumns,
+      );
 
   static FilterType? fromString(String? value) {
     return FilterType.values.asNameMap()[value];
@@ -30,30 +36,48 @@ bool Function(String)? _getFilter(FilterType? type) {
   };
 }
 
-Formatter? _getFormatter(FilterType? type) {
+Formatter? _getFormatter(
+  FilterType? type, {
+  required bool hasTerminal,
+  required int terminalColumns,
+}) {
   return switch (type) {
-    FilterType.flutterTest => _formatFlutterTest,
-    FilterType.dartTest => _formatDartTest,
+    FilterType.flutterTest => (string) => _formatFlutterTest(
+          string,
+          hasTerminal: hasTerminal,
+          terminalColumns: terminalColumns,
+        ),
+    FilterType.dartTest => (string) => _formatDartTest(
+          string,
+          hasTerminal: hasTerminal,
+          terminalColumns: terminalColumns,
+        ),
     null => null,
   };
 }
 
-final resetToStart = switch (stdout.hasTerminal) {
-  true => '\x1B[0G',
-  false => '',
-};
-final clearToEnd = switch (stdout.hasTerminal) {
-  true => '\x1B[K',
-  false => '',
-};
-final maxCol = switch (stdout.hasTerminal) {
-  true => stdout.terminalColumns,
-  false => 1000,
-};
+String resetToStart({required bool hasTerminal}) => switch (hasTerminal) {
+      true => '\x1B[0G',
+      false => '',
+    };
 
-FormattedTest _formatFlutterTest(String string) {
+String clearToEnd({required bool hasTerminal}) => switch (hasTerminal) {
+      true => '\x1B[K',
+      false => '',
+    };
+int maxCol({required bool hasTerminal, required int terminalColumns}) =>
+    switch (hasTerminal) {
+      true => terminalColumns,
+      false => 1000,
+    };
+
+FormattedTest _formatFlutterTest(
+  String string, {
+  required bool hasTerminal,
+  required int terminalColumns,
+}) {
   // If no terminal, return original message without formatting
-  if (!stdout.hasTerminal) {
+  if (!hasTerminal) {
     return (
       message: string,
       count: (passing: 0, failing: 0, skipped: 0),
@@ -110,10 +134,13 @@ FormattedTest _formatFlutterTest(String string) {
     description = 'loading tests...';
   }
 
+  final columnLimit =
+      maxCol(hasTerminal: hasTerminal, terminalColumns: terminalColumns);
+
   final descriptionLength = description?.length ?? 0;
   final fullDescription = description;
-  if (totalLength + descriptionLength > maxCol) {
-    description = description?.substring(0, maxCol - totalLength - 5);
+  if (totalLength + descriptionLength > columnLimit) {
+    description = description?.substring(0, columnLimit - totalLength - 5);
   }
 
   final coreMessage = [
@@ -130,9 +157,9 @@ FormattedTest _formatFlutterTest(String string) {
   ].join(' ').trim();
 
   final message = [
-    resetToStart,
+    resetToStart(hasTerminal: hasTerminal),
     coreMessage,
-    clearToEnd,
+    clearToEnd(hasTerminal: hasTerminal),
     if (hasError) '\n',
   ].join();
 
@@ -151,9 +178,13 @@ FormattedTest _formatFlutterTest(String string) {
   );
 }
 
-FormattedTest _formatDartTest(String string) {
+FormattedTest _formatDartTest(
+  String string, {
+  required bool hasTerminal,
+  required int terminalColumns,
+}) {
   // If no terminal, return original message without formatting
-  if (!stdout.hasTerminal) {
+  if (!hasTerminal) {
     return (
       message: string,
       count: (passing: 0, failing: 0, skipped: 0),
@@ -195,10 +226,13 @@ FormattedTest _formatDartTest(String string) {
     description = 'loading tests...';
   }
 
+  final columnLimit =
+      maxCol(hasTerminal: hasTerminal, terminalColumns: terminalColumns);
+
   final descriptionLength = description?.length ?? 0;
   final fullDescription = description;
-  if (totalLength + descriptionLength > maxCol) {
-    description = description?.substring(0, maxCol - totalLength - 5);
+  if (totalLength + descriptionLength > columnLimit) {
+    description = description?.substring(0, columnLimit - totalLength - 5);
   }
 
   description = description?.trim();
@@ -215,9 +249,9 @@ FormattedTest _formatDartTest(String string) {
   ].whereType<String>().join(' ').trim();
 
   final message = [
-    resetToStart,
+    resetToStart(hasTerminal: hasTerminal),
     coreMessage,
-    clearToEnd,
+    clearToEnd(hasTerminal: hasTerminal),
     if (hasError) '\n',
   ].join();
 

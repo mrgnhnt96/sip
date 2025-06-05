@@ -75,7 +75,10 @@ Future<void> _runScript(SendPort sendPort) async {
     };
 
     final filterOutput = type?.filter;
-    final formatter = type?.formatter;
+    final formatter = type?.formatter(
+      hasTerminal: stdout.hasTerminal,
+      terminalColumns: stdout.terminalColumns,
+    );
 
     int? overrideExitCode;
     var haltLogs = false;
