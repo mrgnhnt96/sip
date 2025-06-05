@@ -1,3 +1,14 @@
+# 0.17.13 | 6.5.2025
+
+## Enhancements
+
+- Dependency Updates
+- Simplify any arg parser
+
+## Fixes
+
+- Issue where logs were being consumed in CI environments
+
 # 0.17.12 | 5.10.2025
 
 ## Fixes
