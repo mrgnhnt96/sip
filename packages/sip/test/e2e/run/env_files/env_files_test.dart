@@ -90,7 +90,7 @@ void main() {
       test('command: be reset', () async {
         await command.run(['be', 'reset']);
 
-        await Future<void>.delayed(const Duration(milliseconds: 100));
+        await Future<void>.delayed(Duration.zero);
 
         expect(
           bindings.scripts.join('\n'),
@@ -129,7 +129,7 @@ dart run scripts/reset.dart
       test('should override env variables when re-defined', () async {
         await command.run(['override']);
 
-        await Future<void>.delayed(const Duration(milliseconds: 100));
+        await Future<void>.delayed(Duration.zero);
 
         expect(bindings.scripts.join('\n'), r'''
 cd /packages/sip || exit 1

@@ -92,7 +92,7 @@ void main() {
         () async {
           await command.run(['publish']);
 
-          await Future<void>.delayed(const Duration(milliseconds: 100));
+          await Future<void>.delayed(Duration.zero);
 
           final scripts = [...bindings.scripts];
 

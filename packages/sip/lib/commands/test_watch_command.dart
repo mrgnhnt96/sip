@@ -276,7 +276,7 @@ ${darkGray.wrap('Press `q` to exit')}
         testsToRun.addAll(tests);
       } else if (file == null) {
         logger.info('Checking for last tests run...');
-        await Future<void>.delayed(const Duration(milliseconds: 100));
+        await Future<void>.delayed(Duration.zero);
         if (lastTests == null) {
           logger.info(
             red.wrap('No previous tests found, modify a file to run tests'),
