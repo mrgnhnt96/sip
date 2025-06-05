@@ -165,12 +165,20 @@ class _ArgsResults implements ArgResults {
       false => args.toList(),
     };
 
-    while (results == null || mutableArgs.isNotEmpty) {
+    while (results == null) {
       try {
         results = Parser(null, parser, Queue.of(mutableArgs)).parse();
       } catch (_) {
         mutableArgs.removeLast();
       }
+
+      if (mutableArgs.isEmpty) {
+        break;
+      }
+    }
+
+    if (results == null) {
+      throw Exception('Failed to parse arguments');
     }
 
     _results = results;
