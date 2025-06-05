@@ -52,6 +52,15 @@ final maxCol = switch (stdout.hasTerminal) {
 };
 
 FormattedTest _formatFlutterTest(String string) {
+  // If no terminal, return original message without formatting
+  if (!stdout.hasTerminal) {
+    return (
+      message: string,
+      count: (passing: 0, failing: 0, skipped: 0),
+      isError: false
+    );
+  }
+
   final m = resetAll.wrap(string) ?? '';
   final time = RegExp(r'\d+:\d+').firstMatch(m)?.group(0);
   final passing = RegExp(r'\+(\d+)').firstMatch(m)?.group(1);
@@ -143,6 +152,15 @@ FormattedTest _formatFlutterTest(String string) {
 }
 
 FormattedTest _formatDartTest(String string) {
+  // If no terminal, return original message without formatting
+  if (!stdout.hasTerminal) {
+    return (
+      message: string,
+      count: (passing: 0, failing: 0, skipped: 0),
+      isError: false
+    );
+  }
+
   final m = resetAll.wrap(string) ?? '';
   final time = RegExp(r'\d+:\d+').firstMatch(m)?.group(0);
   final passing = RegExp(r'\+(\d+)').firstMatch(m)?.group(1);
