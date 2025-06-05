@@ -19,10 +19,11 @@ jobs:
           sdk: "stable"
 
       - name: Install dependencies
+        working-directory: packages/sip
         run: dart pub get
 
       - name: Install SIP
         run: dart pub global activate --source path ./packages/sip
 
       - name: Run SIP tests
-        run: sip test
+        run: sip test --recursive
