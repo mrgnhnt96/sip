@@ -1,0 +1,12 @@
+lint:
+    (bail):
+    (command):
+        - '{$lint:dart} {--verbose}'
+    dart: |
+        PKG_PATH="{--package}"
+        PKG_PATH=$(echo "$PKG_PATH" | sed 's/^--package[ =]*//')
+        if [ -n "$PKG_PATH" ]; then
+          dart analyze ./packages/$PKG_PATH --fatal-infos --fatal-warnings {--verbose}
+        else
+          dart analyze . --fatal-infos --fatal-warnings {--verbose}
+        fi
