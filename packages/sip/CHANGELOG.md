@@ -1,3 +1,9 @@
+# 0.17.16 | 6.6.2025
+
+## Fixes
+
+- Issue where exception thrown on CI preventing the script from running
+
 # 0.17.15 | 6.5.2025
 
 ## Enhancements
