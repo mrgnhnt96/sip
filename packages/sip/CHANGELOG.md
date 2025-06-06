@@ -1,9 +1,8 @@
-# 0.17.13 | 6.5.2025
+# 0.17.15 | 6.5.2025
 
 ## Enhancements
 
 - Dependency Updates
-- Simplify any arg parser
 
 ## Fixes
 
