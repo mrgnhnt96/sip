@@ -4,7 +4,7 @@ import 'package:file/file.dart';
 import 'package:glob/glob.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:path/path.dart' as path;
-import 'package:sip_cli/domain/args.dart';
+import 'package:sip_cli/domain/any_arg_parser.dart';
 import 'package:sip_cli/domain/bindings.dart';
 import 'package:sip_cli/domain/command_to_run.dart';
 import 'package:sip_cli/domain/filter_type.dart';

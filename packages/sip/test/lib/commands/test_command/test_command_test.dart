@@ -110,7 +110,7 @@ void main() {
           initialArgs: {},
         );
 
-        expect(result, ['--hi=hello']);
+        expect(result, ['--hi', 'hello']);
       });
 
       test('when a multiple values are passed', () {
@@ -124,7 +124,7 @@ void main() {
           initialArgs: {},
         );
 
-        expect(result, ['--hi=hello,world']);
+        expect(result, ['--hi', 'hello', 'world']);
       });
     });
 

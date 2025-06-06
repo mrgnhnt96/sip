@@ -156,7 +156,7 @@ class SipRunner extends CommandRunner<ExitCode> {
         }
       }
 
-      final argResults = parse(argsToUse);
+      final argResults = argParser.parse(argsToUse);
 
       logger.detail('VERSION CHECK: ${argResults['version-check']}');
 
