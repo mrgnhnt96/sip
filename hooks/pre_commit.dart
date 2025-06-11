@@ -17,6 +17,17 @@ Hook main() {
           ];
         },
       ),
+      SequentialTasks(
+        tasks: [
+          DartTask(
+            include: [Glob('**.dart')],
+            run: (files) {
+              return 0;
+            },
+          ),
+          ShellTask.always(commands: (_) => ['echo "hello"']),
+        ],
+      ),
     ],
   );
 }
