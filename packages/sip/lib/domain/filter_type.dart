@@ -103,7 +103,8 @@ FormattedTest _formatFlutterTest(
       ?.trim();
 
   final isLoading = RegExp(r': loading .*\.dart').hasMatch(m);
-  final isFinished = m.contains('All tests passed');
+  final isFinished =
+      m.contains('All tests passed') || m.contains('Some tests failed');
   final hasError = m.contains('[E]');
 
   if (path case final path? when description != null) {
@@ -202,7 +203,8 @@ FormattedTest _formatDartTest(
       RegExp(r'[\-\+\~]\d+.*\.dart:?(.*)').firstMatch(m)?.group(1)?.trim();
 
   final isLoading = RegExp(r': loading .*\.dart').hasMatch(m);
-  final isFinished = m.contains('All tests passed');
+  final isFinished =
+      m.contains('All tests passed') || m.contains('Some tests failed');
   final hasError = m.contains('[E]');
 
   final path = switch (hasError) {

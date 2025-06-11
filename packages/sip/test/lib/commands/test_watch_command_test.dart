@@ -69,7 +69,7 @@ void main() {
               );
 
               expect(result, isNotNull);
-              expect(result?.packagePath, '');
+              expect(result?.packagePath, 'a');
             },
           );
 
