@@ -27,3 +27,13 @@ jobs:
 
       - name: Run SIP tests
         run: sip test --recursive
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Run Lint Kit
+        uses: Lint-Kit/lint-kit-analyze@v0.0.1-pre

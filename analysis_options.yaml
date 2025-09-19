@@ -1,0 +1,6 @@
+lint_kit:
+  rules:
+    bad_object:
+      enabled: true
+    hide_them:
+      enabled: true
