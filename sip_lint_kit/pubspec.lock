@@ -5,23 +5,18 @@ packages:
     dependency: transitive
     description:
       name: _fe_analyzer_shared
-      sha256: "16e298750b6d0af7ce8a3ba7c18c69c3785d11b15ec83f6dcd0ad2a0009b3cab"
+      sha256: f0bb5d1648339c8308cc0b9838d8456b3cfe5c91f9dc1a735b4d003269e5da9a
       url: "https://pub.dev"
     source: hosted
-    version: "76.0.0"
-  _macros:
-    dependency: transitive
-    description: dart
-    source: sdk
-    version: "0.3.3"
+    version: "88.0.0"
   analyzer:
     dependency: "direct main"
     description:
       name: analyzer
-      sha256: "1f14db053a8c23e260789e9b0980fa27f2680dd640932cae5e1137cce0e46e1e"
+      sha256: "0b7b9c329d2879f8f05d6c05b32ee9ec025f39b077864bdb5ac9a7b63418a98f"
       url: "https://pub.dev"
     source: hosted
-    version: "6.11.0"
+    version: "8.1.1"
   async:
     dependency: transitive
     description:
@@ -30,14 +25,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.13.0"
-  autoequal:
-    dependency: transitive
-    description:
-      name: autoequal
-      sha256: "186f99b614d8dd5b5756b26b6208d21ab948d7798ecfdf84669fff18eed7aab2"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.9.1"
   collection:
     dependency: transitive
     description:
@@ -70,6 +57,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.7"
+  equatable_annotations:
+    dependency: transitive
+    description:
+      name: equatable_annotations
+      sha256: "8ecab62f0b84c2b749c425a617c7c1fd3404dc7b7315da1490f6419ca37c9053"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.0"
   file:
     dependency: transitive
     description:
@@ -98,26 +93,18 @@ packages:
     dependency: "direct main"
     description:
       name: lint_kit
-      sha256: "391acf5fdbb1562819d147c6b72e78b3e7630338e5bd00a1af90974b678d8075"
+      sha256: "011c5a07bfc52168d066e1e5d38b86f3f69f76efccd4a2a069c922f78ad8ca48"
       url: "https://pub.dev"
     source: hosted
-    version: "0.0.2"
+    version: "0.0.3"
   lint_kit_domain:
     dependency: transitive
     description:
       name: lint_kit_domain
-      sha256: "874b24065c3de846a376eed908a921d1f4568b72d231bda7bc27b624f6339b52"
+      sha256: "02bf991c5673406edffd8f1c143f449c61478dd82e1a529660a2ae29fd487a76"
       url: "https://pub.dev"
     source: hosted
-    version: "0.0.3"
-  macros:
-    dependency: transitive
-    description:
-      name: macros
-      sha256: "1d9e801cd66f7ea3663c45fc708450db1fa57f988142c64289142c9b7ee80656"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.3-main.0"
+    version: "0.0.8"
   meta:
     dependency: transitive
     description:
@@ -199,4 +186,4 @@ packages:
     source: hosted
     version: "3.1.3"
 sdks:
-  dart: ">=3.6.0 <4.0.0"
+  dart: ">=3.8.0 <4.0.0"
