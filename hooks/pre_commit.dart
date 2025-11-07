@@ -1,14 +1,11 @@
 import 'package:hooksman/hooksman.dart';
 
-// todo: create pre-push hook
-
 Hook main() {
   return PreCommitHook(
     tasks: [
       ReRegisterHooks(),
-      // Analyze & format dart files
       ShellTask(
-        name: 'Analyze dart files',
+        name: 'Format & analyze',
         include: [Glob('**.dart')],
         commands: (files) {
           return [
@@ -16,17 +13,6 @@ Hook main() {
             'dart analyze ${files.join(' ')} --fatal-infos --fatal-warnings',
           ];
         },
-      ),
-      SequentialTasks(
-        tasks: [
-          DartTask(
-            include: [Glob('**.dart')],
-            run: (files) {
-              return 0;
-            },
-          ),
-          ShellTask.always(commands: (_) => ['echo "hello"']),
-        ],
       ),
     ],
   );

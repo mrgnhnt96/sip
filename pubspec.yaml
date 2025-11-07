@@ -1,0 +1,8 @@
+name: _root_
+
+environment:
+  sdk: ">=3.7.0 <4.0.0"
+
+dev_dependencies:
+  hooksman: ^2.1.0
+  file: ^7.0.1
