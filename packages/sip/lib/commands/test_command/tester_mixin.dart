@@ -484,12 +484,16 @@ abstract mixin class TesterMixin {
     final testsToRun = <String>[];
     for (final fileOrDir in providedTests) {
       if (fs.isFileSync(fileOrDir)) {
-        testsToRun.add(fileOrDir);
+        if (fs.path.basename(fileOrDir).endsWith('_test.dart')) {
+          testsToRun.add(fileOrDir);
+        }
       } else if (fs.isDirectorySync(fileOrDir)) {
         final files = fs.directory(fileOrDir).listSync(recursive: true);
         for (final file in files) {
           if (file is File) {
-            testsToRun.add(file.path);
+            if (fs.path.basename(file.path).endsWith('_test.dart')) {
+              testsToRun.add(file.path);
+            }
           }
         }
       } else {
