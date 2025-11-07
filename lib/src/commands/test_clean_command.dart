@@ -1,21 +1,25 @@
-import 'package:args/command_runner.dart';
 import 'package:sip_cli/src/commands/test_command/tester_mixin.dart';
+import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/find_file.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
 import 'package:sip_cli/src/utils/exit_code.dart';
 
-class TestCleanCommand extends Command<ExitCode> with TesterMixin {
+const _usage = '''
+Usage: sip test clean
+
+Clean the test optimized files.
+''';
+
+class TestCleanCommand with TesterMixin {
   TestCleanCommand();
 
-  @override
-  String get name => 'clean';
-
-  @override
-  String get description => 'Clean the test optimized files.';
-
-  @override
   Future<ExitCode> run() async {
+    if (args.get<bool>('help', defaultValue: false)) {
+      logger.write(_usage);
+      return ExitCode.success;
+    }
+
     final pubspecs = await pubspecYaml.all(recursive: true);
 
     if (pubspecs.isEmpty) {
