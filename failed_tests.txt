@@ -1,0 +1,2 @@
+src/utils/determine_flutter_or_dart_test.dart
+src/utils/run_script_helper_test.dart

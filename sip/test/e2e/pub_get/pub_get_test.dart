@@ -1,50 +1,32 @@
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
 import 'package:mason_logger/mason_logger.dart';
+import 'package:meta/meta.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart' as p;
-import 'package:sip_cli/commands/pub_get_command.dart';
-import 'package:sip_cli/domain/bindings.dart';
-import 'package:sip_cli/domain/command_result.dart';
-import 'package:sip_cli/domain/filter_type.dart';
-import 'package:sip_cli/domain/find_file.dart';
-import 'package:sip_cli/domain/pubspec_lock_impl.dart';
-import 'package:sip_cli/domain/pubspec_yaml_impl.dart';
-import 'package:sip_cli/domain/run_many_scripts.dart';
-import 'package:sip_cli/domain/run_one_script.dart';
-import 'package:sip_cli/domain/scripts_yaml_impl.dart';
+import 'package:sip_cli/src/commands/pub_get_command.dart';
+import 'package:sip_cli/src/domain/bindings.dart';
+import 'package:sip_cli/src/domain/command_result.dart';
+import 'package:sip_cli/src/domain/filter_type.dart';
+import 'package:sip_cli/src/domain/run_many_scripts.dart';
 import 'package:test/test.dart';
+
+import '../../utils/test_scoped.dart';
 
 void main() {
   group('finds test directories', () {
     late FileSystem fs;
     late _TestBindings bindings;
-    late Logger logger;
     late PubGetCommand command;
     late _MockRunManyScripts runManyScripts;
 
     setUp(() {
       bindings = _TestBindings();
-      logger = _MockLogger();
       runManyScripts = _MockRunManyScripts();
-      when(() => logger.level).thenReturn(Level.quiet);
-      when(() => logger.progress(any())).thenReturn(_MockProgress());
 
       fs = MemoryFileSystem.test();
 
-      final runOneScript = RunOneScript(bindings: bindings, logger: logger);
-
-      command = PubGetCommand(
-        pubspecYaml: PubspecYamlImpl(fs: fs),
-        fs: fs,
-        logger: logger,
-        bindings: bindings,
-        pubspecLock: PubspecLockImpl(fs: fs),
-        findFile: FindFile(fs: fs),
-        scriptsYaml: ScriptsYamlImpl(fs: fs),
-        runManyScripts: runManyScripts,
-        runOneScript: runOneScript,
-      );
+      command = PubGetCommand();
 
       final cwd = fs.directory(p.join('packages', 'sip'))
         ..createSync(recursive: true);
@@ -60,6 +42,17 @@ void main() {
           ..createSync()
           ..writeAsString('name: ${p.basename(path)}');
       }
+    }
+
+    @isTest
+    void test(String description, void Function() fn) {
+      testScoped(
+        description,
+        fn,
+        fileSystem: () => fs,
+        bindings: () => bindings,
+        runManyScripts: () => runManyScripts,
+      );
     }
 
     test('pub get with recursive flag should run all concurrently', () async {
@@ -113,9 +106,5 @@ class _TestBindings implements Bindings {
     return const CommandResult(exitCode: 0, output: '', error: '');
   }
 }
-
-class _MockLogger extends Mock implements Logger {}
-
-class _MockProgress extends Mock implements Progress {}
 
 class _MockRunManyScripts extends Mock implements RunManyScripts {}

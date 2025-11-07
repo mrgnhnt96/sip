@@ -2,34 +2,44 @@ import 'dart:io' as io;
 
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
-import 'package:mason_logger/mason_logger.dart';
+import 'package:meta/meta.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart' as path;
-import 'package:pub_updater/pub_updater.dart';
-import 'package:sip_cli/commands/script_run_command.dart';
-import 'package:sip_cli/domain/domain.dart';
 import 'package:sip_cli/sip_runner.dart';
-import 'package:sip_cli/utils/key_press_listener.dart';
+import 'package:sip_cli/src/commands/script_run_command.dart';
+import 'package:sip_cli/src/deps/logger.dart';
+import 'package:sip_cli/src/domain/bindings.dart';
+import 'package:sip_cli/src/domain/command_result.dart';
+import 'package:sip_cli/src/domain/filter_type.dart';
+import 'package:sip_cli/src/domain/pubspec_yaml.dart';
+import 'package:sip_cli/src/domain/scripts_yaml.dart';
 import 'package:test/test.dart';
 
-import '../../../utils/stub_logger.dart';
+import '../../../utils/test_scoped.dart';
 
 void main() {
   group('lint e2e', () {
     late FileSystem fs;
     late _TestBindings bindings;
-    late Logger logger;
 
     setUp(() {
       bindings = _TestBindings();
-      logger = _MockLogger()..stub();
-
       fs = MemoryFileSystem.test();
 
       final cwd = fs.directory(path.join('packages', 'sip'))
         ..createSync(recursive: true);
       fs.currentDirectory = cwd;
     });
+
+    @isTest
+    void test(String description, void Function() fn) {
+      testScoped(
+        description,
+        fn,
+        fileSystem: () => fs,
+        bindings: () => bindings,
+      );
+    }
 
     group('runs gracefully', () {
       late ScriptRunCommand command;
@@ -47,50 +57,9 @@ void main() {
           ..createSync(recursive: true)
           ..writeAsStringSync('');
 
-        final runOneScript = RunOneScript(bindings: bindings, logger: logger);
+        final command = ScriptRunCommand();
 
-        final command = ScriptRunCommand(
-          bindings: bindings,
-          cwd: CWDImpl(fs: fs),
-          logger: logger,
-          scriptsYaml: ScriptsYamlImpl(fs: fs),
-          variables: Variables(
-            cwd: CWDImpl(fs: fs),
-            pubspecYaml: PubspecYamlImpl(fs: fs),
-            scriptsYaml: ScriptsYamlImpl(fs: fs),
-          ),
-          runManyScripts: RunManyScripts(
-            bindings: bindings,
-            logger: logger,
-            runOneScript: runOneScript,
-          ),
-          runOneScript: runOneScript,
-        );
-
-        runner = SipRunner(
-          bindings: bindings,
-          cwd: CWDImpl(fs: fs),
-          logger: logger,
-          scriptsYaml: ScriptsYamlImpl(fs: fs),
-          variables: Variables(
-            cwd: CWDImpl(fs: fs),
-            pubspecYaml: PubspecYamlImpl(fs: fs),
-            scriptsYaml: ScriptsYamlImpl(fs: fs),
-          ),
-          runOneScript: runOneScript,
-          runManyScripts: RunManyScripts(
-            bindings: bindings,
-            logger: logger,
-            runOneScript: runOneScript,
-          ),
-          pubspecLock: PubspecLockImpl(fs: fs),
-          pubspecYaml: PubspecYamlImpl(fs: fs),
-          pubUpdater: PubUpdater(),
-          keyPressListener: KeyPressListener(logger: logger),
-          findFile: FindFile(fs: fs),
-          ogArgs: [],
-          fs: fs,
-        );
+        runner = SipRunner(ogArgs: []);
 
         return command;
       }
@@ -159,5 +128,3 @@ class _TestBindings implements Bindings {
     return const CommandResult(exitCode: 0, output: '', error: '');
   }
 }
-
-class _MockLogger extends Mock implements Logger {}

@@ -2,14 +2,53 @@
 
 import 'dart:io';
 
-import 'package:file/local.dart';
 import 'package:mason_logger/mason_logger.dart';
-import 'package:pub_updater/pub_updater.dart';
-import 'package:sip_cli/domain/domain.dart';
+import 'package:scoped_deps/scoped_deps.dart';
 import 'package:sip_cli/sip_runner.dart';
-import 'package:sip_cli/utils/key_press_listener.dart';
+import 'package:sip_cli/src/deps/bindings.dart';
+import 'package:sip_cli/src/deps/constrain_pubspec_versions.dart';
+import 'package:sip_cli/src/deps/find.dart';
+import 'package:sip_cli/src/deps/find_file.dart';
+import 'package:sip_cli/src/deps/fs.dart';
+import 'package:sip_cli/src/deps/is_up_to_date.dart';
+import 'package:sip_cli/src/deps/key_press_listener.dart';
+import 'package:sip_cli/src/deps/logger.dart';
+import 'package:sip_cli/src/deps/platform.dart';
+import 'package:sip_cli/src/deps/process.dart';
+import 'package:sip_cli/src/deps/pub_updater.dart';
+import 'package:sip_cli/src/deps/pubspec_lock.dart';
+import 'package:sip_cli/src/deps/pubspec_yaml.dart';
+import 'package:sip_cli/src/deps/run_many_scripts.dart';
+import 'package:sip_cli/src/deps/run_one_script.dart';
+import 'package:sip_cli/src/deps/scripts_yaml.dart';
+import 'package:sip_cli/src/deps/variables.dart';
 
-void main(List<String> arguments) async {
+void main(List<String> args) async {
+  await runScoped(
+    () => run(args),
+    values: {
+      bindingsProvider,
+      constrainPubspecVersionsProvider,
+      findFileProvider,
+      findProvider,
+      fsProvider,
+      isUpToDateProvider,
+      keyPressListenerProvider,
+      loggerProvider,
+      platformProvider,
+      processProvider,
+      pubUpdaterProvider,
+      pubspecLockProvider,
+      pubspecYamlProvider,
+      runManyScriptsProvider,
+      runOneScriptProvider,
+      scriptsYamlProvider,
+      variablesProvider,
+    },
+  );
+}
+
+Future<void> run(List<String> arguments) async {
   ProcessSignal.sigint.watch().listen((signal) {
     // always make sure that the cursor is visible
     stdout.write('\x1b[?25h');
@@ -28,48 +67,14 @@ void main(List<String> arguments) async {
   }
 
   final logger = Logger(
-    level: quiet
-        ? Level.error
-        : loud
-        ? Level.verbose
-        : Level.info,
+    level: switch ((quiet, loud)) {
+      (true, _) => Level.error,
+      (_, true) => Level.verbose,
+      (_, _) => Level.info,
+    },
   );
 
-  const fs = LocalFileSystem();
-
-  const scriptsYaml = ScriptsYamlImpl(fs: fs);
-  const pubspecYaml = PubspecYamlImpl(fs: fs);
-  const cwd = CWDImpl(fs: fs);
-  final bindings = BindingsImpl(logger: logger);
-
-  final runOneScript = RunOneScript(bindings: bindings, logger: logger);
-
-  final runManyScripts = RunManyScripts(
-    bindings: bindings,
-    logger: logger,
-    runOneScript: runOneScript,
-  );
-
-  final exitCode = await SipRunner(
-    ogArgs: args,
-    bindings: bindings,
-    scriptsYaml: scriptsYaml,
-    findFile: const FindFile(fs: fs),
-    pubspecLock: const PubspecLockImpl(fs: fs),
-    pubspecYaml: pubspecYaml,
-    variables: Variables(
-      cwd: cwd,
-      pubspecYaml: pubspecYaml,
-      scriptsYaml: scriptsYaml,
-    ),
-    fs: fs,
-    logger: logger,
-    cwd: cwd,
-    pubUpdater: PubUpdater(),
-    runOneScript: runOneScript,
-    runManyScripts: runManyScripts,
-    keyPressListener: KeyPressListener(logger: logger),
-  ).run(args);
+  final exitCode = await SipRunner(ogArgs: args).run(args);
 
   logger.detail('$args Finishing with: $exitCode');
 

@@ -1,0 +1,67 @@
+import 'package:path/path.dart' as path;
+import 'package:sip_cli/src/domain/find_yaml.dart';
+
+class PubspecYaml extends FindYaml {
+  const PubspecYaml();
+
+  static const String fileName = 'pubspec.yaml';
+
+  @override
+  Map<String, dynamic>? parse([String? fileName]) {
+    return super.parse(PubspecYaml.fileName);
+  }
+
+  @override
+  String? nearest([String? fileName]) {
+    return super.nearest(PubspecYaml.fileName);
+  }
+
+  @override
+  String? retrieveNearestContent([String? fileName]) {
+    return super.retrieveNearestContent(PubspecYaml.fileName);
+  }
+
+  @override
+  String? retrieveContent([String? path]) {
+    return super.retrieveContent(path ?? PubspecYaml.fileName);
+  }
+
+  Future<Iterable<String>> children() async {
+    final children = await super.childrenOf(PubspecYaml.fileName);
+
+    return children;
+  }
+
+  Future<Iterable<String>> all({bool recursive = false}) async {
+    final pubspecs = <String>{};
+
+    final pubspec = nearest();
+
+    if (pubspec != null) {
+      pubspecs.add(pubspec);
+    }
+
+    if (recursive) {
+      final children = await this.children();
+      pubspecs.addAll(children.map((e) => path.join(path.separator, e)));
+    }
+
+    final sortedPubspecs = [...pubspecs]
+      ..sort()
+      ..sort((a, b) => path.split(b).length - path.split(a).length);
+
+    return sortedPubspecs..removeWhere((e) {
+      final segments = e.split(path.separator);
+
+      if (segments.contains('build')) {
+        return true;
+      }
+
+      if (segments.any((e) => e.startsWith('.'))) {
+        return true;
+      }
+
+      return false;
+    });
+  }
+}

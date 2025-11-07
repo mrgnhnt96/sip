@@ -2,39 +2,21 @@ import 'dart:async';
 
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
-import 'package:file/file.dart';
-import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:path/path.dart' as path;
-import 'package:pub_updater/pub_updater.dart';
-import 'package:sip_cli/commands/clean_command.dart';
-import 'package:sip_cli/commands/list_command.dart';
-import 'package:sip_cli/commands/pub_command.dart';
-import 'package:sip_cli/commands/script_run_command.dart';
-import 'package:sip_cli/commands/test_command/test_command.dart';
-import 'package:sip_cli/commands/update_command.dart';
-import 'package:sip_cli/domain/domain.dart';
+import 'package:sip_cli/src/commands/clean_command.dart';
+import 'package:sip_cli/src/commands/list_command.dart';
+import 'package:sip_cli/src/commands/pub_command.dart';
+import 'package:sip_cli/src/commands/script_run_command.dart';
+import 'package:sip_cli/src/commands/test_command/test_command.dart';
+import 'package:sip_cli/src/commands/update_command.dart';
+import 'package:sip_cli/src/deps/logger.dart';
+import 'package:sip_cli/src/utils/exit_code.dart';
 import 'package:sip_cli/src/version.dart';
-import 'package:sip_cli/utils/exit_code.dart';
-import 'package:sip_cli/utils/key_press_listener.dart';
 
 /// The command runner for the sip command line application
 class SipRunner extends CommandRunner<ExitCode> {
-  SipRunner({
-    required this.ogArgs,
-    required ScriptsYaml scriptsYaml,
-    required PubspecLock pubspecLock,
-    required PubspecYaml pubspecYaml,
-    required Variables variables,
-    required Bindings bindings,
-    required FindFile findFile,
-    required FileSystem fs,
-    required CWD cwd,
-    required PubUpdater pubUpdater,
-    required RunOneScript runOneScript,
-    required RunManyScripts runManyScripts,
-    required KeyPressListener keyPressListener,
-    required this.logger,
-  }) : super('sip', 'A command line application to handle mono-repos in dart') {
+  SipRunner({required this.ogArgs})
+    : super('sip', 'A command line application to handle mono-repos in dart') {
     argParser
       ..addFlag('version', negatable: false, help: 'Print the current version')
       ..addFlag(
@@ -50,65 +32,15 @@ class SipRunner extends CommandRunner<ExitCode> {
         help: 'Checks for the latest version of sip_cli',
       );
 
-    addCommand(
-      ScriptRunCommand(
-        scriptsYaml: scriptsYaml,
-        variables: variables,
-        bindings: bindings,
-        logger: logger,
-        cwd: cwd,
-        runManyScripts: runManyScripts,
-        runOneScript: runOneScript,
-      ),
-    );
-    addCommand(
-      PubCommand(
-        pubspecLock: pubspecLock,
-        pubspecYaml: pubspecYaml,
-        findFile: findFile,
-        fs: fs,
-        logger: logger,
-        bindings: bindings,
-        scriptsYaml: scriptsYaml,
-        runManyScripts: runManyScripts,
-        runOneScript: runOneScript,
-      ),
-    );
-    addCommand(
-      CleanCommand(
-        pubspecYaml: pubspecYaml,
-        pubspecLock: pubspecLock,
-        findFile: findFile,
-        bindings: bindings,
-        logger: logger,
-        cwd: cwd,
-        scriptsYaml: scriptsYaml,
-        runManyScripts: runManyScripts,
-        runOneScript: runOneScript,
-      ),
-    );
-    addCommand(ListCommand(scriptsYaml: scriptsYaml, logger: logger));
-    addCommand(
-      updateCommand = UpdateCommand(pubUpdater: pubUpdater, logger: logger),
-    );
-    addCommand(
-      TestCommand(
-        pubspecYaml: pubspecYaml,
-        pubspecLock: pubspecLock,
-        findFile: findFile,
-        bindings: bindings,
-        fs: fs,
-        logger: logger,
-        keyPressListener: keyPressListener,
-        scriptsYaml: scriptsYaml,
-        runManyScripts: runManyScripts,
-        runOneScript: runOneScript,
-      ),
-    );
+    addCommand(ScriptRunCommand());
+    addCommand(PubCommand());
+    addCommand(CleanCommand());
+    addCommand(ListCommand());
+    addCommand(updateCommand = UpdateCommand());
+    addCommand(TestCommand());
   }
 
   final List<String> ogArgs;
-  final Logger logger;
   late final UpdateCommand updateCommand;
 
   @override

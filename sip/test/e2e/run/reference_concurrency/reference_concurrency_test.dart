@@ -2,25 +2,25 @@ import 'dart:io' as io;
 
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
-import 'package:mason_logger/mason_logger.dart';
-import 'package:mocktail/mocktail.dart';
+import 'package:meta/meta.dart';
 import 'package:path/path.dart' as path;
-import 'package:sip_cli/commands/script_run_command.dart';
-import 'package:sip_cli/domain/domain.dart';
+import 'package:sip_cli/src/commands/script_run_command.dart';
+import 'package:sip_cli/src/domain/bindings.dart';
+import 'package:sip_cli/src/domain/command_result.dart';
+import 'package:sip_cli/src/domain/filter_type.dart';
+import 'package:sip_cli/src/domain/pubspec_yaml.dart';
+import 'package:sip_cli/src/domain/scripts_yaml.dart';
 import 'package:test/test.dart';
 
-import '../../../utils/stub_logger.dart';
+import '../../../utils/test_scoped.dart';
 
 void main() {
   group('env files e2e', () {
     late FileSystem fs;
     late _TestBindings bindings;
-    late Logger logger;
 
     setUp(() {
       bindings = _TestBindings();
-      logger = _MockLogger()..stub();
-
       fs = MemoryFileSystem.test();
 
       final cwd = fs.directory(path.join('packages', 'sip'))
@@ -50,25 +50,7 @@ void main() {
           ..createSync(recursive: true)
           ..writeAsStringSync('');
 
-        final runOneScript = RunOneScript(bindings: bindings, logger: logger);
-
-        final command = ScriptRunCommand(
-          bindings: bindings,
-          cwd: CWDImpl(fs: fs),
-          logger: logger,
-          scriptsYaml: ScriptsYamlImpl(fs: fs),
-          variables: Variables(
-            cwd: CWDImpl(fs: fs),
-            pubspecYaml: PubspecYamlImpl(fs: fs),
-            scriptsYaml: ScriptsYamlImpl(fs: fs),
-          ),
-          runManyScripts: RunManyScripts(
-            bindings: bindings,
-            logger: logger,
-            runOneScript: runOneScript,
-          ),
-          runOneScript: runOneScript,
-        );
+        final command = ScriptRunCommand();
 
         return command;
       }
@@ -76,6 +58,16 @@ void main() {
       setUp(() {
         command = prep();
       });
+
+      @isTest
+      void test(String description, void Function() fn) {
+        testScoped(
+          description,
+          fn,
+          fileSystem: () => fs,
+          bindings: () => bindings,
+        );
+      }
 
       // fixes issue where reference does not contain any commands to run
       test('command: publish', () async {
@@ -116,5 +108,3 @@ class _TestBindings implements Bindings {
     return const CommandResult(exitCode: 0, output: '', error: '');
   }
 }
-
-class _MockLogger extends Mock implements Logger {}

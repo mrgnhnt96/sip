@@ -4,18 +4,25 @@ import 'dart:io' as io;
 
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
-import 'package:mason_logger/mason_logger.dart';
+import 'package:meta/meta.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart' as path;
-import 'package:sip_cli/commands/script_run_command.dart';
-import 'package:sip_cli/domain/domain.dart';
+import 'package:sip_cli/src/commands/script_run_command.dart';
+import 'package:sip_cli/src/domain/bindings.dart';
+import 'package:sip_cli/src/domain/command_result.dart';
+import 'package:sip_cli/src/domain/command_to_run.dart';
+import 'package:sip_cli/src/domain/pubspec_yaml.dart';
+import 'package:sip_cli/src/domain/run_many_scripts.dart';
+import 'package:sip_cli/src/domain/run_one_script.dart';
+import 'package:sip_cli/src/domain/scripts_yaml.dart';
 import 'package:test/test.dart';
+
+import '../../../utils/test_scoped.dart';
 
 void main() {
   group('concurrency groups test', () {
     late FileSystem fs;
     late Bindings bindings;
-    late Logger logger;
     late RunOneScript runOneScript;
     late RunManyScripts runManyScripts;
 
@@ -27,15 +34,9 @@ void main() {
 
     setUp(() {
       bindings = _MockBindings();
-      logger = _MockLogger();
-      final progress = _MockProgress();
-      when(() => logger.level).thenReturn(Level.quiet);
-      when(() => logger.progress(any())).thenReturn(progress);
-
       runOneScript = _MockRunOneScript();
       runManyScripts = _MockRunManyScript();
 
-      when(() => runManyScripts.runOneScript).thenReturn(runOneScript);
       when(
         () => runOneScript.run(
           command: any(named: 'command'),
@@ -92,18 +93,18 @@ void main() {
         ..createSync(recursive: true)
         ..writeAsStringSync('');
 
-      return ScriptRunCommand(
-        bindings: bindings,
-        cwd: CWDImpl(fs: fs),
-        logger: logger,
-        scriptsYaml: ScriptsYamlImpl(fs: fs),
-        variables: Variables(
-          cwd: CWDImpl(fs: fs),
-          pubspecYaml: PubspecYamlImpl(fs: fs),
-          scriptsYaml: ScriptsYamlImpl(fs: fs),
-        ),
-        runManyScripts: runManyScripts,
-        runOneScript: runOneScript,
+      return ScriptRunCommand();
+    }
+
+    @isTest
+    void test(String description, void Function() fn) {
+      testScoped(
+        description,
+        fn,
+        fileSystem: () => fs,
+        bindings: () => bindings,
+        runOneScript: () => runOneScript,
+        runManyScripts: () => runManyScripts,
       );
     }
 
@@ -170,10 +171,6 @@ void main() {
 }
 
 class _MockBindings extends Mock implements Bindings {}
-
-class _MockLogger extends Mock implements Logger {}
-
-class _MockProgress extends Mock implements Progress {}
 
 class _MockRunOneScript extends Mock implements RunOneScript {}
 
