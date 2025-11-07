@@ -38,4 +38,4 @@ jobs:
       - name: Run Lint Kit
         uses: Lint-Kit/lint-kit-analyze@v0.0.2-pre
         env:
-          LINT_KIT_CI_TOKEN: ${{ secrets.LINT_KIT_CI_TOKEN}}
+          LINT_KIT_CI_TOKEN: ${{ secrets.LINT_KIT_CI_TOKEN }}
