@@ -7,6 +7,7 @@ Hook main() {
       ShellTask(
         name: 'Format & analyze',
         include: [Glob('**.dart')],
+        exclude: [Glob('**.g.dart')],
         commands: (files) {
           return [
             'dart format ${files.join(' ')}',
