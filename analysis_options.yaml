@@ -1,3 +1,15 @@
+include: package:very_good_analysis/analysis_options.yaml
+
+analyzer:
+  errors:
+    unnecessary_await_in_return: ignore
+  exclude:
+    - "**/*.g.dart"
+
+linter:
+  rules:
+    public_member_api_docs: false
+
 lint_kit:
   rules:
     bad_object:

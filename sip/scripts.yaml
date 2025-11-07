@@ -1,7 +1,0 @@
-install:
-  (command): dart pub global activate -s path . --overwrite
-  (description): Install `sip` globally
-  (aliases):
-    - i
-
-test: dart run test
