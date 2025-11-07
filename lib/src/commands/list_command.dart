@@ -1,39 +1,33 @@
-import 'package:args/command_runner.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
+import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/scripts_yaml.dart';
 import 'package:sip_cli/src/domain/scripts_config.dart';
 import 'package:sip_cli/src/domain/scripts_yaml.dart';
 import 'package:sip_cli/src/utils/exit_code.dart';
 
+const _usage = '''
+Usage: sip list [query] [arguments]
+
+List all scripts defined in scripts.yaml
+
+Options:
+  --help, -h  Print usage information
+''';
+
 /// The command to list all available scripts
-class ListCommand extends Command<ExitCode> {
-  ListCommand();
+class ListCommand {
+  const ListCommand();
 
-  @override
-  String get description => 'List all scripts defined in scripts.yaml';
+  Future<ExitCode> run([List<String> queries = const []]) async {
+    if (args.get<bool>('help', defaultValue: false)) {
+      logger.write(_usage);
+      return ExitCode.success;
+    }
 
-  @override
-  String get name => 'list';
-
-  @override
-  List<String> get aliases => ['ls'];
-
-  @override
-  String get invocation {
-    final invocation = super.invocation;
-
-    final first = invocation.split(' [arguments]').first;
-
-    return '$first [query] [arguments]';
-  }
-
-  @override
-  Future<ExitCode> run() async {
-    final query = switch (argResults?.rest) {
-      [final String query, ...] => query,
-      final Iterable<String> all when all.isNotEmpty => all.join(' '),
-      _ => null,
+    final query = switch (queries) {
+      [] => null,
+      _ => queries.join(' '),
     };
 
     final content = scriptsYaml.scripts();

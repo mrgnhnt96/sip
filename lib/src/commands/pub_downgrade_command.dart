@@ -1,31 +1,22 @@
 // ignore_for_file: cascade_invocations
 
 import 'package:sip_cli/src/commands/a_pub_command.dart';
+import 'package:sip_cli/src/deps/args.dart';
 
 /// The `pub downgrade` command.
 ///
 /// https://github.com/dart-lang/pub/blob/master/lib/src/command/downgrade.dart
 class PubDowngradeCommand extends APubCommand {
-  PubDowngradeCommand() {
-    argParser.addFlag(
-      'offline',
-      help: 'Use cached packages instead of accessing the network.',
-    );
+  const PubDowngradeCommand();
 
-    argParser.addFlag(
-      'dry-run',
-      abbr: 'n',
-      negatable: false,
-      help: "Report what dependencies would change but don't change any.",
-    );
-
-    argParser.addFlag(
-      'tighten',
-      help:
-          'Updates lower bounds in pubspec.yaml to match the resolved version.',
-      negatable: false,
-    );
-  }
+  @override
+  String get usage =>
+      '''
+${super.usage}
+  --offline               Use cached packages instead of accessing the network.
+  --dry-run, -n           Report what dependencies would change but don't change any.
+  --tighten               Updates lower bounds in pubspec.yaml to match the resolved version.
+''';
 
   @override
   String get name => 'downgrade';
@@ -38,8 +29,8 @@ class PubDowngradeCommand extends APubCommand {
 
   @override
   List<String> get pubFlags => [
-    if (argResults?['offline'] case true) '--offline',
-    if (argResults?['dry-run'] case true) '--dry-run',
-    if (argResults?['tighten'] case true) '--tighten',
+    if (args.get<bool>('offline', defaultValue: false)) '--offline',
+    if (args.get<bool>('dry-run', abbr: 'n', defaultValue: false)) '--dry-run',
+    if (args.get<bool>('tighten', defaultValue: false)) '--tighten',
   ];
 }

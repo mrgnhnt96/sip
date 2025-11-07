@@ -1,73 +1,23 @@
 import 'dart:async';
 
-import 'package:args/args.dart';
-import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/commands/test_command/tester_mixin.dart';
+import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/find_file.dart';
 import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/key_press_listener.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
+import 'package:sip_cli/src/domain/any_arg_parser.dart';
 import 'package:sip_cli/src/domain/package_to_test.dart';
 import 'package:sip_cli/src/domain/test_scope.dart';
 import 'package:sip_cli/src/utils/exit_code.dart';
 import 'package:sip_cli/src/utils/stream_group.dart';
 
-class TestWatchCommand extends Command<ExitCode> with TesterMixin {
-  TestWatchCommand() : argParser = ArgParser(usageLineLength: 120) {
-    addTestFlags(this);
-
-    argParser
-      ..addSeparator(cyan.wrap('SIP Flags:')!)
-      ..addFlag(
-        'recursive',
-        abbr: 'r',
-        help: 'Run tests in subdirectories',
-        negatable: false,
-      )
-      ..addFlag(
-        'concurrent',
-        abbr: 'c',
-        aliases: ['parallel'],
-        help: 'Run tests concurrently',
-        negatable: false,
-      )
-      ..addFlag(
-        'clean',
-        help: 'Whether to remove the optimized test files after running tests',
-        defaultsTo: true,
-      )
-      ..addFlag('dart-only', help: 'Run only dart tests', negatable: false)
-      ..addFlag(
-        'flutter-only',
-        help: 'Run only flutter tests',
-        negatable: false,
-      )
-      ..addOption(
-        'scope',
-        help: 'The scope of tests to run',
-        defaultsTo: TestScope.active.option,
-        allowed: TestScope.values.map((e) => e.option).toList(),
-        allowedHelp: {for (final val in TestScope.values) val.option: val.help},
-      )
-      ..addFlag(
-        'optimize',
-        help: 'Whether to create optimized test files (Dart only)',
-        defaultsTo: true,
-      );
-  }
-
-  @override
-  String get name => 'watch';
-
-  @override
-  String get description => 'Run tests in watch mode.';
-
-  @override
-  final ArgParser argParser;
+class TestWatchCommand with TesterMixin {
+  TestWatchCommand();
 
   void writeWaitingMessage(TestScope scope, {required bool runConcurrently}) {
     var testScope = darkGray.wrap('Test Scope: ')!;
@@ -101,22 +51,19 @@ ${darkGray.wrap('Press `q` to exit')}
     logger.write(waitingMessage);
   }
 
-  @override
-  Future<ExitCode> run([List<String>? args]) async {
-    final argResults = args != null ? argParser.parse(args) : super.argResults!;
-
-    final isRecursive = argResults['recursive'] as bool;
-    final isDartOnly =
-        argResults.wasParsed('dart-only') && argResults['dart-only'] as bool;
-    final isFlutterOnly =
-        argResults.wasParsed('flutter-only') &&
-        argResults['flutter-only'] as bool;
-    final concurrent = argResults['concurrent'] as bool;
-    final clean = argResults['clean'] as bool;
-
-    final optimize = argResults['optimize'] as bool;
+  Future<ExitCode> run(List<String> paths) async {
+    final isRecursive = args.get<bool>('recursive', defaultValue: false);
+    final isDartOnly = args.get<bool>('dart-only', defaultValue: false);
+    final isFlutterOnly = args.get<bool>('flutter-only', defaultValue: false);
+    final concurrent = args.get<bool>('concurrent', defaultValue: false);
+    final clean = args.get<bool>('clean', defaultValue: true);
+    final optimize = args.get<bool>('optimize', defaultValue: true);
     final runTestType =
-        TestScope.options[argResults['scope'] as String] ?? TestScope.active;
+        TestScope.options[args.get<String>(
+          'scope',
+          defaultValue: TestScope.active.option,
+        )] ??
+        TestScope.active;
 
     warnDartOrFlutterTests(
       isFlutterOnly: isFlutterOnly,
@@ -152,7 +99,10 @@ ${darkGray.wrap('Press `q` to exit')}
 
     final libDirs = testDirs.map((e) => e.replaceAll(RegExp(r'test$'), 'lib'));
 
-    final (:both, :dart, :flutter) = getArgs(this);
+    final argParser = AnyArgParser();
+    addTestFlags(argParser);
+    final argResults = argParser.parse(args.rawArgs);
+    final (:both, :dart, :flutter) = getArgs(argParser, argResults);
 
     final flutterArgs = [...flutter, ...both];
     final dartArgs = [...dart, ...both];

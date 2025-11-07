@@ -1,102 +1,52 @@
 // ignore_for_file: cascade_invocations
 
-import 'package:args/args.dart';
-import 'package:args/command_runner.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/commands/test_command/tester_mixin.dart';
+import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
+import 'package:sip_cli/src/domain/any_arg_parser.dart';
 import 'package:sip_cli/src/domain/command_to_run.dart';
 import 'package:sip_cli/src/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/src/utils/exit_code.dart';
 
-class TestRunCommand extends Command<ExitCode> with TesterMixin {
-  TestRunCommand() : argParser = ArgParser(usageLineLength: 120) {
-    addTestFlags(this);
+const _usage = '''
+Usage: sip test <...files or directories> [arguments]
 
-    argParser.addSeparator(cyan.wrap('SIP Flags:')!);
-    argParser
-      ..addFlag(
-        'recursive',
-        abbr: 'r',
-        help: 'Run tests in subdirectories',
-        negatable: false,
-      )
-      ..addFlag(
-        'concurrent',
-        abbr: 'c',
-        aliases: ['parallel'],
-        help: 'Run tests concurrently',
-        negatable: false,
-      )
-      ..addFlag(
-        'bail',
-        abbr: 'b',
-        help: 'Bail after first test failure',
-        negatable: false,
-      )
-      ..addFlag(
-        'clean',
-        help: 'Whether to remove the optimized test files after running tests',
-        defaultsTo: true,
-      )
-      ..addFlag('dart-only', help: 'Run only dart tests', negatable: false)
-      ..addFlag(
-        'flutter-only',
-        help: 'Run only flutter tests',
-        negatable: false,
-      )
-      ..addFlag(
-        'optimize',
-        help: 'Whether to create optimized test files (Dart only)',
-        defaultsTo: true,
-      );
-  }
+Run flutter or dart tests
 
-  @override
-  bool get hidden => true;
+Options:
+  --help                  Print usage information
+  --recursive, -r         Run tests in subdirectories
+  --[no-]concurrent, -c   Run tests concurrently
+  --bail                  Bail after first test failure
+  --clean                 Remove the optimized test files after running tests
+                            (default: true)
+  --dart-only             Run only dart tests
+  --flutter-only          Run only flutter tests
+  --optimize              Create optimized test files (Dart only)
+                            (default: true)
+''';
 
-  /// A single-line template for how to invoke this command (e.g. `"pub get
-  /// `package`"`).
-  @override
-  String get invocation {
-    final parents = <String>[];
-    for (var command = parent; command != null; command = command.parent) {
-      parents.add(command.name);
+class TestRunCommand with TesterMixin {
+  const TestRunCommand();
+
+  Future<ExitCode> run(List<String> paths) async {
+    if (args.get<bool>('help', defaultValue: false)) {
+      logger.write(_usage);
+      return ExitCode.success;
     }
-    parents.add(runner!.executableName);
 
-    final invocation = parents.reversed.join(' ');
-    return subcommands.isNotEmpty
-        ? '$invocation <subcommand> [arguments]'
-        : '$invocation [arguments]';
-  }
-
-  @override
-  final ArgParser argParser;
-
-  @override
-  String get description => 'Run flutter or dart tests';
-
-  @override
-  String get name => 'run';
-
-  @override
-  Future<ExitCode> run([List<String>? args]) async {
-    final argResults = args != null ? argParser.parse(args) : super.argResults!;
-    final isDartOnly =
-        argResults.wasParsed('dart-only') && argResults['dart-only'] as bool;
-    final isFlutterOnly =
-        argResults.wasParsed('flutter-only') &&
-        argResults['flutter-only'] as bool;
+    final isDartOnly = args.get<bool>('dart-only', defaultValue: false);
+    final isFlutterOnly = args.get<bool>('flutter-only', defaultValue: false);
     final isBoth = isDartOnly == isFlutterOnly;
-    final optimize = argResults['optimize'] as bool;
-    final isRecursive = argResults['recursive'] as bool? ?? false;
-    final cleanOptimizedFiles = argResults['clean'] as bool;
-    final bail = argResults['bail'] as bool;
+    final optimize = args.get<bool>('optimize', defaultValue: true);
+    final isRecursive = args.get<bool>('recursive', defaultValue: false);
+    final cleanOptimizedFiles = args.get<bool>('clean', defaultValue: true);
+    final bail = args.get<bool>('bail', defaultValue: false);
 
-    final providedTests = [...argResults.rest];
+    final providedTests = [...paths, ...args.rest];
 
     List<String>? testsToRun;
     if (providedTests.isNotEmpty) {
@@ -131,7 +81,10 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
       return ExitCode.unavailable;
     }
 
-    final (:both, :dart, :flutter) = getArgs(this);
+    final argParser = AnyArgParser();
+    addTestFlags(argParser);
+    final argResults = argParser.parse(args.rawArgs);
+    final (:both, :dart, :flutter) = getArgs(argParser, argResults);
 
     final flutterArgs = [...flutter, ...both];
     final dartArgs = [...dart, ...both];
@@ -237,7 +190,7 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
 
     final exitCode = await runCommands(
       commandsToRun,
-      runConcurrently: argResults['concurrent'] as bool,
+      runConcurrently: args.get<bool>('concurrent', defaultValue: false),
       bail: bail,
     );
 

@@ -52,7 +52,7 @@ void main() {
           ..createSync(recursive: true)
           ..writeAsStringSync('');
 
-        final command = ScriptRunCommand();
+        const command = ScriptRunCommand();
 
         return command;
       }

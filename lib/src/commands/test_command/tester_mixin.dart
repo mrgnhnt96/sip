@@ -1,9 +1,9 @@
 import 'package:args/args.dart';
-import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
 import 'package:glob/glob.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:path/path.dart' as path;
+import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
@@ -31,26 +31,26 @@ abstract mixin class TesterMixin {
 
   static const String optimizedTestBasename = '.test_optimizer';
 
-  ({List<String> both, List<String> dart, List<String> flutter}) getArgs<T>(
-    Command<T> command,
+  ({List<String> both, List<String> dart, List<String> flutter}) getArgs(
+    ArgParser args,
+    ArgResults results,
   ) {
-    final bothArgs = command._getBothArgs();
-    final dartArgs = command._getDartArgs();
-    final flutterArgs = command._getFlutterArgs();
+    final bothArgs = getBothArgs(args, results);
+    final dartArgs = getDartArgs(args, results);
+    final flutterArgs = getFlutterArgs(args, results);
 
     return (both: bothArgs, dart: dartArgs, flutter: flutterArgs);
   }
 
-  void addTestFlags<T>(Command<T> command) {
-    command
-      ..argParser.addSeparator(cyan.wrap('Dart Flags:')!)
-      .._addDartArgs()
-      ..argParser.addSeparator(cyan.wrap('Flutter Flags:')!)
-      .._addFlutterArgs()
-      ..argParser.addSeparator(cyan.wrap('Overlapping Flags:')!)
-      .._addBothArgs()
-      ..argParser.addSeparator(cyan.wrap('Conflicting Flags:')!)
-      .._addConflictingArgs();
+  void addTestFlags(ArgParser args) {
+    args.addSeparator(cyan.wrap('Dart Flags:')!);
+    addDartArgs(args);
+    args.addSeparator(cyan.wrap('Flutter Flags:')!);
+    addFlutterArgs(args);
+    args.addSeparator(cyan.wrap('Overlapping Flags:')!);
+    addBothArgs(args);
+    args.addSeparator(cyan.wrap('Conflicting Flags:')!);
+    addConflictingArgs(args);
   }
 
   void warnDartOrFlutterTests({

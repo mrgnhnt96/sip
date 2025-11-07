@@ -1,10 +1,8 @@
-// ignore_for_file: cascade_invocations
-
 import 'dart:math';
 
-import 'package:args/command_runner.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:path/path.dart' as path;
+import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
@@ -17,58 +15,47 @@ import 'package:sip_cli/src/utils/exit_code.dart';
 import 'package:sip_cli/src/utils/exit_code_extensions.dart';
 
 /// A command that runs `pub *`.
-abstract class APubCommand extends Command<ExitCode> with DartOrFlutterMixin {
-  APubCommand({bool runConcurrently = true}) {
-    argParser
-      ..addFlag(
-        'recursive',
-        abbr: 'r',
-        negatable: false,
-        help: 'Run command recursively in all subdirectories.',
-      )
-      ..addFlag(
-        'concurrent',
-        aliases: ['parallel'],
-        abbr: 'c',
-        defaultsTo: runConcurrently,
-        help: 'Run command concurrently in all subdirectories.',
-      )
-      ..addFlag(
-        'bail',
-        abbr: 'b',
-        negatable: false,
-        help: 'Stop running commands if one fails.',
-      )
-      ..addFlag(
-        'dart-only',
-        negatable: false,
-        help: 'Only run command in Dart projects.',
-      )
-      ..addFlag(
-        'separated',
-        help:
-            'Runs concurrent dart and flutter commands separately. '
-            'Does nothing if --concurrent is not enabled.',
-      )
-      ..addFlag(
-        'flutter-only',
-        negatable: false,
-        help: 'Only run command in Flutter projects.',
-      );
-  }
+abstract class APubCommand with DartOrFlutterMixin {
+  const APubCommand({this.runConcurrently = true});
+
+  final bool runConcurrently;
+
+  /// The name of the command.
+  ///
+  /// This doubles as the command used for dart and flutter.
+  String get name;
 
   List<String> get pubFlags => [];
 
   ({Duration? dart, Duration? flutter})? get retryAfter => null;
 
-  @override
   String get description => '$name dependencies for pubspec.yaml files';
+
+  String get usage =>
+      '''
+Usage: sip pub $name [options]
+
+$description
+
+Options:
+  --help                  Print usage information
+  --recursive, -r         Run command recursively in all subdirectories.
+  --[no-]concurrent, -c   Run command concurrently.
+  --bail, -b              Stop on first error.
+  --dart-only             Run command only in Dart projects.
+  --flutter-only          Run command only in Flutter projects.
+  --separated             Run command separately for Dart and Flutter projects.
+''';
 
   ExitCode onFinish(ExitCode exitCode) => exitCode;
 
-  @override
-  Future<ExitCode> run([List<String>? args]) async {
-    final result = await _run(args);
+  Future<ExitCode> run() async {
+    if (args.get<bool>('help', defaultValue: false)) {
+      logger.write(usage);
+      return ExitCode.success;
+    }
+
+    final result = await _run();
 
     return onFinish(result);
   }
@@ -77,15 +64,22 @@ abstract class APubCommand extends Command<ExitCode> with DartOrFlutterMixin {
     return await pubspecYaml.all(recursive: recursive);
   }
 
-  Future<ExitCode> _run([List<String>? args]) async {
-    final argResults = args != null ? argParser.parse(args) : this.argResults!;
-
-    final bail = argResults['bail'] as bool;
-    final recursive = argResults['recursive'] as bool;
-    final dartOnly = argResults['dart-only'] as bool;
-    final flutterOnly = argResults['flutter-only'] as bool;
-    final concurrent = argResults['concurrent'] as bool;
-    final separated = argResults['separated'] as bool;
+  Future<ExitCode> _run() async {
+    final bail = args.get<bool>('bail', abbr: 'b', defaultValue: false);
+    final recursive = args.get<bool>(
+      'recursive',
+      abbr: 'r',
+      defaultValue: false,
+    );
+    final dartOnly = args.get<bool>('dart-only', defaultValue: false);
+    final flutterOnly = args.get<bool>('flutter-only', defaultValue: false);
+    final concurrent = args.get<bool>(
+      'concurrent',
+      abbr: 'c',
+      aliases: ['parallel'],
+      defaultValue: runConcurrently,
+    );
+    final separated = args.get<bool>('separated', defaultValue: false);
 
     warnDartOrFlutter(isDartOnly: dartOnly, isFlutterOnly: flutterOnly);
 

@@ -24,12 +24,14 @@ class BadObject implements Linter {
     final lints = <Lint>[];
     for (final clazz in visitor.classes) {
       if (clazz.classKeyword.next case final Token name) {
-        lints.add(Lint(
-          code: code,
-          message: message,
-          path: file.path,
-          range: name.range(file),
-        ));
+        lints.add(
+          Lint(
+            code: code,
+            message: message,
+            path: file.path,
+            range: name.range(file),
+          ),
+        );
       }
     }
 
@@ -42,7 +44,7 @@ class ClazzVisitor extends RecursiveAstVisitor {
 
   final List<ClassDeclaration> classes = [];
   @override
-  visitClassDeclaration(ClassDeclaration node) {
+  void visitClassDeclaration(ClassDeclaration node) {
     classes.add(node);
     super.visitClassDeclaration(node);
   }
@@ -72,7 +74,7 @@ extension LinterX on SyntacticEntity {
         ),
         end: DetailedPosition(
           line: lineIndex,
-          character: offset + this.length,
+          character: offset + length,
           lineContent: line,
         ),
         content: switch (this) {
@@ -105,7 +107,7 @@ extension LinterX on SyntacticEntity {
 }
 
 class DetailedRange extends Range {
-  DetailedRange({
+  const DetailedRange({
     required this.start,
     required this.end,
     required this.content,
@@ -120,7 +122,7 @@ class DetailedRange extends Range {
 }
 
 class DetailedPosition extends Position {
-  DetailedPosition({
+  const DetailedPosition({
     required super.line,
     required super.character,
     required this.lineContent,

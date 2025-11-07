@@ -3,75 +3,59 @@
 import 'dart:io';
 
 import 'package:sip_cli/src/commands/a_pub_command.dart';
+import 'package:sip_cli/src/deps/args.dart';
 import 'package:yaml/yaml.dart';
 
 /// The `pub upgrade` command.
 ///
 /// https://github.com/dart-lang/pub/blob/master/lib/src/command/upgrade.dart
 class PubUpgradeCommand extends APubCommand {
-  PubUpgradeCommand() {
-    argParser.addFlag(
-      'offline',
-      help: 'Use cached packages instead of accessing the network.',
-    );
+  const PubUpgradeCommand();
 
-    argParser.addFlag(
-      'dry-run',
-      abbr: 'n',
-      negatable: false,
-      help: "Report what dependencies would change but don't change any.",
-    );
-
-    argParser.addFlag(
-      'precompile',
-      help: 'Precompile executables in immediate dependencies.',
-    );
-
-    argParser.addFlag(
-      'tighten',
-      help:
-          'Updates lower bounds in pubspec.yaml to match the resolved version.',
-      negatable: false,
-    );
-
-    argParser.addFlag(
-      'unlock-transitive',
-      help:
-          'Also upgrades the transitive dependencies '
-          'of the listed [dependencies]',
-      negatable: false,
-    );
-
-    argParser.addFlag(
-      'major-versions',
-      help:
-          'Upgrades packages to their latest resolvable versions, '
-          'and updates pubspec.yaml.',
-      aliases: ['major', 'majors'],
-      negatable: false,
-    );
-  }
+  @override
+  String get usage =>
+      '''
+${super.usage}
+  --offline               Use cached packages instead of accessing the network.
+  --dry-run, -n           Report what dependencies would change but don't change any.
+  --precompile            Precompile executables in immediate dependencies.
+  --tighten               Updates lower bounds in pubspec.yaml to match the resolved version.
+  --major-versions        Upgrades packages to their latest resolvable versions, and updates pubspec.yaml.
+  --unlock-transitive     Also upgrades the transitive dependencies of the listed [dependencies]
+''';
 
   @override
   String get name => 'upgrade';
 
+  String? get majorVersions => switch (args.getOrNull<bool>(
+    'major-versions',
+    aliases: ['major', 'majors'],
+    defaultValue: false,
+  )) {
+    true => '--major-versions',
+    _ => null,
+  };
+
+  String? get unlockTransitive =>
+      switch (args.getOrNull<bool>('unlock-transitive', defaultValue: false)) {
+        true => '--unlock-transitive',
+        _ => null,
+      };
+
   @override
   List<String> get pubFlags => [
-    if (argResults?['offline'] case true) '--offline',
-    if (argResults?['dry-run'] case true) '--dry-run',
-    if (argResults?['precompile'] case true) '--precompile',
-    if (argResults?['tighten'] case true) '--tighten',
-    if (argResults?['major-versions'] case true) '--major-versions',
-    if (argResults?['unlock-transitive'] case true) '--unlock-transitive',
-    if (argResults?.rest case final rest? when rest.isNotEmpty) ...rest,
+    if (args.get<bool>('offline', defaultValue: false)) '--offline',
+    if (args.get<bool>('dry-run', abbr: 'n', defaultValue: false)) '--dry-run',
+    if (args.get<bool>('precompile', defaultValue: false)) '--precompile',
+    if (args.get<bool>('tighten', defaultValue: false)) '--tighten',
+    if (majorVersions case final String majorVersions) majorVersions,
+    if (unlockTransitive case final String unlockTransitive) unlockTransitive,
+    if (args.rest case final rest when rest.isNotEmpty) ...rest,
   ];
 
   @override
-  List<String> get aliases => ['up', 'update'];
-
-  @override
   Future<Iterable<String>> pubspecs({required bool recursive}) async {
-    final packages = {...?argResults?.rest};
+    final packages = {...args.rest};
     final pubspecs = await super.pubspecs(recursive: recursive);
 
     if (packages.isEmpty) {

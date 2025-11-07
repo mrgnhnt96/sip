@@ -4,10 +4,26 @@ class Args {
     List<String>? rest,
     List<String>? path,
     Map<String, dynamic>? abbr,
-  }) : _args = args ?? const {},
+  }) : _values = args ?? const {},
        _rest = rest ?? const [],
        _path = path ?? const [],
-       _abbr = abbr ?? const {};
+       _abbrs = abbr ?? const {},
+       _original = const [],
+       _rawArgs = const [];
+
+  const Args._({
+    required Map<String, dynamic> args,
+    required List<String> rest,
+    required List<String> path,
+    required Map<String, dynamic> abbr,
+    required List<String> original,
+    required List<String> rawArgs,
+  }) : _values = args,
+       _rest = rest,
+       _path = path,
+       _abbrs = abbr,
+       _original = original,
+       _rawArgs = rawArgs;
 
   factory Args.parse(List<String> args) {
     // --no-<key> should be false under <key>
@@ -17,6 +33,7 @@ class Args {
     final rest = <String>[];
     final path = <String>[];
     final abbr = <String, dynamic>{};
+    final original = [...args];
 
     void add(String rawKey, dynamic rawValue) {
       final key = switch (rawKey.split('--')) {
@@ -131,24 +148,43 @@ class Args {
       mapped[key] = true;
     }
 
-    return Args(args: mapped, rest: rest, path: path, abbr: abbr);
+    return Args._(
+      args: mapped,
+      rest: rest,
+      path: path,
+      abbr: abbr,
+      original: original,
+      rawArgs: [
+        for (final arg in original)
+          if (!path.contains(arg)) arg,
+      ],
+    );
   }
 
-  final Map<String, dynamic> _args;
+  final Map<String, dynamic> _values;
   final List<String> _rest;
   final List<String> _path;
-  final Map<String, dynamic> _abbr;
+  final Map<String, dynamic> _abbrs;
+  final List<String> _original;
+  final List<String> _rawArgs;
 
+  List<String> get original => List.unmodifiable(_original);
+  List<String> get rawArgs => List.unmodifiable(_rawArgs);
   List<String> get rest => List.unmodifiable(_rest);
   List<String> get path => List.unmodifiable(_path);
-  List<String> get keys => _args.keys.toList();
-  Map<String, dynamic> get abbrs => Map.unmodifiable(_abbr);
-  Map<String, dynamic> get values => Map.unmodifiable(_args);
+  List<String> get keys => _values.keys.toList();
+  Map<String, dynamic> get abbrs => Map.unmodifiable(_abbrs);
+  Map<String, dynamic> get values => Map.unmodifiable(_values);
+
+  bool get isEmpty =>
+      _values.isEmpty && _abbrs.isEmpty && rest.isEmpty && path.isEmpty;
+
+  bool get isNotEmpty => !isEmpty;
 
   Map<String, bool> get flags {
     final flags = <String, bool>{};
 
-    for (final entry in _args.entries) {
+    for (final entry in _values.entries) {
       if (entry.value case final bool value) {
         flags[entry.key] = value;
       }
@@ -159,13 +195,13 @@ class Args {
 
   bool wasParsed(String key, {List<String>? aliases, String? abbr}) {
     for (final key in [key, ...?aliases]) {
-      if (_args[key] case Object()) {
+      if (values[key] case Object()) {
         return true;
       }
     }
 
     if (abbr?.substring(0, 1) case final String abbr) {
-      if (_abbr[abbr] case Object()) {
+      if (abbrs[abbr] case Object()) {
         return true;
       }
     }
@@ -177,41 +213,45 @@ class Args {
     String key, {
     List<String> aliases = const [],
     String? abbr,
+    T? defaultValue,
   }) {
-    final result = getOrNull(key, aliases: aliases, abbr: abbr);
+    final result = getOrNull(
+      key,
+      aliases: aliases,
+      abbr: abbr,
+      defaultValue: defaultValue,
+    );
+
     if (result == null) {
       throw ArgumentError('Flag/option "$key" was not parsed');
     }
 
-    if (result case final T value) {
-      return value;
-    }
-
-    throw ArgumentError('Flag/option "$key" was not parsed as $T: $result');
+    return result;
   }
 
   T? getOrNull<T extends Object>(
     String key, {
     List<String>? aliases,
     String? abbr,
+    T? defaultValue,
   }) {
     if (!wasParsed(key, aliases: aliases, abbr: abbr)) {
-      return null;
+      return defaultValue;
     }
 
     for (final key in [key, ...?aliases]) {
-      if (_args[key] case final T value) {
+      if (values[key] case final T value) {
         return value;
       }
     }
 
     if (abbr?.substring(0, 1) case final String abbr) {
-      if (_abbr[abbr] case final T value) {
+      if (abbrs[abbr] case final T value) {
         return value;
       }
     }
 
-    return null;
+    return defaultValue;
   }
 
   dynamic operator [](String key) => getOrNull(key);
@@ -219,11 +259,23 @@ class Args {
   @override
   String toString() {
     final sb = StringBuffer();
-    for (final entry in _args.entries) {
+
+    if (path.isNotEmpty) {
+      sb
+        ..write(path.join(' '))
+        ..write(' ');
+    }
+
+    for (final entry in values.entries) {
       sb.write('${entry.key}: ${entry.value} ');
     }
-    if (_rest.isNotEmpty) {
-      sb.write('rest: ${_rest.join(' ')}');
+
+    for (final entry in abbrs.entries) {
+      sb.write('${entry.key}: ${entry.value} ');
+    }
+
+    if (rest.isNotEmpty) {
+      sb.write('rest: ${rest.join(' ')}');
     }
     return 'Args(${sb.toString().trim()})';
   }

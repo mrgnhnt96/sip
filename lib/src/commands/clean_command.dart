@@ -1,5 +1,5 @@
-import 'package:args/command_runner.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
+import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
@@ -10,42 +10,33 @@ import 'package:sip_cli/src/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/src/utils/exit_code.dart';
 import 'package:sip_cli/src/utils/exit_code_extensions.dart';
 
-class CleanCommand extends Command<ExitCode> {
-  CleanCommand() {
-    argParser
-      ..addFlag(
-        'pubspec-lock',
-        help: 'Whether to remove the pubspec.lock file.',
-        aliases: ['lock', 'locks', 'pubspec-locks', 'pubspecs'],
-      )
-      ..addFlag(
-        'concurrent',
-        abbr: 'c',
-        help: 'Cleans packages concurrently',
-        defaultsTo: true,
-      )
-      ..addFlag(
-        'recursive',
-        abbr: 'r',
-        help: 'Cleans packages in subdirectories',
-      );
-  }
+const _usage = '''
+Usage: sip clean [options]
 
-  @override
-  String get description =>
-      'Removes the .dart_tool and build directories, '
-      'runs `flutter clean` in flutter packages';
+Removes the .dart_tool and build directories,
+runs `flutter clean` in flutter packages
 
-  @override
-  String get name => 'clean';
+Options:
+  --pubspec-lock, -l      Whether to remove the pubspec.lock file.
+  --[no-]concurrent, -c   Cleans packages concurrently
+  --recursive, -r         Cleans packages in subdirectories
+''';
 
-  @override
-  Future<ExitCode> run([List<String>? args]) async {
-    final argResults = args != null ? argParser.parse(args) : super.argResults!;
+class CleanCommand {
+  const CleanCommand();
 
-    final isRecursive = argResults['recursive'] as bool? ?? false;
-    final isConcurrent = argResults['concurrent'] as bool? ?? false;
-    final erasePubspecLock = argResults['pubspec-lock'] as bool? ?? false;
+  Future<ExitCode> run() async {
+    if (args.get<bool>('help', defaultValue: false)) {
+      logger.write(_usage);
+      return ExitCode.success;
+    }
+
+    final isRecursive = args.get<bool>('recursive', defaultValue: false);
+    final isConcurrent = args.get<bool>('concurrent', defaultValue: false);
+    final erasePubspecLock = args.get<bool>(
+      'pubspec-lock',
+      defaultValue: false,
+    );
 
     final pubspecs = await pubspecYaml.all(recursive: isRecursive);
 

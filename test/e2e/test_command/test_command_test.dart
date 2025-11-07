@@ -4,6 +4,7 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:meta/meta.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/commands/test_run_command.dart';
+import 'package:sip_cli/src/domain/args.dart';
 import 'package:sip_cli/src/domain/bindings.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
 import 'package:sip_cli/src/domain/filter_type.dart';
@@ -16,12 +17,14 @@ void main() {
     late FileSystem fs;
     late _TestBindings bindings;
     late TestRunCommand command;
+    late Args args;
 
     setUp(() {
       bindings = _TestBindings();
       fs = MemoryFileSystem.test();
+      args = const Args(args: {'recursive': true});
 
-      command = TestRunCommand();
+      command = const TestRunCommand();
 
       final cwd = fs.directory(path.join('packages', 'sip'))
         ..createSync(recursive: true);
@@ -60,6 +63,7 @@ void main() {
         description,
         fn,
         fileSystem: () => fs,
+        args: () => args,
         bindings: () => bindings,
       );
     }
@@ -70,7 +74,7 @@ void main() {
         createPackage(['test_dir']);
         createPackage(['test_dir2']);
 
-        final result = await command.run(['--recursive']);
+        final result = await command.run([]);
 
         expect(result.code, ExitCode.success.code);
         expect(bindings.scripts, [

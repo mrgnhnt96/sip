@@ -2,6 +2,7 @@ import 'package:file/file.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:scoped_deps/scoped_deps.dart';
+import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/bindings.dart';
 import 'package:sip_cli/src/deps/constrain_pubspec_versions.dart';
 import 'package:sip_cli/src/deps/find.dart';
@@ -19,6 +20,7 @@ import 'package:sip_cli/src/deps/run_many_scripts.dart';
 import 'package:sip_cli/src/deps/run_one_script.dart';
 import 'package:sip_cli/src/deps/scripts_yaml.dart';
 import 'package:sip_cli/src/deps/variables.dart';
+import 'package:sip_cli/src/domain/args.dart';
 import 'package:sip_cli/src/domain/bindings.dart';
 import 'package:sip_cli/src/domain/constrain_pubspec_versions.dart';
 import 'package:sip_cli/src/domain/find_file.dart';
@@ -42,6 +44,7 @@ void testScoped(
   PubspecLock Function()? pubspecLock,
   FindFile Function()? findFile,
   PubspecYaml Function()? pubspecYaml,
+  Args Function()? args,
 }) {
   test(description, () async {
     final mockLogger = _MockLogger();
@@ -58,6 +61,11 @@ void testScoped(
       variablesProvider,
 
       loggerProvider.overrideWith(() => logger?.call() ?? mockLogger),
+
+      if (args?.call() case final args?)
+        argsProvider.overrideWith(() => args)
+      else
+        argsProvider,
 
       if (pubspecYaml?.call() case final pubspecYaml?)
         pubspecYamlProvider.overrideWith(() => pubspecYaml)

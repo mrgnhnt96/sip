@@ -1,38 +1,25 @@
-// ignore_for_file: cascade_invocations
-
 import 'package:sip_cli/src/commands/a_pub_command.dart';
+import 'package:sip_cli/src/deps/args.dart';
 
 /// The `pub deps` command.
 ///
 /// https://github.com/dart-lang/pub/blob/master/lib/src/command/deps.dart
 class PubDepsCommand extends APubCommand {
-  PubDepsCommand() : super(runConcurrently: false) {
-    argParser.addOption(
-      'style',
-      abbr: 's',
-      help: 'How output should be displayed.',
-      allowed: ['compact', 'tree', 'list'],
-      defaultsTo: 'tree',
-    );
+  const PubDepsCommand() : super(runConcurrently: false);
 
-    argParser.addFlag(
-      'dev',
-      help: 'Whether to include dev dependencies.',
-      defaultsTo: true,
-    );
+  @override
+  String get usage =>
+      '''
+${super.usage}
+  --separated             Run command separately for Dart and Flutter projects.
+  --style, -s             How output should be displayed.
+                            Allowed values: compact, tree, list
+                            Default: tree
+  --dev                   Whether to include dev dependencies.
+  --executables           List all available executables.
+  --json                  Output dependency information in a json format.
 
-    argParser.addFlag(
-      'executables',
-      negatable: false,
-      help: 'List all available executables.',
-    );
-
-    argParser.addFlag(
-      'json',
-      negatable: false,
-      help: 'Output dependency information in a json format.',
-    );
-  }
+''';
 
   @override
   String get name => 'deps';
@@ -40,11 +27,18 @@ class PubDepsCommand extends APubCommand {
   @override
   String get description => 'Print package dependencies.';
 
+  String? get style => switch (args.getOrNull<String>('style', abbr: 's')) {
+    'compact' => '--style=compact',
+    'tree' => '--style=tree',
+    'list' => '--style=list',
+    _ => null,
+  };
+
   @override
   List<String> get pubFlags => [
-    if (argResults?['style'] case final String style) '--style=$style',
-    if (argResults?['dev'] case true) '--dev',
-    if (argResults?['executables'] case true) '--executables',
-    if (argResults?['json'] case true) '--json',
+    if (style case final String style) style,
+    if (args.get<bool>('dev', defaultValue: true)) '--dev',
+    if (args.get<bool>('executables', defaultValue: false)) '--executables',
+    if (args.get<bool>('json', defaultValue: false)) '--json',
   ];
 }

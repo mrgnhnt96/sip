@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:scoped_deps/scoped_deps.dart';
 import 'package:sip_cli/sip_runner.dart';
+import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/bindings.dart';
 import 'package:sip_cli/src/deps/constrain_pubspec_versions.dart';
 import 'package:sip_cli/src/deps/find.dart';
@@ -22,11 +23,13 @@ import 'package:sip_cli/src/deps/run_many_scripts.dart';
 import 'package:sip_cli/src/deps/run_one_script.dart';
 import 'package:sip_cli/src/deps/scripts_yaml.dart';
 import 'package:sip_cli/src/deps/variables.dart';
+import 'package:sip_cli/src/domain/args.dart';
 
 void main(List<String> args) async {
   await runScoped(
-    () => run(args),
+    run,
     values: {
+      argsProvider.overrideWith(() => Args.parse(args)),
       bindingsProvider,
       constrainPubspecVersionsProvider,
       findFileProvider,
@@ -48,23 +51,15 @@ void main(List<String> args) async {
   );
 }
 
-Future<void> run(List<String> arguments) async {
+Future<void> run() async {
   ProcessSignal.sigint.watch().listen((signal) {
     // always make sure that the cursor is visible
     stdout.write('\x1b[?25h');
     exit(1);
   }, cancelOnError: true);
 
-  final args = List<String>.from(arguments);
-
-  var loud = false;
-  var quiet = false;
-
-  if (args.contains('--quiet')) {
-    quiet = true;
-  } else if (args.contains('--loud')) {
-    loud = true;
-  }
+  final loud = args.getOrNull<bool>('loud');
+  final quiet = args.getOrNull<bool>('quiet');
 
   final logger = Logger(
     level: switch ((quiet, loud)) {
@@ -74,7 +69,7 @@ Future<void> run(List<String> arguments) async {
     },
   );
 
-  final exitCode = await SipRunner(ogArgs: args).run(args);
+  final exitCode = await const SipRunner().run();
 
   logger.detail('$args Finishing with: $exitCode');
 

@@ -15,16 +15,19 @@ import 'package:sip_cli/src/domain/pubspec_yaml.dart';
 import 'package:sip_cli/src/domain/scripts_yaml.dart';
 import 'package:test/test.dart';
 
+import '../../../utils/fake_args.dart';
 import '../../../utils/test_scoped.dart';
 
 void main() {
   group('lint e2e', () {
     late FileSystem fs;
     late _TestBindings bindings;
+    late FakeArgs args;
 
     setUp(() {
       bindings = _TestBindings();
       fs = MemoryFileSystem.test();
+      args = FakeArgs();
 
       final cwd = fs.directory(path.join('packages', 'sip'))
         ..createSync(recursive: true);
@@ -38,6 +41,7 @@ void main() {
         fn,
         fileSystem: () => fs,
         bindings: () => bindings,
+        args: () => args,
       );
     }
 
@@ -57,9 +61,9 @@ void main() {
           ..createSync(recursive: true)
           ..writeAsStringSync('');
 
-        final command = ScriptRunCommand();
+        const command = ScriptRunCommand();
 
-        runner = SipRunner(ogArgs: []);
+        runner = const SipRunner();
 
         return command;
       }
@@ -87,13 +91,12 @@ fi
       });
 
       test('command: lint --package application --print', () async {
-        await runner.run([
-          'run',
-          'lint',
-          '--package',
-          'application',
-          '--print',
-        ]);
+        args.values['print'] = true;
+
+        args.path = ['run', 'lint', '--package', 'application'];
+        args['print'] = true;
+
+        await runner.run();
 
         await Future<void>.delayed(Duration.zero);
 

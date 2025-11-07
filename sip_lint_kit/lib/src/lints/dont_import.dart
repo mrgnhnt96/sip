@@ -13,11 +13,11 @@ class DontImport implements Linter {
     for (final (index, line) in lines.indexed) {
       if (line.contains("import 'package:")) {
         yield Lint(
-            code: code,
-            message: 'JK this is fine',
-            range: Range.entireLine(index),
-            path: file.path,
-            actions: []).addIgnoreActions(lines);
+          code: code,
+          message: 'JK this is fine',
+          range: Range.entireLine(index),
+          path: file.path,
+        ).addIgnoreActions(lines);
       }
     }
   }

@@ -28,19 +28,22 @@ void main() {
       fs.currentDirectory = cwd;
     });
 
+    @isTest
+    void test(String description, void Function() fn) {
+      testScoped(
+        description,
+        fn,
+        fileSystem: () => fs,
+        bindings: () => bindings,
+      );
+    }
+
     group('runs gracefully', () {
       late ScriptRunCommand command;
 
       ScriptRunCommand prep() {
         final input = io.File(
-          path.join(
-            'test',
-            'e2e',
-            'run',
-            'reference_concurrency',
-            'inputs',
-            'scripts.yaml',
-          ),
+          path.join('test', 'e2e', 'run', 'coverage', 'inputs', 'scripts.yaml'),
         ).readAsStringSync();
 
         fs.file(ScriptsYaml.fileName)
@@ -59,35 +62,48 @@ void main() {
         command = prep();
       });
 
-      @isTest
-      void test(String description, void Function() fn) {
-        testScoped(
-          description,
-          fn,
-          fileSystem: () => fs,
-          bindings: () => bindings,
-        );
-      }
+      test('command: test', () async {
+        await command.run(['test']);
 
-      // fixes issue where reference does not contain any commands to run
-      test('command: publish', () async {
-        await command.run(['publish']);
+        expect(bindings.scripts, [
+          'cd /packages/sip || exit 1',
+          '',
+          'dart test',
+          '',
+        ]);
+      });
 
-        await Future<void>.delayed(Duration.zero);
+      test('command: test --coverage', () async {
+        await command.run(['test', '--coverage']);
 
-        final scripts = [...bindings.scripts];
+        expect(bindings.scripts, [
+          'cd /packages/sip || exit 1',
+          '',
+          'dart test --coverage',
+          '',
+        ]);
+      });
 
-        const analyze = 'dart analyze --fatal-infos --fatal-warnings';
+      test('command: test --coverage=banana', () async {
+        await command.run(['test', '--coverage=banana']);
 
-        final found = scripts.remove(analyze);
+        expect(bindings.scripts, [
+          'cd /packages/sip || exit 1',
+          '',
+          'dart test --coverage=banana',
+          '',
+        ]);
+      });
 
-        expect(found, isTrue);
+      test('command: test --coverage monkey', () async {
+        await command.run(['test', '--coverage', 'monkey']);
 
-        expect(
-          scripts,
-          isNot(contains(analyze)),
-          reason: 'analyze should only exist once',
-        );
+        expect(bindings.scripts, [
+          'cd /packages/sip || exit 1',
+          '',
+          'dart test --coverage monkey',
+          '',
+        ]);
       });
     });
   });

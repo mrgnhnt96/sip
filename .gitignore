@@ -5,4 +5,4 @@ build
 packages/flutter
 .DS_Store
 .test_optimizer.dart
-!sip/test/**/coverage*
+!test/**/coverage*

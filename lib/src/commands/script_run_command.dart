@@ -2,13 +2,11 @@
 
 import 'dart:async';
 
-import 'package:args/args.dart';
-import 'package:args/command_runner.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
+import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/run_many_scripts.dart';
 import 'package:sip_cli/src/deps/run_one_script.dart';
-import 'package:sip_cli/src/domain/any_arg_parser.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
 import 'package:sip_cli/src/domain/command_to_run.dart';
 import 'package:sip_cli/src/domain/env_config.dart';
@@ -18,79 +16,48 @@ import 'package:sip_cli/src/utils/run_script_helper.dart';
 import 'package:sip_cli/src/utils/stopwatch_extensions.dart';
 import 'package:sip_cli/src/utils/working_directory.dart';
 
+const _usage = '''
+Usage: sip run <script>
+
+Runs a script
+
+Options:
+  --list, --ls, -l        List all available scripts
+  --help                  Print usage information
+  --print                 Print the commands that would be run without executing them
+  --bail                  Stop on first error
+  --never-exit, -n        !!USE WITH CAUTION!!! After the script is done,
+                          the command will restart after a 1 second delay.
+                          This is useful for long running scripts that should always be running.
+  --[no-]concurrent, -c   Runs all scripts concurrently. --no-concurrent will turn
+                          off concurrency even if set in the scripts.yaml
+''';
+
 /// The command to run a script
-class ScriptRunCommand extends Command<ExitCode>
-    with RunScriptHelper, WorkingDirectory {
-  ScriptRunCommand() : argParser = AnyArgParser() {
-    addFlags();
+class ScriptRunCommand with RunScriptHelper, WorkingDirectory {
+  const ScriptRunCommand();
 
-    argParser.addFlag(
-      'help',
-      abbr: 'h',
-      negatable: false,
-      help: 'Prints usage information.',
-    );
-
-    argParser.addFlag(
-      'print',
-      abbr: 'p',
-      negatable: false,
-      help: 'Prints the commands that would be run without executing them.',
-    );
-
-    argParser.addFlag('bail', negatable: false, help: 'Stop on first error');
-
-    argParser.addFlag(
-      'never-exit',
-      negatable: false,
-      help:
-          '!!${red.wrap('USE WITH CAUTION')}!!!\n'
-          'After the script is done, the command will '
-          'restart after a 1 second delay.\n'
-          'This is useful for long running scripts that '
-          'should always be running.',
-      aliases: ['never-quit'],
-    );
-
-    argParser.addFlag(
-      'concurrent',
-      aliases: ['parallel', 'c', 'p'],
-      abbr: 'c',
-      help:
-          'Runs all scripts concurrently. --no-concurrent will turn off '
-          'concurrency even if set in the scripts.yaml',
-    );
-  }
-
-  @override
-  final ArgParser argParser;
-
-  @override
-  String get description => 'Runs a script';
-
-  @override
-  String get name => 'run';
-
-  @override
-  List<String> get aliases => ['r'];
-
-  @override
-  Future<ExitCode> run([List<String>? args]) async {
-    final argResults = argParser.parse(args ?? this.argResults?.rest ?? []);
-    final neverQuit = argResults['never-exit'] as bool? ?? false;
-    final listOut = argResults['list'] as bool? ?? false;
-    final printOnly = argResults['print'] as bool? ?? false;
-
-    if (argResults['help'] as bool? ?? false) {
-      printUsage();
+  Future<ExitCode> run(List<String> keys) async {
+    if (args.get<bool>('help', defaultValue: false)) {
+      logger.write(_usage);
       return ExitCode.success;
     }
 
-    final keys = args ?? argResults.rest;
+    final neverQuit = args.get<bool>('never-exit', defaultValue: false);
+    final listOut = args.get<bool>(
+      'list',
+      abbr: 'l',
+      aliases: ['ls', 'h'],
+      defaultValue: false,
+    );
+    final printOnly = args.get<bool>('print', defaultValue: false);
 
-    final concurrent = argResults['concurrent'] == true;
-    final disableConcurrency =
-        argResults.wasParsed('concurrent') && !concurrent;
+    final concurrent = args.getOrNull<bool>(
+      'concurrent',
+      abbr: 'c',
+      aliases: ['parallel'],
+    );
+    final disableConcurrency = concurrent == false;
 
     if (disableConcurrency) {
       logger.warn('Disabling all concurrent runs');
@@ -121,12 +88,11 @@ class ScriptRunCommand extends Command<ExitCode>
 
     assert(result.commands != null, 'commands should not be null');
 
-    final bail = result.bail ^ (argResults['bail'] as bool? ?? false);
+    final bail = result.bail ^ args.get<bool>('bail', defaultValue: false);
 
     Future<ExitCode> runCommands() => _runCommands(
-      argResults: argResults,
       bail: bail,
-      concurrent: concurrent,
+      concurrent: concurrent ?? false,
       disableConcurrency: disableConcurrency,
       commands: result.commands ?? [],
       combinedEnvConfig: result.combinedEnvConfig,
@@ -156,7 +122,6 @@ class ScriptRunCommand extends Command<ExitCode>
   }
 
   Future<ExitCode> _runCommands({
-    required ArgResults argResults,
     required bool bail,
     required bool concurrent,
     required bool disableConcurrency,
@@ -168,8 +133,7 @@ class ScriptRunCommand extends Command<ExitCode>
           when commands.isNotEmpty) {
         logger.detail('Running env commands');
 
-        final noConcurrent = argResults.arguments.contains('--no-concurrent');
-        logger.detail('Disabling concurrent runs: $noConcurrent');
+        logger.detail('Disabling concurrent runs: $disableConcurrency');
 
         final commandsToRun = [
           for (final command in commands)
@@ -177,14 +141,14 @@ class ScriptRunCommand extends Command<ExitCode>
               command: command,
               workingDirectory: combinedEnvConfig.workingDirectory,
               keys: const [],
-              runConcurrently: !noConcurrent,
+              runConcurrently: !disableConcurrency,
             ),
         ];
 
         final result = await runManyScripts.run(
           bail: true,
           label: 'Preparing env',
-          sequentially: noConcurrent,
+          sequentially: disableConcurrency,
           commands: commandsToRun.toList(),
         );
 
@@ -213,8 +177,6 @@ class ScriptRunCommand extends Command<ExitCode>
 
       return exitCodes.exitCode(logger);
     }
-
-    logger.detail(cyan.wrap('RUNNING ONE COMMAND?'));
 
     ExitCode? failureExitCode;
 

@@ -11,6 +11,7 @@ import 'package:sip_cli/src/domain/filter_type.dart';
 import 'package:sip_cli/src/domain/run_many_scripts.dart';
 import 'package:test/test.dart';
 
+import '../../utils/fake_args.dart';
 import '../../utils/test_scoped.dart';
 
 void main() {
@@ -19,14 +20,15 @@ void main() {
     late _TestBindings bindings;
     late PubGetCommand command;
     late _MockRunManyScripts runManyScripts;
+    late FakeArgs args;
 
     setUp(() {
       bindings = _TestBindings();
       runManyScripts = _MockRunManyScripts();
-
+      args = FakeArgs();
       fs = MemoryFileSystem.test();
 
-      command = PubGetCommand();
+      command = const PubGetCommand();
 
       final cwd = fs.directory(p.join('packages', 'sip'))
         ..createSync(recursive: true);
@@ -52,6 +54,7 @@ void main() {
         fileSystem: () => fs,
         bindings: () => bindings,
         runManyScripts: () => runManyScripts,
+        args: () => args,
       );
     }
 
@@ -76,7 +79,9 @@ void main() {
         (_) async => [const CommandResult(exitCode: 0, output: '', error: '')],
       );
 
-      final result = await command.run(['--recursive']);
+      args['recursive'] = true;
+
+      final result = await command.run();
 
       expect(result.code, ExitCode.success.code);
       verify(

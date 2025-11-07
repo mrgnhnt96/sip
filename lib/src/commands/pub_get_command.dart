@@ -1,39 +1,27 @@
 // ignore_for_file: cascade_invocations
 
 import 'package:sip_cli/src/commands/a_pub_command.dart';
+import 'package:sip_cli/src/deps/args.dart';
 
 /// The `pub get` command.
 ///
 /// https://github.com/dart-lang/pub/blob/master/lib/src/command/get.dart
 class PubGetCommand extends APubCommand {
-  PubGetCommand() {
-    argParser
-      ..addFlag(
-        'offline',
-        help: 'Use cached packages instead of accessing the network.',
-      )
-      ..addFlag(
-        'dry-run',
-        abbr: 'n',
-        negatable: false,
-        help: "Report what dependencies would change but don't change any.",
-      )
-      ..addFlag(
-        'enforce-lockfile',
-        negatable: false,
-        help:
-            'Enforce pubspec.lock. Fail resolution if '
-            'pubspec.lock does not satisfy pubspec.yaml',
-      )
-      ..addFlag('unlock-transitive')
-      ..addFlag(
-        'precompile',
-        help: 'Build executables in immediate dependencies.',
-      );
-  }
+  const PubGetCommand();
 
   @override
   String get name => 'get';
+
+  @override
+  String get usage =>
+      '''
+${super.usage}
+  --offline               Use cached packages instead of accessing the network.
+  --dry-run, -n           Report what dependencies would change but don't change any.
+  --enforce-lockfile      Enforce pubspec.lock. Fail resolution if pubspec.lock does not satisfy pubspec.yaml
+  --unlock-transitive     Also upgrades the transitive dependencies of the listed [dependencies]
+  --precompile            Build executables in immediate dependencies.
+''';
 
   @override
   ({Duration? dart, Duration? flutter}) get retryAfter => (
@@ -43,9 +31,10 @@ class PubGetCommand extends APubCommand {
 
   @override
   List<String> get pubFlags => [
-    if (argResults?['offline'] case true) '--offline',
-    if (argResults?['dry-run'] case true) '--dry-run',
-    if (argResults?['enforce-lockfile'] case true) '--enforce-lockfile',
-    if (argResults?['precompile'] case true) '--precompile',
+    if (args.get<bool>('offline', defaultValue: false)) '--offline',
+    if (args.get<bool>('dry-run', abbr: 'n', defaultValue: false)) '--dry-run',
+    if (args.get<bool>('enforce-lockfile', defaultValue: false))
+      '--enforce-lockfile',
+    if (args.get<bool>('precompile', defaultValue: false)) '--precompile',
   ];
 }

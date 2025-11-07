@@ -1,109 +1,100 @@
 import 'dart:async';
 
-import 'package:args/args.dart';
-import 'package:args/command_runner.dart';
-import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/commands/clean_command.dart';
 import 'package:sip_cli/src/commands/list_command.dart';
 import 'package:sip_cli/src/commands/pub_command.dart';
 import 'package:sip_cli/src/commands/script_run_command.dart';
 import 'package:sip_cli/src/commands/test_command/test_command.dart';
-import 'package:sip_cli/src/commands/update_command.dart';
+import 'package:sip_cli/src/deps/args.dart';
+import 'package:sip_cli/src/deps/is_up_to_date.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/utils/exit_code.dart';
 import 'package:sip_cli/src/version.dart';
 
+const _usage = '''
+A command line application to handle mono-repos in dart
+
+Usage: sip <command>
+
+Commands:
+  clean       Clean the project
+  list, ls    List all scripts
+  pub         Modify dependencies in pubspec.yaml file
+  run, r      Runs a script
+  version     Print the current version
+  update      Update the sip command line application
+  test        Run tests
+
+Flags:
+  --version   Print the current version
+  --help      Print usage information
+''';
+
 /// The command runner for the sip command line application
-class SipRunner extends CommandRunner<ExitCode> {
-  SipRunner({required this.ogArgs})
-    : super('sip', 'A command line application to handle mono-repos in dart') {
-    argParser
-      ..addFlag('version', negatable: false, help: 'Print the current version')
-      ..addFlag(
-        'loud',
-        negatable: false,
-        hide: true,
-        help: 'Prints verbose output',
-      )
-      ..addFlag('quiet', negatable: false, hide: true, help: 'Prints no output')
-      ..addFlag(
-        'version-check',
-        defaultsTo: true,
-        help: 'Checks for the latest version of sip_cli',
-      );
+class SipRunner {
+  const SipRunner();
 
-    addCommand(ScriptRunCommand());
-    addCommand(PubCommand());
-    addCommand(CleanCommand());
-    addCommand(ListCommand());
-    addCommand(updateCommand = UpdateCommand());
-    addCommand(TestCommand());
-  }
-
-  final List<String> ogArgs;
-  late final UpdateCommand updateCommand;
-
-  @override
-  Future<ExitCode> run(Iterable<String> args) async {
+  Future<ExitCode> run() async {
     ExitCode exitCode;
 
+    final versionCheck = args.get<bool>('version-check', defaultValue: true);
+
     try {
-      logger.detail('Received args: $args');
+      logger
+        ..detail('Received args: $args')
+        ..detail('VERSION CHECK: $versionCheck');
 
-      final argsToUse = [...args];
-
-      if (args.isNotEmpty) {
-        logger.detail('Checking for test command');
-        final first = argsToUse.first;
-        final second = argsToUse.length > 1 ? argsToUse[1] : null;
-
-        if (first == 'test' &&
-            (second == null ||
-                second.startsWith('-') ||
-                second.startsWith('.${path.separator}') ||
-                second.startsWith('test${path.separator}'))) {
-          logger.detail('Inserting `run` to args list for `test` command');
-          // insert `run` to 2nd position
-          argsToUse.insert(1, 'run');
-        }
-      }
-
-      final argResults = argParser.parse(argsToUse);
-
-      logger.detail('VERSION CHECK: ${argResults['version-check']}');
-
-      exitCode = await runCommand(argResults);
+      exitCode = await runCommand();
     } catch (error, stack) {
       logger
         ..err('$error')
         ..detail('$stack');
       exitCode = ExitCode.software;
     } finally {
-      if (ogArgs case ['update', ...]) {
+      if (args.path case ['update', ...]) {
         logger.detail('Skipping version check');
-      } else if (ogArgs.contains('--no-version-check')) {
+      } else if (!versionCheck) {
         logger.detail('Skipping version check');
       } else {
         logger.detail('Checking for updates');
-        await updateCommand.checkForUpdate();
+        if (!await isUpToDate.check()) {
+          final latestVersion = await isUpToDate.latestVersion();
+          logger.info(
+            'A new version is available ($latestVersion). '
+            'Run `sip update` to update.',
+          );
+        }
       }
     }
 
     return exitCode;
   }
 
-  @override
-  Future<ExitCode> runCommand(ArgResults topLevelResults) async {
-    if (topLevelResults.wasParsed('version')) {
-      logger.info(packageVersion);
-
+  Future<ExitCode> runCommand() async {
+    if (args.get<bool>('help', defaultValue: false) && args.path.isEmpty) {
+      logger.write(_usage);
       return ExitCode.success;
     }
 
-    final result = await super.runCommand(topLevelResults);
+    switch (args.path) {
+      case ['version', ...]:
+        logger.info(packageVersion);
 
-    logger.detail('Ran sip command, exit code: $result');
+        return ExitCode.success;
+      case ['run' || 'r', ...final path]:
+        return await const ScriptRunCommand().run(path);
+      case ['pub', ...final path]:
+        return await const PubCommand().run(path);
+      case ['clean']:
+        return await const CleanCommand().run();
+      case ['list' || 'ls', ...final query]:
+        return await const ListCommand().run(query);
+      case ['test', ...final path]:
+        return await const TestCommand().run(path);
+    }
 
-    return result ?? ExitCode.success;
+    logger.write(_usage);
+
+    return ExitCode.usage;
   }
 }

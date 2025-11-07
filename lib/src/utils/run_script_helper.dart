@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:args/command_runner.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:sip_cli/src/commands/list_command.dart';
 import 'package:sip_cli/src/deps/logger.dart';
@@ -16,27 +15,17 @@ import 'package:sip_cli/src/domain/scripts_yaml.dart';
 import 'package:sip_cli/src/utils/constants.dart';
 import 'package:sip_cli/src/utils/exit_code.dart';
 
-mixin RunScriptHelper on Command<ExitCode> {
+mixin RunScriptHelper {
   String get directory;
 
-  void addFlags() {
-    argParser.addFlag(
-      'list',
-      abbr: 'l',
-      negatable: false,
-      aliases: ['ls', 'h'],
-      help: 'List all available scripts',
-    );
-  }
-
-  FutureOr<ExitCode?> validate(List<String>? keys) async {
+  Future<ExitCode?> validate(List<String>? keys) async {
     if (keys == null || keys.isEmpty) {
       const warning = 'No script specified, choose from:';
       logger
         ..warn(lightYellow.wrap(warning))
         ..write('\n');
 
-      return ListCommand().run();
+      return await const ListCommand().run();
     }
 
     if (keys.any((e) => e.startsWith('_'))) {

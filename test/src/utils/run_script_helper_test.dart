@@ -427,8 +427,6 @@ cd packages/domain
             variables: {},
           );
 
-          print(fs.currentDirectory.path);
-
           expect(result.combinedEnvConfig, envConfig);
 
           const expected = CommandToRun(
@@ -660,9 +658,7 @@ class _MockPubspecYaml extends Mock implements PubspecYaml {}
 
 class TestCommand extends Command<ExitCode>
     with RunScriptHelper, WorkingDirectory {
-  TestCommand() {
-    addFlags();
-  }
+  TestCommand();
 
   @override
   String get name => '';

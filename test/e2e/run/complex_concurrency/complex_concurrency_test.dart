@@ -93,7 +93,7 @@ void main() {
         ..createSync(recursive: true)
         ..writeAsStringSync('');
 
-      return ScriptRunCommand();
+      return const ScriptRunCommand();
     }
 
     @isTest

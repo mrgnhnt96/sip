@@ -65,7 +65,7 @@ void main() {
         ..createSync(recursive: true)
         ..writeAsStringSync('');
 
-      await ScriptRunCommand().run(['build_runner', 'b']);
+      await const ScriptRunCommand().run(['build_runner', 'b']);
 
       expect(bindings.scripts, [
         'cd /packages/sip || exit 1',

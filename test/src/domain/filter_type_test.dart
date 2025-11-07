@@ -5,7 +5,7 @@ import 'package:sip_cli/src/domain/filter_type.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group(FilterType, () {
+  group(FilterType, tags: ['filter_type'], () {
     final resetToStart = filter.resetToStart(hasTerminal: true);
     final clearToEnd = filter.clearToEnd(hasTerminal: true);
 

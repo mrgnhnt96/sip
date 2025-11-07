@@ -1,25 +1,29 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:args/command_runner.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:pub_semver/pub_semver.dart';
+import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pub_updater.dart';
+import 'package:sip_cli/src/package.dart' as pkg;
 import 'package:sip_cli/src/utils/exit_code.dart';
 import 'package:sip_cli/src/version.dart';
 
-class UpdateCommand extends Command<ExitCode> {
-  UpdateCommand();
+const _usage = '''
+Usage: sip update [options]
 
-  @override
-  String get name => 'update';
+Update Sip CLI to the latest version
 
-  @override
-  String get description => 'Update Sip CLI to the latest version';
+Options:
+  --help      Print usage information
+''';
+
+class UpdateCommand {
+  const UpdateCommand();
 
   Future<(bool, String)> needsUpdate() async {
-    final latestVersion = await pubUpdater.getLatestVersion('sip_cli');
+    final latestVersion = await pubUpdater.getLatestVersion(pkg.packageName);
 
     try {
       final semPackageVersion = Version.parse(packageVersion);
@@ -40,7 +44,7 @@ class UpdateCommand extends Command<ExitCode> {
 
   Future<bool> update() async {
     try {
-      await pubUpdater.update(packageName: 'sip_cli');
+      await pubUpdater.update(packageName: pkg.packageName);
     } catch (error) {
       final data = jsonDecode(error.toString());
       logger.detail('$data');
@@ -51,9 +55,13 @@ class UpdateCommand extends Command<ExitCode> {
     return true;
   }
 
-  @override
   Future<ExitCode> run() async {
-    final packageName = lightGreen.wrap('sip_cli')!;
+    if (args.get<bool>('help', defaultValue: false)) {
+      logger.write(_usage);
+      return ExitCode.success;
+    }
+
+    final packageName = lightGreen.wrap(pkg.packageName)!;
 
     final progress = logger.progress('Checking for updates');
 

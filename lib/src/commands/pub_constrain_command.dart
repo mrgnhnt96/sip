@@ -1,7 +1,6 @@
-import 'package:args/args.dart';
-import 'package:args/command_runner.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:path/path.dart' as path;
+import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/constrain_pubspec_versions.dart';
 import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/logger.dart';
@@ -11,72 +10,27 @@ import 'package:sip_cli/src/domain/constrain_pubspec_versions.dart';
 import 'package:sip_cli/src/utils/dart_or_flutter_mixin.dart';
 import 'package:sip_cli/src/utils/exit_code.dart';
 
-class PubConstrainCommand extends Command<ExitCode> with DartOrFlutterMixin {
-  PubConstrainCommand() {
-    argParser
-      ..addFlag(
-        'recursive',
-        abbr: 'r',
-        negatable: false,
-        help: 'Run command recursively in all subdirectories.',
-      )
-      ..addFlag(
-        'dry-run',
-        abbr: 'n',
-        negatable: false,
-        help: "Report what dependencies would change but don't change any.",
-      )
-      ..addFlag(
-        'dev_dependencies',
-        abbr: 'd',
-        aliases: ['dev'],
-        negatable: false,
-        help: 'Constrain dev_dependencies as well.',
-      )
-      ..addOption(
-        'bump',
-        help: 'Bump the type of version constraint.',
-        allowed: [for (final type in VersionBump.values) type.name],
-        defaultsTo: VersionBump.breaking.name,
-      )
-      ..addFlag(
-        'pin',
-        help:
-            'Pin the version of the package (^1.0.0 -> 1.0.0). '
-            'Unpins otherwise (1.0.0 -> ^1.0.0)',
-        defaultsTo: null,
-      )
-      ..addFlag(
-        'dart-only',
-        negatable: false,
-        help: 'Only run command in Dart projects.',
-      )
-      ..addFlag(
-        'flutter-only',
-        negatable: false,
-        help: 'Only run command in Flutter projects.',
-      );
-  }
+const _usage = '''
+Usage: sip pub constrain [options] [packages] [arguments]
 
-  @override
-  String get name => 'constrain';
+Constrain all versions in pubspec.yaml to the current versions.
 
-  @override
-  String get description =>
-      'Constrain all versions in pubspec.yaml to the current versions.';
+Options:
+  --recursive, -r                  Run command recursively in all subdirectories.
+  --dry-run, -n                    Report what dependencies would change but don't change any.
+  --dev_dependencies, --dev, -d    Constrain dev_dependencies as well.
+  --bump                           Bump the type of version constraint.
+  --pin                            Pin the version of the package (^1.0.0 -> 1.0.0) or unpin it (1.0.0 -> ^1.0.0).
+  --dart-only                      Only run command in Dart projects.
+  --flutter-only                   Only run command in Flutter projects.
+''';
 
-  @override
-  String get invocation {
-    final invocation = super.invocation;
-
-    final first = invocation.split(' [arguments]').first;
-
-    return '$first [packages] [arguments]';
-  }
+class PubConstrainCommand with DartOrFlutterMixin {
+  const PubConstrainCommand();
 
   /// Returns a list of packages and their versions (if specified).
-  Iterable<(String, String?)> packages(ArgResults argResults) sync* {
-    for (final package in argResults.rest) {
+  Iterable<(String, String?)> packages(List<String> packages) sync* {
+    for (final package in packages) {
       final version = package.split(':');
       switch (version) {
         case [final String package, final String version]:
@@ -89,19 +43,32 @@ class PubConstrainCommand extends Command<ExitCode> with DartOrFlutterMixin {
     }
   }
 
-  @override
-  Future<ExitCode> run([List<String>? args]) async {
-    final argResults = args != null ? argParser.parse(args) : this.argResults!;
+  Future<ExitCode> run() async {
+    if (args.get<bool>('help', defaultValue: false)) {
+      logger.write(_usage);
+      return ExitCode.success;
+    }
 
-    final packages = this.packages(argResults).toList();
+    final packages = this.packages(args.rest).toList();
 
-    final recursive = argResults['recursive'] as bool;
-    final dartOnly = argResults['dart-only'] as bool;
-    final flutterOnly = argResults['flutter-only'] as bool;
-    final includeDevDependencies = argResults['dev_dependencies'] as bool;
-    final versionBump = VersionBump.values.byName(argResults['bump'] as String);
-    final dryRun = argResults['dry-run'] as bool;
-    final pin = argResults['pin'] as bool?;
+    final recursive = args.get<bool>(
+      'recursive',
+      abbr: 'r',
+      defaultValue: false,
+    );
+    final dartOnly = args.get<bool>('dart-only', defaultValue: false);
+    final flutterOnly = args.get<bool>('flutter-only', defaultValue: false);
+    final includeDevDependencies = args.get<bool>(
+      'dev_dependencies',
+      aliases: ['dev'],
+      abbr: 'd',
+      defaultValue: false,
+    );
+    final versionBump = VersionBump.values.byName(
+      args.get<String>('bump', defaultValue: 'breaking'),
+    );
+    final dryRun = args.get<bool>('dry-run', abbr: 'n', defaultValue: false);
+    final pin = args.getOrNull<bool>('pin');
 
     warnDartOrFlutter(isDartOnly: dartOnly, isFlutterOnly: flutterOnly);
 
