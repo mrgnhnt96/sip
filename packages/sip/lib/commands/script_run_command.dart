@@ -49,16 +49,13 @@ class ScriptRunCommand extends Command<ExitCode>
       help: 'Prints the commands that would be run without executing them.',
     );
 
-    argParser.addFlag(
-      'bail',
-      negatable: false,
-      help: 'Stop on first error',
-    );
+    argParser.addFlag('bail', negatable: false, help: 'Stop on first error');
 
     argParser.addFlag(
       'never-exit',
       negatable: false,
-      help: '!!${red.wrap('USE WITH CAUTION')}!!!\n'
+      help:
+          '!!${red.wrap('USE WITH CAUTION')}!!!\n'
           'After the script is done, the command will '
           'restart after a 1 second delay.\n'
           'This is useful for long running scripts that '
@@ -70,7 +67,8 @@ class ScriptRunCommand extends Command<ExitCode>
       'concurrent',
       aliases: ['parallel', 'c', 'p'],
       abbr: 'c',
-      help: 'Runs all scripts concurrently. --no-concurrent will turn off '
+      help:
+          'Runs all scripts concurrently. --no-concurrent will turn off '
           'concurrency even if set in the scripts.yaml',
     );
   }
@@ -149,13 +147,13 @@ class ScriptRunCommand extends Command<ExitCode>
     final bail = result.bail ^ (argResults['bail'] as bool? ?? false);
 
     Future<ExitCode> runCommands() => _runCommands(
-          argResults: argResults,
-          bail: bail,
-          concurrent: concurrent,
-          disableConcurrency: disableConcurrency,
-          commands: result.commands ?? [],
-          combinedEnvConfig: result.combinedEnvConfig,
-        );
+      argResults: argResults,
+      bail: bail,
+      concurrent: concurrent,
+      disableConcurrency: disableConcurrency,
+      commands: result.commands ?? [],
+      combinedEnvConfig: result.combinedEnvConfig,
+    );
 
     if (neverQuit) {
       logger
@@ -247,9 +245,7 @@ class ScriptRunCommand extends Command<ExitCode>
       List<CommandResult> exitCodes,
       List<CommandToRun> commands,
     ) {
-      logger.detail(
-        'Checking for bail ($bail), bail: ${exitCodes.join('\n')}',
-      );
+      logger.detail('Checking for bail ($bail), bail: ${exitCodes.join('\n')}');
 
       final exitCode = exitCodes.exitCode(logger);
 

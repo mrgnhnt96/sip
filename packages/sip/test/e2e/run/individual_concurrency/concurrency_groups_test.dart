@@ -51,10 +51,7 @@ void main() {
           ..createSync(recursive: true)
           ..writeAsStringSync('');
 
-        final runOneScript = RunOneScript(
-          bindings: bindings,
-          logger: logger,
-        );
+        final runOneScript = RunOneScript(bindings: bindings, logger: logger);
 
         final command = ScriptRunCommand(
           bindings: bindings,
@@ -86,10 +83,7 @@ void main() {
 
         await Future<void>.delayed(Duration.zero);
 
-        expect(
-          bindings.scripts,
-          contains('# Run the post_generate script'),
-        );
+        expect(bindings.scripts, contains('# Run the post_generate script'));
       });
     });
   });
@@ -107,11 +101,7 @@ class _TestBindings implements Bindings {
   }) async {
     scripts.addAll(script.split('\n'));
 
-    return const CommandResult(
-      exitCode: 0,
-      output: '',
-      error: '',
-    );
+    return const CommandResult(exitCode: 0, output: '', error: '');
   }
 }
 

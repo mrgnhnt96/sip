@@ -5,10 +5,7 @@ part 'executables.g.dart';
 
 @JsonSerializable()
 class Executables extends Equatable {
-  const Executables({
-    required this.dart,
-    required this.flutter,
-  });
+  const Executables({required this.dart, required this.flutter});
 
   factory Executables.fromJson(Map<String, dynamic> json) =>
       _$ExecutablesFromJson(json);

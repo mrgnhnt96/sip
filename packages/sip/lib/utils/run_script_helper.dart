@@ -41,15 +41,11 @@ mixin RunScriptHelper on Command<ExitCode> {
         ..warn(lightYellow.wrap(warning))
         ..write('\n');
 
-      return ListCommand(
-        scriptsYaml: scriptsYaml,
-        logger: logger,
-      ).run();
+      return ListCommand(scriptsYaml: scriptsYaml, logger: logger).run();
     }
 
     if (keys.any((e) => e.startsWith('_'))) {
-      logger.err(
-        r'''
+      logger.err(r'''
 Private scripts are not intended to be invoked, only to be used as a references in other scripts.
 
 ```yaml
@@ -59,8 +55,7 @@ format:
 ```
 
 $ sip format ui
-''',
-      );
+''');
       return ExitCode.config;
     }
 
@@ -142,10 +137,7 @@ $ sip format ui
     );
 
     for (final resolved in resolvedScripts) {
-      yield GetCommandsResult(
-        resolveScript: resolved,
-        script: script,
-      );
+      yield GetCommandsResult(resolveScript: resolved, script: script);
     }
   }
 
@@ -166,9 +158,7 @@ $ sip format ui
       };
 
       if (command.contains(Identifiers.concurrent)) {
-        logger.detail(
-          'Running concurrently: "${cyan.wrap('$index')}"',
-        );
+        logger.detail('Running concurrently: "${cyan.wrap('$index')}"');
 
         runConcurrently = true;
         command = command.replaceAll(Identifiers.concurrent, '');
@@ -197,10 +187,7 @@ $ sip format ui
       final GetCommandsResult(:exitCode, :script, :resolveScript) = result;
 
       if (exitCode != null || script == null) {
-        yield CommandsToRunResult.fail(
-          exitCode,
-          bail: script?.bail ?? bail,
-        );
+        yield CommandsToRunResult.fail(exitCode, bail: script?.bail ?? bail);
 
         return;
       }
@@ -225,8 +212,8 @@ class CommandsToRunResult {
   }) : exitCode = null;
 
   const CommandsToRunResult.fail(this.exitCode, {required this.bail})
-      : commands = null,
-        combinedEnvConfig = null;
+    : commands = null,
+      combinedEnvConfig = null;
 
   final ExitCode? exitCode;
   final List<CommandToRun>? commands;
@@ -240,10 +227,7 @@ class GetCommandsResult {
     required Script this.script,
   }) : exitCode = null;
 
-  GetCommandsResult.exit(
-    this.exitCode,
-  )   : resolveScript = null,
-        script = null;
+  GetCommandsResult.exit(this.exitCode) : resolveScript = null, script = null;
 
   final ExitCode? exitCode;
   final Script? script;

@@ -51,10 +51,7 @@ void main() {
           ..createSync(recursive: true)
           ..writeAsStringSync('');
 
-        final runOneScript = RunOneScript(
-          bindings: bindings,
-          logger: logger,
-        );
+        final runOneScript = RunOneScript(bindings: bindings, logger: logger);
 
         final command = ScriptRunCommand(
           bindings: bindings,
@@ -86,9 +83,7 @@ void main() {
 
         await Future<void>.delayed(Duration.zero);
 
-        expect(
-          bindings.scripts.join('\n'),
-          r'''
+        expect(bindings.scripts.join('\n'), r'''
 cd /packages/sip || exit 1
 
 cd infra || exit 1; pnv generate-env -i public/be.local.yaml -o private/ -f ~/.cant-run/local.key
@@ -116,8 +111,7 @@ export APP_ENV=local
 
 cd backend || exit 1;
 dart run scripts/reset.dart
-''',
-        );
+''');
       });
 
       test('should override env variables when re-defined', () async {
@@ -171,11 +165,7 @@ class _TestBindings implements Bindings {
   }) async {
     scripts.addAll(script.split('\n'));
 
-    return const CommandResult(
-      exitCode: 0,
-      output: '',
-      error: '',
-    );
+    return const CommandResult(exitCode: 0, output: '', error: '');
   }
 }
 

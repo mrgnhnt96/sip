@@ -14,17 +14,13 @@ void main() {
         });
 
         test('when files is a string', () {
-          final env = ScriptEnv.fromJson(const {
-            'files': 'file1',
-          });
+          final env = ScriptEnv.fromJson(const {'files': 'file1'});
 
           expect(env.files, ['file1']);
         });
 
         test('when key is file', () {
-          final env = ScriptEnv.fromJson(const {
-            'file': 'file1',
-          });
+          final env = ScriptEnv.fromJson(const {'file': 'file1'});
 
           expect(env.files, ['file1']);
         });
@@ -40,17 +36,13 @@ void main() {
         });
 
         test('when commands is a string', () {
-          final env = ScriptEnv.fromJson(const {
-            'commands': 'command1',
-          });
+          final env = ScriptEnv.fromJson(const {'commands': 'command1'});
 
           expect(env.commands, ['command1']);
         });
 
         test('when key is command', () {
-          final env = ScriptEnv.fromJson(const {
-            'command': 'command1',
-          });
+          final env = ScriptEnv.fromJson(const {'command': 'command1'});
 
           expect(env.commands, ['command1']);
         });

@@ -31,12 +31,14 @@ class Variables with WorkingDirectory {
     final variables = <String, String?>{};
 
     final projectRoot = pubspecYaml.nearest();
-    variables[Vars.projectRoot] =
-        projectRoot == null ? null : path.dirname(projectRoot);
+    variables[Vars.projectRoot] = projectRoot == null
+        ? null
+        : path.dirname(projectRoot);
 
     final scriptsRoot = scriptsYaml.nearest();
-    variables[Vars.scriptsRoot] =
-        scriptsRoot == null ? null : path.dirname(scriptsRoot);
+    variables[Vars.scriptsRoot] = scriptsRoot == null
+        ? null
+        : path.dirname(scriptsRoot);
 
     final executables = scriptsYaml.executables();
 
@@ -120,8 +122,10 @@ class Variables with WorkingDirectory {
               return null;
             }
 
-            almostResolved =
-                almostResolved.replaceAll(match.group(0)!, partialResolved);
+            almostResolved = almostResolved.replaceAll(
+              match.group(0)!,
+              partialResolved,
+            );
           }
         }
 
@@ -150,10 +154,7 @@ class Variables with WorkingDirectory {
     OptionalFlags? flags,
   }) sync* {
     late final sipVariables = populate();
-    Iterable<ResolveScript> resolve(
-      String command,
-      Script script,
-    ) sync* {
+    Iterable<ResolveScript> resolve(String command, Script script) sync* {
       yield* replaceVariables(
         command,
         sipVariables: sipVariables,
@@ -168,26 +169,21 @@ class Variables with WorkingDirectory {
       if (script.env?.commands case final commands)
         for (final command in commands ?? <String>[])
           EnvConfig(
-            commands: resolve(command, script)
-                .map((e) => e.command)
-                .whereType<String>()
-                .toList(),
+            commands: resolve(
+              command,
+              script,
+            ).map((e) => e.command).whereType<String>().toList(),
             files: script.env?.files,
             workingDirectory: directory,
             variables: script.env?.vars,
           ),
     };
 
-    final envConfig = <EnvConfig>{
-      ...envCommands,
-    };
+    final envConfig = <EnvConfig>{...envCommands};
 
     final commands = <ResolveScript>[];
     for (final command in script.commands) {
-      final resolved = resolve(
-        command,
-        script,
-      ).toList();
+      final resolved = resolve(command, script).toList();
 
       commands.addAll(resolved);
       envConfig.addAll([
@@ -196,9 +192,10 @@ class Variables with WorkingDirectory {
           EnvConfig(
             commands: [
               for (final command in e.envConfig?.commands ?? <String>[])
-                ...resolve(command, script)
-                    .map((e) => e.command)
-                    .whereType<String>(),
+                ...resolve(
+                  command,
+                  script,
+                ).map((e) => e.command).whereType<String>(),
             ],
             files: e.envConfig?.files,
             workingDirectory: directory,
@@ -281,23 +278,25 @@ class Variables with WorkingDirectory {
           final commandsToCopy = [...resolvedCommands];
 
           final copied = List<ResolveScript>.generate(
-              resolvedCommands.length * replaced.resolvedScripts.length,
-              (index) {
-            final commandIndex = index % replaced.resolvedScripts.length;
-            final command =
-                replaced.resolvedScripts.elementAt(commandIndex).command;
+            resolvedCommands.length * replaced.resolvedScripts.length,
+            (index) {
+              final commandIndex = index % replaced.resolvedScripts.length;
+              final command = replaced.resolvedScripts
+                  .elementAt(commandIndex)
+                  .command;
 
-            if (command == null) {
-              throw Exception('Command is null');
-            }
+              if (command == null) {
+                throw Exception('Command is null');
+              }
 
-            final commandsToCopyIndex =
-                index ~/ replaced.resolvedScripts.length;
-            final copy = commandsToCopy[commandsToCopyIndex].copy()
-              ..replaceCommandPart(partToReplace, command);
+              final commandsToCopyIndex =
+                  index ~/ replaced.resolvedScripts.length;
+              final copy = commandsToCopy[commandsToCopyIndex].copy()
+                ..replaceCommandPart(partToReplace, command);
 
-            return copy;
-          });
+              return copy;
+            },
+          );
 
           resolvedCommands = copied;
         }

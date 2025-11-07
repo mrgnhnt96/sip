@@ -21,7 +21,8 @@ extension _BothX<T> on Command<T> {
       ..addOption(
         'concurrency',
         abbr: 'j',
-        help: 'The number of concurrent test processes to run. '
+        help:
+            'The number of concurrent test processes to run. '
             'This will be ignored when running integration tests.',
         valueHelp: 'jobs',
       )
@@ -33,14 +34,16 @@ extension _BothX<T> on Command<T> {
       )
       ..addOption(
         'file-reporter',
-        help: 'Enable an additional reporter writing test results to a file.\n'
+        help:
+            'Enable an additional reporter writing test results to a file.\n'
             'Should be in the form <reporter>:<filepath>, '
             'Example: "json:reports/tests.json".',
       )
       ..addMultiOption(
         'name',
         abbr: 'n',
-        help: 'A substring of the name of the test to run.\n'
+        help:
+            'A substring of the name of the test to run.\n'
             'Regular expression syntax is supported.\n'
             'If passed multiple times, tests must match all substrings.',
         splitCommas: false,
@@ -48,7 +51,8 @@ extension _BothX<T> on Command<T> {
       ..addMultiOption(
         'plain-name',
         abbr: 'N',
-        help: 'A plain-text substring of the name of the test to run.\n'
+        help:
+            'A plain-text substring of the name of the test to run.\n'
             'If passed multiple times, tests must match all substrings.',
         splitCommas: false,
       )
@@ -60,15 +64,18 @@ extension _BothX<T> on Command<T> {
       )
       ..addOption(
         'reporter',
-        help: 'Set how to print test results. If unset, '
+        help:
+            'Set how to print test results. If unset, '
             'value will default to either compact or expanded.',
         allowed: <String>['compact', 'expanded', 'github', 'json'],
         allowedHelp: <String, String>{
           'compact':
               'A single line that updates dynamically (The default reporter).',
-          'expanded': 'A separate line for each update. May be preferred '
+          'expanded':
+              'A separate line for each update. May be preferred '
               'when logging to a file or in continuous integration.',
-          'github': 'A custom reporter for GitHub Actions (the default '
+          'github':
+              'A custom reporter for GitHub Actions (the default '
               'reporter when running on GitHub Actions).',
           'json':
               'A machine-readable format. See: https://dart.dev/go/test-docs/json_reporter.md',
@@ -80,21 +87,24 @@ extension _BothX<T> on Command<T> {
       )
       ..addOption(
         'shard-index',
-        help: 'Tests can be sharded with the '
+        help:
+            'Tests can be sharded with the '
             '"--total-shards" and "--shard-index" '
             'arguments, allowing you to split up your test suites and run '
             'them separately.',
       )
       ..addOption(
         'total-shards',
-        help: 'Tests can be sharded with the '
+        help:
+            'Tests can be sharded with the '
             '"--total-shards" and "--shard-index" '
             'arguments, allowing you to split up your test suites and run '
             'them separately.',
       )
       ..addOption(
         'test-randomize-ordering-seed',
-        help: 'The seed to randomize the execution order '
+        help:
+            'The seed to randomize the execution order '
             'of test cases within test files. '
             'Must be a 32bit unsigned integer or the string "random", '
             'which indicates that a seed should be selected randomly. '
@@ -102,7 +112,8 @@ extension _BothX<T> on Command<T> {
       )
       ..addOption(
         'timeout',
-        help: 'The default test timeout, specified either '
+        help:
+            'The default test timeout, specified either '
             'in seconds (e.g. "60s"), '
             'as a multiplier of the default timeout (e.g. "2x"), '
             'or as the string "none" to disable the timeout entirely.',
@@ -119,14 +130,13 @@ extension _BothX<T> on Command<T> {
     Set<String> options, {
     Map<String, String> flagReplacements = const {},
     Set<String> initialArgs = const {},
-  }) =>
-      parseArguments(
-        argParser,
-        argResults,
-        options,
-        flagReplacements: flagReplacements,
-        initialArgs: initialArgs,
-      );
+  }) => parseArguments(
+    argParser,
+    argResults,
+    options,
+    flagReplacements: flagReplacements,
+    initialArgs: initialArgs,
+  );
 }
 
 /// [flagReplacements]\
@@ -144,9 +154,7 @@ List<String> parseArguments(
   if (argResults == null) return [];
   final args = <String>[...initialArgs];
 
-  final arguments = [
-    ...argResults.arguments,
-  ];
+  final arguments = [...argResults.arguments];
 
   for (final option in options) {
     if (!argResults.wasParsed(option)) {

@@ -54,11 +54,7 @@ class TestWatchCommand extends Command<ExitCode> with TesterMixin {
         help: 'Whether to remove the optimized test files after running tests',
         defaultsTo: true,
       )
-      ..addFlag(
-        'dart-only',
-        help: 'Run only dart tests',
-        negatable: false,
-      )
+      ..addFlag('dart-only', help: 'Run only dart tests', negatable: false)
       ..addFlag(
         'flutter-only',
         help: 'Run only flutter tests',
@@ -69,9 +65,7 @@ class TestWatchCommand extends Command<ExitCode> with TesterMixin {
         help: 'The scope of tests to run',
         defaultsTo: TestScope.active.option,
         allowed: TestScope.values.map((e) => e.option).toList(),
-        allowedHelp: {
-          for (final val in TestScope.values) val.option: val.help,
-        },
+        allowedHelp: {for (final val in TestScope.values) val.option: val.help},
       )
       ..addFlag(
         'optimize',
@@ -137,7 +131,8 @@ class TestWatchCommand extends Command<ExitCode> with TesterMixin {
     }
     concurrent += darkGray.wrap('\n  Press `c` to toggle concurrency')!;
 
-    final waitingMessage = '''
+    final waitingMessage =
+        '''
 
 ${yellow.wrap('Waiting for changes...')}
 $testScope
@@ -156,7 +151,8 @@ ${darkGray.wrap('Press `q` to exit')}
     final isRecursive = argResults['recursive'] as bool;
     final isDartOnly =
         argResults.wasParsed('dart-only') && argResults['dart-only'] as bool;
-    final isFlutterOnly = argResults.wasParsed('flutter-only') &&
+    final isFlutterOnly =
+        argResults.wasParsed('flutter-only') &&
         argResults['flutter-only'] as bool;
     final concurrent = argResults['concurrent'] as bool;
     final clean = argResults['clean'] as bool;
@@ -206,12 +202,10 @@ ${darkGray.wrap('Press `q` to exit')}
 
     var printMessage = true;
 
-    logger.detail(
-      'Watching directories: ${[
-        ...testDirs,
-        ...libDirs,
-      ].map(path.relative).join(', ')}',
-    );
+    if ([...testDirs, ...libDirs].map(path.relative).join(', ')
+        case final dirs) {
+      logger.detail('Watching directories: $dirs');
+    }
 
     var runType = runTestType;
     var runConcurrently = concurrent;
@@ -222,10 +216,7 @@ ${darkGray.wrap('Press `q` to exit')}
     // only the ones that exist when the command is run
     while (true) {
       if (printMessage) {
-        writeWaitingMessage(
-          runType,
-          runConcurrently: runConcurrently,
-        );
+        writeWaitingMessage(runType, runConcurrently: runConcurrently);
       }
 
       printMessage = false;
@@ -233,10 +224,8 @@ ${darkGray.wrap('Press `q` to exit')}
       final (type: event, :file) = await waitForChange(
         testDirs: testDirs,
         libDirs: libDirs,
-        printMessage: () => writeWaitingMessage(
-          runType,
-          runConcurrently: runConcurrently,
-        ),
+        printMessage: () =>
+            writeWaitingMessage(runType, runConcurrently: runConcurrently),
       );
 
       if (event.isExit) {
@@ -380,8 +369,9 @@ ${darkGray.wrap('Press `q` to exit')}
 
     // check for the test file associated with the modified file
     final base = path.basenameWithoutExtension(modifiedFile);
-    final nameOfTest =
-        base.endsWith('_test') ? '$base.dart' : '${base}_test.dart';
+    final nameOfTest = base.endsWith('_test')
+        ? '$base.dart'
+        : '${base}_test.dart';
     final possibleFiles = await findFile.childrenOf(
       nameOfTest,
       directoryPath: path.join(testResult.packagePath, 'test'),
@@ -423,11 +413,7 @@ ${darkGray.wrap('Press `q` to exit')}
     return null;
   }
 
-  Future<
-      ({
-        EventType type,
-        String? file,
-      })> waitForChange({
+  Future<({EventType type, String? file})> waitForChange({
     required Iterable<String> testDirs,
     required Iterable<String> libDirs,
     required void Function() printMessage,
@@ -471,46 +457,28 @@ ${darkGray.wrap('Press `q` to exit')}
       return controller.stream;
     }).toList();
 
-    final fileChangeCompleter = Completer<
-        ({
-          EventType type,
-          String? file,
-        })>();
+    final fileChangeCompleter = Completer<({EventType type, String? file})>();
 
     final input = keyPressListener.listenToKeystrokes(
       onExit: () {
-        fileChangeCompleter.complete(
-          (
-            type: EventType.exit,
-            file: null,
-          ),
-        );
+        fileChangeCompleter.complete((type: EventType.exit, file: null));
       },
       onEscape: printMessage,
       customStrokes: {
         'r': () {
-          fileChangeCompleter.complete(
-            (
-              type: EventType.run,
-              file: null,
-            ),
-          );
+          fileChangeCompleter.complete((type: EventType.run, file: null));
         },
         't': () {
-          fileChangeCompleter.complete(
-            (
-              type: EventType.toggleModified,
-              file: null,
-            ),
-          );
+          fileChangeCompleter.complete((
+            type: EventType.toggleModified,
+            file: null,
+          ));
         },
         'c': () {
-          fileChangeCompleter.complete(
-            (
-              type: EventType.toggleConcurrency,
-              file: null,
-            ),
-          );
+          fileChangeCompleter.complete((
+            type: EventType.toggleConcurrency,
+            file: null,
+          ));
         },
       },
     );
@@ -519,13 +487,9 @@ ${darkGray.wrap('Press `q` to exit')}
     inputSubscription = input?.listen((_) {});
 
     final fileChangeListener = StreamGroup(fileModifications).merge().listen(
-          (file) => fileChangeCompleter.complete(
-            (
-              type: EventType.file,
-              file: file,
-            ),
-          ),
-        );
+      (file) =>
+          fileChangeCompleter.complete((type: EventType.file, file: file)),
+    );
 
     final result = await fileChangeCompleter.future;
     await fileChangeListener.cancel();

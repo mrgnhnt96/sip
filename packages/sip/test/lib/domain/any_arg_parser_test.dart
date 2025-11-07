@@ -25,10 +25,7 @@ void main() {
     test('should parse extra flags', () {
       final argParser = AnyArgParser();
       final result = argParser.parse(['--flag', '-c']);
-      expect(
-        () => result['flag'],
-        throwsA(isA<ArgumentError>()),
-      );
+      expect(() => result['flag'], throwsA(isA<ArgumentError>()));
 
       expect(result.rest, ['--flag', '-c']);
     });
@@ -36,10 +33,7 @@ void main() {
     test('should parse extra short flags', () {
       final argParser = AnyArgParser();
       final result = argParser.parse(['-f', '-c', '-de']);
-      expect(
-        () => result['f'],
-        throwsA(isA<ArgumentError>()),
-      );
+      expect(() => result['f'], throwsA(isA<ArgumentError>()));
 
       expect(result.rest, ['-f', '-c', '-d', '-e']);
     });
@@ -47,10 +41,7 @@ void main() {
     test('should parse extra short flags with values', () {
       final argParser = AnyArgParser();
       final result = argParser.parse(['-f', '-c', '-de', 'hello']);
-      expect(
-        () => result['f'],
-        throwsA(isA<ArgumentError>()),
-      );
+      expect(() => result['f'], throwsA(isA<ArgumentError>()));
 
       expect(result.rest, ['-f', '-c', '-d', '-e', 'hello']);
     });
@@ -59,10 +50,7 @@ void main() {
       test('when separated by space', () {
         final argParser = AnyArgParser();
         final result = argParser.parse(['--flag']);
-        expect(
-          () => result['flag'],
-          throwsA(isA<ArgumentError>()),
-        );
+        expect(() => result['flag'], throwsA(isA<ArgumentError>()));
 
         expect(result.rest, contains('--flag'));
       });
@@ -70,10 +58,7 @@ void main() {
       test('when separated by equal sign', () {
         final argParser = AnyArgParser();
         final result = argParser.parse(['--flag=value']);
-        expect(
-          () => result['flag'],
-          throwsA(isA<ArgumentError>()),
-        );
+        expect(() => result['flag'], throwsA(isA<ArgumentError>()));
 
         expect(result.rest, contains('--flag=value'));
       });
@@ -93,8 +78,12 @@ void main() {
         final argParser = AnyArgParser()
           ..addFlag('list')
           ..addFlag('bail');
-        final result =
-            argParser.parse(['try', '--platform', 'banana', '--bail']);
+        final result = argParser.parse([
+          'try',
+          '--platform',
+          'banana',
+          '--bail',
+        ]);
 
         expect(result['bail'], isTrue);
 
@@ -223,14 +212,14 @@ void main() {
         expect(anyOption.allowed, ['default', 'other']);
         expect(anyMultiOption.allowed, ['default', 'other']);
 
-        expect(
-          anyOption.allowedHelp,
-          {'default': 'defaultHelp', 'other': 'otherHelp'},
-        );
-        expect(
-          anyMultiOption.allowedHelp,
-          {'default': 'defaultHelp', 'other': 'otherHelp'},
-        );
+        expect(anyOption.allowedHelp, {
+          'default': 'defaultHelp',
+          'other': 'otherHelp',
+        });
+        expect(anyMultiOption.allowedHelp, {
+          'default': 'defaultHelp',
+          'other': 'otherHelp',
+        });
 
         expect(anyMultiOption.splitCommas, isFalse);
       });

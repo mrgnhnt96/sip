@@ -2,9 +2,7 @@ import 'package:sip_cli/domain/find_file.dart';
 import 'package:sip_cli/domain/pubspec_lock.dart';
 
 class PubspecLockImpl extends FindFile implements PubspecLock {
-  const PubspecLockImpl({
-    required super.fs,
-  });
+  const PubspecLockImpl({required super.fs});
 
   @override
   String? findIn(String directoryPath) {

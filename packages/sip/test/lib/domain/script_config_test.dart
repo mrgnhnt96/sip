@@ -6,16 +6,9 @@ void main() {
   group(ScriptsConfig, () {
     group('#search', () {
       test('returns a script by name', () {
-        const script = Script.defaults(
-          name: 'foo',
-          commands: ['echo foo'],
-        );
+        const script = Script.defaults(name: 'foo', commands: ['echo foo']);
 
-        final config = ScriptsConfig(
-          scripts: {
-            script.name: script,
-          },
-        );
+        final config = ScriptsConfig(scripts: {script.name: script});
 
         final result = config.search('foo');
 
@@ -24,20 +17,13 @@ void main() {
       });
 
       test('can find nested script', () {
-        const script = Script.defaults(
-          name: 'foo',
-          commands: ['echo foo'],
-        );
+        const script = Script.defaults(name: 'foo', commands: ['echo foo']);
 
         final config = ScriptsConfig(
           scripts: {
             'bar': Script.defaults(
               name: 'bar',
-              scripts: ScriptsConfig(
-                scripts: {
-                  script.name: script,
-                },
-              ),
+              scripts: ScriptsConfig(scripts: {script.name: script}),
             ),
           },
         );
@@ -63,11 +49,7 @@ void main() {
             script1.name: script1,
             'bar': Script.defaults(
               name: 'bar',
-              scripts: ScriptsConfig(
-                scripts: {
-                  script2.name: script2,
-                },
-              ),
+              scripts: ScriptsConfig(scripts: {script2.name: script2}),
             ),
           },
         );
@@ -84,19 +66,12 @@ void main() {
           commands: const ['echo foo'],
           scripts: ScriptsConfig(
             scripts: const {
-              'foo': Script.defaults(
-                name: '2',
-                commands: ['echo foo'],
-              ),
+              'foo': Script.defaults(name: '2', commands: ['echo foo']),
             },
           ),
         );
 
-        final config = ScriptsConfig(
-          scripts: {
-            script.name: script,
-          },
-        );
+        final config = ScriptsConfig(scripts: {script.name: script});
 
         final result = config.search('foo').toList();
 
@@ -121,15 +96,8 @@ void main() {
       });
 
       test('returns nothing when no scripts are found', () {
-        const script = Script.defaults(
-          name: 'foo',
-          commands: ['echo foo'],
-        );
-        final config = ScriptsConfig(
-          scripts: {
-            script.name: script,
-          },
-        );
+        const script = Script.defaults(name: 'foo', commands: ['echo foo']);
+        final config = ScriptsConfig(scripts: {script.name: script});
 
         final result = config.search('bar');
 
@@ -143,11 +111,7 @@ void main() {
           aliases: {'loz-mm'},
         );
 
-        final config = ScriptsConfig(
-          scripts: {
-            script.name: script,
-          },
-        );
+        final config = ScriptsConfig(scripts: {script.name: script});
 
         final result = config.search('loz-mm');
 

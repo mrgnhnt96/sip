@@ -10,10 +10,7 @@ void main() {
 
   setUp(() {
     fs = MemoryFileSystem();
-    instance = ConstrainPubspecVersions(
-      fs: fs,
-      logger: _MockLogger(),
-    );
+    instance = ConstrainPubspecVersions(fs: fs, logger: _MockLogger());
   });
 
   group(ConstrainPubspecVersions, () {
@@ -29,10 +26,7 @@ dependencies:
             ..createSync(recursive: true)
             ..writeAsStringSync(content);
 
-          final result = instance.constrain(
-            'pubspec.yaml',
-            dryRun: true,
-          );
+          final result = instance.constrain('pubspec.yaml', dryRun: true);
 
           expect(result, isTrue);
           expect(file.readAsStringSync(), content);
@@ -189,8 +183,11 @@ dependencies:
         });
 
         test('major', () {
-          final result =
-              instance.constraint('foo', '1.2.3', bump: VersionBump.major);
+          final result = instance.constraint(
+            'foo',
+            '1.2.3',
+            bump: VersionBump.major,
+          );
 
           expect(result, isNotNull);
 
@@ -201,8 +198,11 @@ dependencies:
         });
 
         test('minor', () {
-          final result =
-              instance.constraint('foo', '1.2.3', bump: VersionBump.minor);
+          final result = instance.constraint(
+            'foo',
+            '1.2.3',
+            bump: VersionBump.minor,
+          );
 
           expect(result, isNotNull);
 
@@ -213,8 +213,11 @@ dependencies:
         });
 
         test('patch', () {
-          final result =
-              instance.constraint('foo', '1.2.3', bump: VersionBump.patch);
+          final result = instance.constraint(
+            'foo',
+            '1.2.3',
+            bump: VersionBump.patch,
+          );
 
           expect(result, isNotNull);
 
@@ -343,10 +346,7 @@ dependencies:
       });
 
       test('applies to only certain packages', () {
-        final packages = [
-          ('foo', null),
-          ('bar', null),
-        ];
+        final packages = [('foo', null), ('bar', null)];
 
         const content = '''
 dependencies:
@@ -362,20 +362,14 @@ dependencies:
   baz: 3.4.5
 ''';
 
-        final result = instance.applyConstraintsTo(
-          content,
-          packages: packages,
-        );
+        final result = instance.applyConstraintsTo(content, packages: packages);
 
         expect(result, isNotNull);
         expect(result, expected);
       });
 
       test('applies to only certain packages with version', () {
-        final packages = [
-          ('foo', '4.5.6'),
-          ('bar', '5.6.7'),
-        ];
+        final packages = [('foo', '4.5.6'), ('bar', '5.6.7')];
 
         const content = '''
 dependencies:
@@ -391,10 +385,7 @@ dependencies:
   baz: 3.4.5
 ''';
 
-        final result = instance.applyConstraintsTo(
-          content,
-          packages: packages,
-        );
+        final result = instance.applyConstraintsTo(content, packages: packages);
 
         expect(result, isNotNull);
         expect(result, expected);
@@ -415,10 +406,7 @@ dependencies:
   baz: 3.4.5
 ''';
 
-        final result = instance.applyConstraintsTo(
-          content,
-          pin: true,
-        );
+        final result = instance.applyConstraintsTo(content, pin: true);
 
         expect(result, isNotNull);
         expect(result, expected);
@@ -439,10 +427,7 @@ dependencies:
   baz: ^3.4.5
 ''';
 
-        final result = instance.applyConstraintsTo(
-          content,
-          pin: false,
-        );
+        final result = instance.applyConstraintsTo(content, pin: false);
 
         expect(result, isNotNull);
         expect(result, expected);
@@ -465,10 +450,7 @@ dependencies:
 
         final result = instance.applyConstraintsTo(
           content,
-          packages: [
-            ('foo', '1.2.3'),
-            ('bar', '2.3.4'),
-          ],
+          packages: [('foo', '1.2.3'), ('bar', '2.3.4')],
           pin: true,
         );
 
@@ -493,10 +475,7 @@ dependencies:
 
         final result = instance.applyConstraintsTo(
           content,
-          packages: [
-            ('foo', null),
-            ('bar', null),
-          ],
+          packages: [('foo', null), ('bar', null)],
           pin: false,
         );
 
@@ -521,10 +500,7 @@ dependencies:
 
         final result = instance.applyConstraintsTo(
           content,
-          packages: [
-            ('foo', '2.3.4'),
-            ('bar', '3.4.5'),
-          ],
+          packages: [('foo', '2.3.4'), ('bar', '3.4.5')],
           pin: false,
         );
 

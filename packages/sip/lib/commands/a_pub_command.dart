@@ -60,7 +60,8 @@ abstract class APubCommand extends Command<ExitCode> with DartOrFlutterMixin {
       )
       ..addFlag(
         'separated',
-        help: 'Runs concurrent dart and flutter commands separately. '
+        help:
+            'Runs concurrent dart and flutter commands separately. '
             'Does nothing if --concurrent is not enabled.',
       )
       ..addFlag(
@@ -115,10 +116,7 @@ abstract class APubCommand extends Command<ExitCode> with DartOrFlutterMixin {
     final concurrent = argResults['concurrent'] as bool;
     final separated = argResults['separated'] as bool;
 
-    warnDartOrFlutter(
-      isDartOnly: dartOnly,
-      isFlutterOnly: flutterOnly,
-    );
+    warnDartOrFlutter(isDartOnly: dartOnly, isFlutterOnly: flutterOnly);
 
     final pubspecs = await this.pubspecs(recursive: recursive);
 

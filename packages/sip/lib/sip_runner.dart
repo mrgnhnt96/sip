@@ -34,28 +34,16 @@ class SipRunner extends CommandRunner<ExitCode> {
     required RunManyScripts runManyScripts,
     required KeyPressListener keyPressListener,
     required this.logger,
-  }) : super(
-          'sip',
-          'A command line application to handle mono-repos in dart',
-        ) {
+  }) : super('sip', 'A command line application to handle mono-repos in dart') {
     argParser
-      ..addFlag(
-        'version',
-        negatable: false,
-        help: 'Print the current version',
-      )
+      ..addFlag('version', negatable: false, help: 'Print the current version')
       ..addFlag(
         'loud',
         negatable: false,
         hide: true,
         help: 'Prints verbose output',
       )
-      ..addFlag(
-        'quiet',
-        negatable: false,
-        hide: true,
-        help: 'Prints no output',
-      )
+      ..addFlag('quiet', negatable: false, hide: true, help: 'Prints no output')
       ..addFlag(
         'version-check',
         defaultsTo: true,
@@ -99,17 +87,9 @@ class SipRunner extends CommandRunner<ExitCode> {
         runOneScript: runOneScript,
       ),
     );
+    addCommand(ListCommand(scriptsYaml: scriptsYaml, logger: logger));
     addCommand(
-      ListCommand(
-        scriptsYaml: scriptsYaml,
-        logger: logger,
-      ),
-    );
-    addCommand(
-      updateCommand = UpdateCommand(
-        pubUpdater: pubUpdater,
-        logger: logger,
-      ),
+      updateCommand = UpdateCommand(pubUpdater: pubUpdater, logger: logger),
     );
     addCommand(
       TestCommand(

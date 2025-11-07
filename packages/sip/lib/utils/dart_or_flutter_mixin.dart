@@ -32,7 +32,8 @@ mixin DartOrFlutterMixin {
     Iterable<T> dart,
     Iterable<T> flutter,
     Iterable<(DetermineFlutterOrDart, T)> ordered,
-  }) resolveFlutterAndDart<T>(
+  })
+  resolveFlutterAndDart<T>(
     Iterable<String> pubspecs,
     T Function(DetermineFlutterOrDart flutterOrDart) getCommandToRun, {
     required bool dartOnly,

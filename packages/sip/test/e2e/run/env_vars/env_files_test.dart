@@ -34,14 +34,7 @@ void main() {
 
       ScriptRunCommand prep() {
         final input = io.File(
-          path.join(
-            'test',
-            'e2e',
-            'run',
-            'env_vars',
-            'inputs',
-            'scripts.yaml',
-          ),
+          path.join('test', 'e2e', 'run', 'env_vars', 'inputs', 'scripts.yaml'),
         ).readAsStringSync();
 
         fs.file(ScriptsYaml.fileName)
@@ -51,10 +44,7 @@ void main() {
           ..createSync(recursive: true)
           ..writeAsStringSync('');
 
-        final runOneScript = RunOneScript(
-          bindings: bindings,
-          logger: logger,
-        );
+        final runOneScript = RunOneScript(bindings: bindings, logger: logger);
 
         final command = ScriptRunCommand(
           bindings: bindings,
@@ -86,10 +76,7 @@ void main() {
 
         await Future<void>.delayed(Duration.zero);
 
-        expect(
-          bindings.scripts,
-          contains('export GEN_ONLY=true'),
-        );
+        expect(bindings.scripts, contains('export GEN_ONLY=true'));
       });
     });
   });
@@ -107,11 +94,7 @@ class _TestBindings implements Bindings {
   }) async {
     scripts.addAll(script.split('\n'));
 
-    return const CommandResult(
-      exitCode: 0,
-      output: '',
-      error: '',
-    );
+    return const CommandResult(exitCode: 0, output: '', error: '');
   }
 }
 

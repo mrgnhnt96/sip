@@ -47,10 +47,7 @@ void main() {
         ..createSync(recursive: true)
         ..writeAsStringSync('');
 
-      final runOneScript = RunOneScript(
-        bindings: bindings,
-        logger: logger,
-      );
+      final runOneScript = RunOneScript(bindings: bindings, logger: logger);
 
       final command = ScriptRunCommand(
         bindings: bindings,
@@ -72,16 +69,13 @@ void main() {
 
       await command.run(['build_runner', 'b']);
 
-      expect(
-        bindings.scripts,
-        [
-          'cd /packages/sip || exit 1',
-          '',
-          'dart run build_runner clean;',
-          'dart run build_runner build --delete-conflicting-outputs',
-          '',
-        ],
-      );
+      expect(bindings.scripts, [
+        'cd /packages/sip || exit 1',
+        '',
+        'dart run build_runner clean;',
+        'dart run build_runner build --delete-conflicting-outputs',
+        '',
+      ]);
     });
   });
 }
@@ -98,11 +92,7 @@ class _TestBindings implements Bindings {
   }) {
     scripts.addAll(script.split('\n'));
     return Future.value(
-      const CommandResult(
-        exitCode: 0,
-        output: '',
-        error: '',
-      ),
+      const CommandResult(exitCode: 0, output: '', error: ''),
     );
   }
 }

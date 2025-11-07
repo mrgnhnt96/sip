@@ -7,8 +7,8 @@ class ResolveScript {
     required EnvConfig? envConfig,
     required this.script,
     required this.needsRunBeforeNext,
-  })  : originalCommand = null,
-        _envConfig = envConfig;
+  }) : originalCommand = null,
+       _envConfig = envConfig;
 
   ResolveScript._({
     required this.resolvedScripts,
@@ -17,17 +17,17 @@ class ResolveScript {
     required this.originalCommand,
     required this.needsRunBeforeNext,
     required String? replacedCommand,
-  })  : _replacedCommand = replacedCommand,
-        _envConfig = envConfig;
+  }) : _replacedCommand = replacedCommand,
+       _envConfig = envConfig;
 
   ResolveScript.command({
     required String command,
     required EnvConfig? envConfig,
     required this.script,
     required this.needsRunBeforeNext,
-  })  : resolvedScripts = const [],
-        originalCommand = command,
-        _envConfig = envConfig;
+  }) : resolvedScripts = const [],
+       originalCommand = command,
+       _envConfig = envConfig;
 
   final Script script;
   final String? originalCommand;
@@ -44,10 +44,7 @@ class ResolveScript {
     _replacedCommand = _replacedCommand?.replaceAll(part, replacement);
   }
 
-  ResolveScript copy({
-    EnvConfig? envConfig,
-    bool? needsRunBeforeNext,
-  }) {
+  ResolveScript copy({EnvConfig? envConfig, bool? needsRunBeforeNext}) {
     return ResolveScript._(
       resolvedScripts: resolvedScripts,
       envConfig: envConfig ?? this.envConfig,
@@ -59,11 +56,11 @@ class ResolveScript {
   }
 
   Iterable<ResolveScript> get flatten => {
-        if (command != null)
-          this
-        else if (resolvedScripts.isNotEmpty)
-          ...resolvedScripts.expand((e) => e.flatten),
-      };
+    if (command != null)
+      this
+    else if (resolvedScripts.isNotEmpty)
+      ...resolvedScripts.expand((e) => e.flatten),
+  };
 
   String? get command => _replacedCommand ?? originalCommand;
 }

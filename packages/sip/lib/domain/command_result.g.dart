@@ -7,10 +7,10 @@ part of 'command_result.dart';
 // **************************************************************************
 
 CommandResult _$CommandResultFromJson(Map json) => CommandResult(
-      exitCode: (json['exit_code'] as num).toInt(),
-      output: json['output'] as String,
-      error: json['error'] as String,
-    );
+  exitCode: (json['exit_code'] as num).toInt(),
+  output: json['output'] as String,
+  error: json['error'] as String,
+);
 
 Map<String, dynamic> _$CommandResultToJson(CommandResult instance) =>
     <String, dynamic>{

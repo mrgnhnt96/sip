@@ -14,21 +14,19 @@ part 'scripts_config.g.dart';
 /// Also nested scripts.
 @JsonSerializable(createFactory: false)
 class ScriptsConfig extends Equatable {
-  ScriptsConfig({
-    required this.scripts,
-    this.parents,
-  })  : assert(
-          !scripts.containsKey(Keys.command),
-          'The key "${Keys.command}" cannot exist in the config',
-        ),
-        assert(
-          !scripts.containsKey(Keys.description),
-          'The key "${Keys.description}" cannot exist in the config',
-        ),
-        assert(
-          !scripts.containsKey(Keys.aliases),
-          'The key "${Keys.aliases}" cannot exist in the config',
-        );
+  ScriptsConfig({required this.scripts, this.parents})
+    : assert(
+        !scripts.containsKey(Keys.command),
+        'The key "${Keys.command}" cannot exist in the config',
+      ),
+      assert(
+        !scripts.containsKey(Keys.description),
+        'The key "${Keys.description}" cannot exist in the config',
+      ),
+      assert(
+        !scripts.containsKey(Keys.aliases),
+        'The key "${Keys.aliases}" cannot exist in the config',
+      );
 
   // ignore: strict_raw_type
   factory ScriptsConfig.fromJson(Map json_) {
@@ -62,17 +60,10 @@ class ScriptsConfig extends Equatable {
         continue;
       }
 
-      scripts[key] = Script.fromJson(
-        key,
-        entry.value,
-        parents: parents,
-      );
+      scripts[key] = Script.fromJson(key, entry.value, parents: parents);
     }
 
-    return ScriptsConfig(
-      scripts: scripts,
-      parents: parents,
-    );
+    return ScriptsConfig(scripts: scripts, parents: parents);
   }
 
   @JsonKey(defaultValue: {})
@@ -180,8 +171,9 @@ class ScriptsConfig extends Equatable {
     for (final MapEntry(:key, value: script) in scripts.entries) {
       if (key.startsWith('_')) continue;
 
-      final wrapper =
-          script.commands.isEmpty ? wrapNonCallableKey : wrapCallableKey;
+      final wrapper = script.commands.isEmpty
+          ? wrapNonCallableKey
+          : wrapCallableKey;
 
       final entry = isLast(key) ? '└──' : '├──';
       buffer.writeln('$prefix$entry${wrapper(key)}');

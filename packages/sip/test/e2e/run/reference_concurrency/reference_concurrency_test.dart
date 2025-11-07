@@ -50,10 +50,7 @@ void main() {
           ..createSync(recursive: true)
           ..writeAsStringSync('');
 
-        final runOneScript = RunOneScript(
-          bindings: bindings,
-          logger: logger,
-        );
+        final runOneScript = RunOneScript(bindings: bindings, logger: logger);
 
         final command = ScriptRunCommand(
           bindings: bindings,
@@ -81,28 +78,25 @@ void main() {
       });
 
       // fixes issue where reference does not contain any commands to run
-      test(
-        'command: publish',
-        () async {
-          await command.run(['publish']);
+      test('command: publish', () async {
+        await command.run(['publish']);
 
-          await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
 
-          final scripts = [...bindings.scripts];
+        final scripts = [...bindings.scripts];
 
-          const analyze = 'dart analyze --fatal-infos --fatal-warnings';
+        const analyze = 'dart analyze --fatal-infos --fatal-warnings';
 
-          final found = scripts.remove(analyze);
+        final found = scripts.remove(analyze);
 
-          expect(found, isTrue);
+        expect(found, isTrue);
 
-          expect(
-            scripts,
-            isNot(contains(analyze)),
-            reason: 'analyze should only exist once',
-          );
-        },
-      );
+        expect(
+          scripts,
+          isNot(contains(analyze)),
+          reason: 'analyze should only exist once',
+        );
+      });
     });
   });
 }
@@ -119,11 +113,7 @@ class _TestBindings implements Bindings {
   }) async {
     scripts.addAll(script.split('\n'));
 
-    return const CommandResult(
-      exitCode: 0,
-      output: '',
-      error: '',
-    );
+    return const CommandResult(exitCode: 0, output: '', error: '');
   }
 }
 

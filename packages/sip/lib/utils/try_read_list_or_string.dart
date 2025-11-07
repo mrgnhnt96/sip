@@ -13,9 +13,7 @@ List<String>? tryReadListOrString(dynamic json) {
     for (final e in json) {
       if (e == null) continue;
       if (e is Map) {
-        logger.err(
-          'The script "$e" is not a string or a list of strings',
-        );
+        logger.err('The script "$e" is not a string or a list of strings');
         continue;
       }
 

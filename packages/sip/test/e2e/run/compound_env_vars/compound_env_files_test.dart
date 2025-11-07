@@ -52,10 +52,7 @@ void main() {
           ..createSync(recursive: true)
           ..writeAsStringSync('');
 
-        final runOneScript = RunOneScript(
-          bindings: bindings,
-          logger: logger,
-        );
+        final runOneScript = RunOneScript(bindings: bindings, logger: logger);
 
         final command = ScriptRunCommand(
           bindings: bindings,
@@ -87,14 +84,8 @@ void main() {
 
         await Future<void>.delayed(Duration.zero);
 
-        expect(
-          bindings.scripts,
-          contains('export RELEASE=true'),
-        );
-        expect(
-          bindings.scripts,
-          contains('export RELEASE=false'),
-        );
+        expect(bindings.scripts, contains('export RELEASE=true'));
+        expect(bindings.scripts, contains('export RELEASE=false'));
 
         expect(
           bindings.scripts.join('\n'),
@@ -117,11 +108,7 @@ class _TestBindings implements Bindings {
   }) async {
     scripts.addAll(script.split('\n'));
 
-    return const CommandResult(
-      exitCode: 0,
-      output: '',
-      error: '',
-    );
+    return const CommandResult(exitCode: 0, output: '', error: '');
   }
 }
 

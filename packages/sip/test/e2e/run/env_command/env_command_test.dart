@@ -51,10 +51,7 @@ void main() {
           ..createSync(recursive: true)
           ..writeAsStringSync('');
 
-        final runOneScript = RunOneScript(
-          bindings: bindings,
-          logger: logger,
-        );
+        final runOneScript = RunOneScript(bindings: bindings, logger: logger);
 
         final command = ScriptRunCommand(
           bindings: bindings,
@@ -86,9 +83,7 @@ void main() {
 
         await Future<void>.delayed(Duration.zero);
 
-        expect(
-          bindings.scripts.join('\n'),
-          r'''
+        expect(bindings.scripts.join('\n'), r'''
 cd /packages/sip || exit 1
 
 cd infra || exit 1
@@ -132,8 +127,7 @@ else
 fi
 
 cd backend/pocketbase &&./pocketbase migrate up
-''',
-        );
+''');
       });
     });
   });
@@ -151,11 +145,7 @@ class _TestBindings implements Bindings {
   }) async {
     scripts.addAll(script.split('\n'));
 
-    return const CommandResult(
-      exitCode: 0,
-      output: '',
-      error: '',
-    );
+    return const CommandResult(exitCode: 0, output: '', error: '');
   }
 }
 

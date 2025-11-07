@@ -26,11 +26,7 @@ class RunManyScripts {
     int maxAttempts = 3,
     String label = 'Running ',
   }) async {
-    final runner = _run(
-      commands,
-      bail: bail,
-      sequentially: sequentially,
-    );
+    final runner = _run(commands, bail: bail, sequentially: sequentially);
 
     final results = <CommandResult>[];
 

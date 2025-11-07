@@ -80,25 +80,27 @@ void main() {
 ''');
     }
 
-    test('when directories start with test but are not test directories',
-        () async {
-      createPackage(['test_dir']);
-      createPackage(['test_dir2']);
+    test(
+      'when directories start with test but are not test directories',
+      () async {
+        createPackage(['test_dir']);
+        createPackage(['test_dir2']);
 
-      final result = await command.run(['--recursive']);
+        final result = await command.run(['--recursive']);
 
-      expect(result.code, ExitCode.success.code);
-      expect(bindings.scripts, [
-        'cd /packages/sip/test_dir || exit 1',
-        '',
-        'dart test test/.test_optimizer.dart',
-        '',
-        'cd /packages/sip/test_dir2 || exit 1',
-        '',
-        'dart test test/.test_optimizer.dart',
-        '',
-      ]);
-    });
+        expect(result.code, ExitCode.success.code);
+        expect(bindings.scripts, [
+          'cd /packages/sip/test_dir || exit 1',
+          '',
+          'dart test test/.test_optimizer.dart',
+          '',
+          'cd /packages/sip/test_dir2 || exit 1',
+          '',
+          'dart test test/.test_optimizer.dart',
+          '',
+        ]);
+      },
+    );
   });
 }
 
@@ -114,11 +116,7 @@ class _TestBindings implements Bindings {
   }) async {
     scripts.addAll(script.split('\n'));
 
-    return const CommandResult(
-      exitCode: 0,
-      output: '',
-      error: '',
-    );
+    return const CommandResult(exitCode: 0, output: '', error: '');
   }
 }
 

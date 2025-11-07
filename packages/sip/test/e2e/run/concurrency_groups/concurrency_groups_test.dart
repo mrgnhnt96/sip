@@ -45,11 +45,8 @@ void main() {
           retryAfter: any(named: 'retryAfter'),
         ),
       ).thenAnswer(
-        (invocation) async => const CommandResult(
-          exitCode: 0,
-          output: '',
-          error: '',
-        ),
+        (invocation) async =>
+            const CommandResult(exitCode: 0, output: '', error: ''),
       );
       when(
         () => runManyScripts.run(
@@ -65,11 +62,7 @@ void main() {
           if (invocation.namedArguments[#commands]
               case final List<CommandToRun> commands)
             for (final command in commands)
-              CommandResult(
-                exitCode: 0,
-                output: command.command,
-                error: '',
-              ),
+              CommandResult(exitCode: 0, output: command.command, error: ''),
         ],
       );
 
@@ -114,147 +107,140 @@ void main() {
       );
     }
 
-    test('should run concurrent groups and isolate non-concurrent groups',
-        () async {
-      final command = setupScripts();
+    test(
+      'should run concurrent groups and isolate non-concurrent groups',
+      () async {
+        final command = setupScripts();
 
-      await command.run(['combined']);
-      {
-        final expected = [
-          [
-            ...[
-              'wait 1',
-              'wait 2',
-            ].map(
-              (e) => CommandToRun(
-                command: e,
-                label: e,
+        await command.run(['combined']);
+        {
+          final expected = [
+            [
+              ...['wait 1', 'wait 2'].map(
+                (e) => CommandToRun(
+                  command: e,
+                  label: e,
+                  workingDirectory: '/packages/sip',
+                  keys: const ['combined'],
+                  needsRunBeforeNext: false,
+                  bail: false,
+                  runConcurrently: true,
+                ),
+              ),
+              const CommandToRun(
+                command: 'wait 3',
+                label: 'wait 3',
                 workingDirectory: '/packages/sip',
-                keys: const ['combined'],
-                needsRunBeforeNext: false,
+                keys: ['combined'],
+                needsRunBeforeNext: true,
                 bail: false,
                 runConcurrently: true,
               ),
+            ],
+            [
+              ...['wait 4', 'wait 5'].map(
+                (e) => CommandToRun(
+                  command: e,
+                  label: e,
+                  workingDirectory: '/packages/sip',
+                  keys: const ['combined'],
+                  needsRunBeforeNext: false,
+                  bail: false,
+                  runConcurrently: true,
+                ),
+              ),
+            ],
+          ];
+
+          final results = <List<CommandToRun>>[];
+
+          verify(
+            () => runManyScripts.run(
+              commands: any(
+                named: 'commands',
+                that: isA<List<CommandToRun>>().having(
+                  (items) {
+                    return items;
+                  },
+                  'has correct scripts',
+                  (Object? items) {
+                    results.add(items! as List<CommandToRun>);
+                    return true;
+                  },
+                ),
+              ),
+              sequentially: false,
+              bail: false,
+              label: any(named: 'label'),
+              maxAttempts: any(named: 'maxAttempts'),
+              retryAfter: any(named: 'retryAfter'),
             ),
+          ).called(2);
+
+          expect(results, expected);
+        }
+
+        {
+          final expected = [
             const CommandToRun(
-              command: 'wait 3',
-              label: 'wait 3',
+              command: 'echo 6',
+              label: 'echo 6',
               workingDirectory: '/packages/sip',
               keys: ['combined'],
               needsRunBeforeNext: true,
               bail: false,
-              runConcurrently: true,
+              runConcurrently: false,
             ),
-          ],
-          [
-            ...[
-              'wait 4',
-              'wait 5',
-            ].map(
-              (e) => CommandToRun(
+            ...['wait 1; echo 1', 'wait 1; echo 2'].map((e) {
+              return CommandToRun(
                 command: e,
                 label: e,
                 workingDirectory: '/packages/sip',
                 keys: const ['combined'],
                 needsRunBeforeNext: false,
                 bail: false,
-                runConcurrently: true,
-              ),
-            ),
-          ],
-        ];
-
-        final results = <List<CommandToRun>>[];
-
-        verify(
-          () => runManyScripts.run(
-            commands: any(
-              named: 'commands',
-              that: isA<List<CommandToRun>>().having(
-                (items) {
-                  return items;
-                },
-                'has correct scripts',
-                (Object? items) {
-                  results.add(items! as List<CommandToRun>);
-                  return true;
-                },
-              ),
-            ),
-            sequentially: false,
-            bail: false,
-            label: any(named: 'label'),
-            maxAttempts: any(named: 'maxAttempts'),
-            retryAfter: any(named: 'retryAfter'),
-          ),
-        ).called(2);
-
-        expect(results, expected);
-      }
-
-      {
-        final expected = [
-          const CommandToRun(
-            command: 'echo 6',
-            label: 'echo 6',
-            workingDirectory: '/packages/sip',
-            keys: ['combined'],
-            needsRunBeforeNext: true,
-            bail: false,
-            runConcurrently: false,
-          ),
-          ...[
-            'wait 1; echo 1',
-            'wait 1; echo 2',
-          ].map((e) {
-            return CommandToRun(
-              command: e,
-              label: e,
+                runConcurrently: false,
+              );
+            }),
+            const CommandToRun(
+              command: 'wait 1; echo 3',
+              label: 'wait 1; echo 3',
               workingDirectory: '/packages/sip',
-              keys: const ['combined'],
-              needsRunBeforeNext: false,
+              keys: ['combined'],
+              needsRunBeforeNext: true,
               bail: false,
               runConcurrently: false,
-            );
-          }),
-          const CommandToRun(
-            command: 'wait 1; echo 3',
-            label: 'wait 1; echo 3',
-            workingDirectory: '/packages/sip',
-            keys: ['combined'],
-            needsRunBeforeNext: true,
-            bail: false,
-            runConcurrently: false,
-          ),
-        ];
-
-        final results = <CommandToRun>[];
-
-        verify(
-          () => runOneScript.run(
-            command: any(
-              named: 'command',
-              that: isA<CommandToRun>().having(
-                (items) {
-                  return items;
-                },
-                'has correct script',
-                (Object? items) {
-                  results.add(items! as CommandToRun);
-
-                  return true;
-                },
-              ),
             ),
-            showOutput: any(named: 'showOutput'),
-            maxAttempts: any(named: 'maxAttempts'),
-            retryAfter: any(named: 'retryAfter'),
-          ),
-        ).called(4);
+          ];
 
-        expect(results, expected);
-      }
-    });
+          final results = <CommandToRun>[];
+
+          verify(
+            () => runOneScript.run(
+              command: any(
+                named: 'command',
+                that: isA<CommandToRun>().having(
+                  (items) {
+                    return items;
+                  },
+                  'has correct script',
+                  (Object? items) {
+                    results.add(items! as CommandToRun);
+
+                    return true;
+                  },
+                ),
+              ),
+              showOutput: any(named: 'showOutput'),
+              maxAttempts: any(named: 'maxAttempts'),
+              retryAfter: any(named: 'retryAfter'),
+            ),
+          ).called(4);
+
+          expect(results, expected);
+        }
+      },
+    );
 
     test('should run concurrent group', () async {
       final command = setupScripts();
@@ -263,11 +249,7 @@ void main() {
 
       final expected = [
         [
-          ...[
-            'wait 1',
-            'wait 2',
-            'wait 3',
-          ].map(
+          ...['wait 1', 'wait 2', 'wait 3'].map(
             (e) => CommandToRun(
               command: e,
               label: e,
@@ -315,11 +297,7 @@ void main() {
       await command.run(['no_concurrent']);
 
       final expected = [
-        ...[
-          'wait 1; echo 1',
-          'wait 1; echo 2',
-          'wait 1; echo 3',
-        ].map(
+        ...['wait 1; echo 1', 'wait 1; echo 2', 'wait 1; echo 3'].map(
           (e) => CommandToRun(
             command: e,
             label: e,
@@ -366,10 +344,7 @@ void main() {
       {
         final expected = [
           [
-            ...[
-              'wait 4',
-              'wait 5',
-            ].map(
+            ...['wait 4', 'wait 5'].map(
               (e) => CommandToRun(
                 command: e,
                 label: e,
@@ -458,10 +433,7 @@ void main() {
 
       final expected = [
         [
-          ...[
-            'wait 1',
-            'wait 2',
-          ].map(
+          ...['wait 1', 'wait 2'].map(
             (e) => CommandToRun(
               command: e,
               label: e,
@@ -483,11 +455,7 @@ void main() {
           ),
         ],
         [
-          ...[
-            'wait 4',
-            'wait 5',
-            'echo 6',
-          ].map(
+          ...['wait 4', 'wait 5', 'echo 6'].map(
             (e) => CommandToRun(
               command: e,
               label: e,
@@ -557,7 +525,7 @@ void main() {
               runConcurrently: true,
             ),
           ),
-        ]
+        ],
       ];
 
       final results = <List<CommandToRun>>[];

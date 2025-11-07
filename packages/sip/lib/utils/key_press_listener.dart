@@ -15,9 +15,7 @@ typedef Event = void Function();
 /// {@endtemplate}
 class KeyPressListener {
   /// {@macro key_press_listener}
-  KeyPressListener({
-    required this.logger,
-  });
+  KeyPressListener({required this.logger});
 
   final Logger logger;
 

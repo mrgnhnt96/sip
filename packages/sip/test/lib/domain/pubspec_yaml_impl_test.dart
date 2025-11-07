@@ -68,8 +68,7 @@ void main() {
         expect(all.first, endsWith('pubspec.yaml'));
       });
 
-      test(
-          'should ignore pubspecs that are within a'
+      test('should ignore pubspecs that are within a'
           ' directory that starts with a dot', () async {
         fs.file('pubspec.yaml').createSync();
         fs.file('.dart_tool/pubspec.yaml').createSync(recursive: true);
@@ -95,14 +94,16 @@ void main() {
         expect(all.first, endsWith('pubspec.yaml'));
       });
 
-      test('should return all pubspec.yamls even when root does not exist',
-          () async {
-        fs.file('sub/pubspec.yaml').createSync(recursive: true);
+      test(
+        'should return all pubspec.yamls even when root does not exist',
+        () async {
+          fs.file('sub/pubspec.yaml').createSync(recursive: true);
 
-        final all = await tester.all(recursive: true);
+          final all = await tester.all(recursive: true);
 
-        expect(all.length, 1);
-      });
+          expect(all.length, 1);
+        },
+      );
 
       test('should come back sorted by length', () async {
         fs.file('pubspec.yaml').createSync();

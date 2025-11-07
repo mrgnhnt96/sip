@@ -10,10 +10,7 @@ class CommandResult {
     required this.output,
     required this.error,
   });
-  const CommandResult.unknown()
-      : exitCode = 1,
-        output = '',
-        error = '';
+  const CommandResult.unknown() : exitCode = 1, output = '', error = '';
 
   factory CommandResult.fromJson(Map<dynamic, dynamic> json) =>
       _$CommandResultFromJson(json);

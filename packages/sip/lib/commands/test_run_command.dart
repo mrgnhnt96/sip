@@ -57,11 +57,7 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
         help: 'Whether to remove the optimized test files after running tests',
         defaultsTo: true,
       )
-      ..addFlag(
-        'dart-only',
-        help: 'Run only dart tests',
-        negatable: false,
-      )
+      ..addFlag('dart-only', help: 'Run only dart tests', negatable: false)
       ..addFlag(
         'flutter-only',
         help: 'Run only flutter tests',
@@ -134,7 +130,8 @@ class TestRunCommand extends Command<ExitCode> with TesterMixin {
     final argResults = args != null ? argParser.parse(args) : super.argResults!;
     final isDartOnly =
         argResults.wasParsed('dart-only') && argResults['dart-only'] as bool;
-    final isFlutterOnly = argResults.wasParsed('flutter-only') &&
+    final isFlutterOnly =
+        argResults.wasParsed('flutter-only') &&
         argResults['flutter-only'] as bool;
     final isBoth = isDartOnly == isFlutterOnly;
     final optimize = argResults['optimize'] as bool;

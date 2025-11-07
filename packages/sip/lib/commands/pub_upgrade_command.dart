@@ -46,14 +46,16 @@ class PubUpgradeCommand extends APubCommand {
 
     argParser.addFlag(
       'unlock-transitive',
-      help: 'Also upgrades the transitive dependencies '
+      help:
+          'Also upgrades the transitive dependencies '
           'of the listed [dependencies]',
       negatable: false,
     );
 
     argParser.addFlag(
       'major-versions',
-      help: 'Upgrades packages to their latest resolvable versions, '
+      help:
+          'Upgrades packages to their latest resolvable versions, '
           'and updates pubspec.yaml.',
       aliases: ['major', 'majors'],
       negatable: false,
@@ -65,14 +67,14 @@ class PubUpgradeCommand extends APubCommand {
 
   @override
   List<String> get pubFlags => [
-        if (argResults?['offline'] case true) '--offline',
-        if (argResults?['dry-run'] case true) '--dry-run',
-        if (argResults?['precompile'] case true) '--precompile',
-        if (argResults?['tighten'] case true) '--tighten',
-        if (argResults?['major-versions'] case true) '--major-versions',
-        if (argResults?['unlock-transitive'] case true) '--unlock-transitive',
-        if (argResults?.rest case final rest? when rest.isNotEmpty) ...rest,
-      ];
+    if (argResults?['offline'] case true) '--offline',
+    if (argResults?['dry-run'] case true) '--dry-run',
+    if (argResults?['precompile'] case true) '--precompile',
+    if (argResults?['tighten'] case true) '--tighten',
+    if (argResults?['major-versions'] case true) '--major-versions',
+    if (argResults?['unlock-transitive'] case true) '--unlock-transitive',
+    if (argResults?.rest case final rest? when rest.isNotEmpty) ...rest,
+  ];
 
   @override
   List<String> get aliases => ['up', 'update'];

@@ -43,11 +43,9 @@ abstract mixin class TesterMixin {
   RunManyScripts get runManyScripts;
   RunOneScript get runOneScript;
 
-  ({
-    List<String> both,
-    List<String> dart,
-    List<String> flutter,
-  }) getArgs<T>(Command<T> command) {
+  ({List<String> both, List<String> dart, List<String> flutter}) getArgs<T>(
+    Command<T> command,
+  ) {
     final bothArgs = command._getBothArgs();
     final dartArgs = command._getDartArgs();
     final flutterArgs = command._getFlutterArgs();
@@ -87,12 +85,10 @@ abstract mixin class TesterMixin {
   ///
   /// It returns a map of test directories and the tools to run the tests
   (
-    (
-      List<String> testDirs,
-      Map<String, DetermineFlutterOrDart> dirTools,
-    )?,
+    (List<String> testDirs, Map<String, DetermineFlutterOrDart> dirTools)?,
     ExitCode? exitCode,
-  ) getTestDirs(
+  )
+  getTestDirs(
     Iterable<String> pubspecs, {
     required bool isFlutterOnly,
     required bool isDartOnly,
@@ -108,8 +104,9 @@ abstract mixin class TesterMixin {
       final testDirectory = path.join(path.dirname(pubspec), 'test');
 
       if (!fs.directory(testDirectory).existsSync()) {
-        logger
-            .detail('No test directory found in ${path.relative(projectRoot)}');
+        logger.detail(
+          'No test directory found in ${path.relative(projectRoot)}',
+        );
         continue;
       }
 
@@ -160,18 +157,18 @@ abstract mixin class TesterMixin {
       final tool = dirTools[testDir];
       if (tool == null) continue;
 
-      final packageToTest = PackageToTest(
-        tool: tool,
-        packagePath: testDir,
-      );
+      final packageToTest = PackageToTest(tool: tool, packagePath: testDir);
 
       if (tool.isFlutter) {
         yield packageToTest;
         continue;
       }
 
-      final allTestFiles =
-          glob.listFileSystemSync(fs, followLinks: false, root: testDir);
+      final allTestFiles = glob.listFileSystemSync(
+        fs,
+        followLinks: false,
+        root: testDir,
+      );
 
       final testFiles = omitOptimizedTest(allTestFiles);
 
@@ -179,10 +176,7 @@ abstract mixin class TesterMixin {
         continue;
       }
 
-      final optimizedPath = writeOptimizedFile(
-        testFiles,
-        testDir: testDir,
-      );
+      final optimizedPath = writeOptimizedFile(testFiles, testDir: testDir);
 
       packageToTest.optimizedPath = optimizedPath;
 
@@ -212,18 +206,12 @@ abstract mixin class TesterMixin {
   /// When these values are different, it is because flutter has specific
   /// tests to be run. Such as `LiveTestWidgetsFlutterBinding`, the value would
   /// be `live`
-  String writeOptimizedFile(
-    Iterable<String> files, {
-    required String testDir,
-  }) {
+  String writeOptimizedFile(Iterable<String> files, {required String testDir}) {
     ({String packageName, String barrelFile})? exportFile;
 
     if (PubspecYamlImpl(fs: fs).parse()?['name']
         case final String packageName) {
-      final possibleNames = [
-        packageName,
-        fs.currentDirectory.basename,
-      ];
+      final possibleNames = [packageName, fs.currentDirectory.basename];
 
       for (final name in possibleNames) {
         if (path.join('lib', '$name.dart') case final path
@@ -237,16 +225,10 @@ abstract mixin class TesterMixin {
     fs.file(optimizedPath).createSync(recursive: true);
 
     final testDirs = files.map(
-      (e) => Testable(
-        absolute: e,
-        optimizedPath: optimizedPath,
-      ),
+      (e) => Testable(absolute: e, optimizedPath: optimizedPath),
     );
 
-    final content = writeOptimizedTestFile(
-      testDirs,
-      barrelFile: exportFile,
-    );
+    final content = writeOptimizedTestFile(testDirs, barrelFile: exportFile);
 
     fs.file(optimizedPath).writeAsStringSync(content);
 
@@ -285,20 +267,19 @@ abstract mixin class TesterMixin {
     for (final packageToTest in packagesToTest) {
       yield createTestCommand(
         projectRoot: packageToTest.packagePath,
-        relativeProjectRoot:
-            packageRootFor(path.relative(packageToTest.packagePath)),
-        pathToProjectRoot:
-            path.dirname(path.relative(packageToTest.packagePath)),
+        relativeProjectRoot: packageRootFor(
+          path.relative(packageToTest.packagePath),
+        ),
+        pathToProjectRoot: path.dirname(
+          path.relative(packageToTest.packagePath),
+        ),
         flutterArgs: flutterArgs,
         tool: packageToTest.tool,
         dartArgs: dartArgs,
         tests: [
           if (packageToTest.optimizedPath case final test?
               when packageToTest.tool.isDart)
-            path.relative(
-              test,
-              from: packageToTest.packagePath,
-            ),
+            path.relative(test, from: packageToTest.packagePath),
         ],
         bail: bail,
       );
@@ -412,10 +393,7 @@ abstract mixin class TesterMixin {
     }
   }
 
-  (
-    Iterable<PackageToTest>? filesToTest,
-    ExitCode? exitCode,
-  ) getPackagesToTest(
+  (Iterable<PackageToTest>? filesToTest, ExitCode? exitCode) getPackagesToTest(
     List<String> testDirs,
     Map<String, DetermineFlutterOrDart> dirTools, {
     required bool optimize,
@@ -471,10 +449,7 @@ abstract mixin class TesterMixin {
     final dirs = [
       for (final dir in dirsWithTests)
         if (dirTools[dir] case final tool?)
-          PackageToTest(
-            tool: tool,
-            packagePath: dir,
-          ),
+          PackageToTest(tool: tool, packagePath: dir),
     ];
 
     return (dirs, null);

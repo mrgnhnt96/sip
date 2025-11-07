@@ -45,7 +45,8 @@ class CleanCommand extends Command<ExitCode> {
   }
 
   @override
-  String get description => 'Removes the .dart_tool and build directories, '
+  String get description =>
+      'Removes the .dart_tool and build directories, '
       'runs `flutter clean` in flutter packages';
 
   @override

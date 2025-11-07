@@ -9,10 +9,7 @@ import 'package:sip_cli/src/version.dart';
 import 'package:sip_cli/utils/exit_code.dart';
 
 class UpdateCommand extends Command<ExitCode> {
-  UpdateCommand({
-    required this.pubUpdater,
-    required this.logger,
-  });
+  UpdateCommand({required this.pubUpdater, required this.logger});
 
   final PubUpdater pubUpdater;
   final Logger logger;
@@ -66,9 +63,7 @@ class UpdateCommand extends Command<ExitCode> {
 
     if (!needsUpdate) {
       final version = darkGray.wrap('(v$packageVersion)');
-      progress.complete(
-        '$packageName is up to date $version',
-      );
+      progress.complete('$packageName is up to date $version');
 
       return ExitCode.success;
     }

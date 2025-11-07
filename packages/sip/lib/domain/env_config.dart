@@ -12,10 +12,10 @@ class EnvConfig extends Equatable {
   });
 
   const EnvConfig.empty()
-      : commands = const [],
-        files = const [],
-        workingDirectory = '',
-        variables = const {};
+    : commands = const [],
+      files = const [],
+      workingDirectory = '',
+      variables = const {};
 
   final List<String>? files;
   final List<String>? commands;
@@ -26,10 +26,7 @@ class EnvConfig extends Equatable {
   List<Object?> get props => _$props;
 
   EnvConfig? forceVariableOverride(Map<String, String>? variables) {
-    final newVariables = <String, String>{
-      ...?this.variables,
-      ...?variables,
-    };
+    final newVariables = <String, String>{...?this.variables, ...?variables};
 
     return EnvConfig(
       commands: commands,

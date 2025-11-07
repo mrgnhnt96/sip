@@ -32,7 +32,8 @@ extension _DartX<T> on Command<T> {
       )
       ..addMultiOption(
         'compiler',
-        help: 'The compiler(s) to use to run tests '
+        help:
+            'The compiler(s) to use to run tests '
             'Each platform has a default compiler but may support other '
             'compilers.\n'
             'You can target a compiler to a specific platform using arguments '
@@ -52,7 +53,8 @@ extension _DartX<T> on Command<T> {
       )
       ..addFlag(
         'pause-after-load',
-        help: 'Pause for debugging before any tests execute.\n'
+        help:
+            'Pause for debugging before any tests execute.\n'
             'Implies --concurrency=1, --debug, and --ignore-timeouts.\n'
             'Currently only supported for browser tests.',
         negatable: false,
@@ -64,7 +66,8 @@ extension _DartX<T> on Command<T> {
       )
       ..addFlag(
         'chain-stack-traces',
-        help: 'Use chained stack traces to provide greater exception details\n'
+        help:
+            'Use chained stack traces to provide greater exception details\n'
             'especially for asynchronous code. It may be useful to disable\n'
             'to provide improved test performance but at the cost of\n'
             'debuggability.',
@@ -120,9 +123,7 @@ extension _DartX<T> on Command<T> {
       argParser,
       argResults,
       options,
-      flagReplacements: {
-        'dart-coverage': 'coverage',
-      },
+      flagReplacements: {'dart-coverage': 'coverage'},
       initialArgs: args,
     );
 

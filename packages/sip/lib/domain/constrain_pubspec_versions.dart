@@ -4,18 +4,10 @@ import 'package:pub_semver/pub_semver.dart';
 import 'package:yaml/yaml.dart';
 import 'package:yaml_edit/yaml_edit.dart';
 
-enum VersionBump {
-  patch,
-  minor,
-  major,
-  breaking,
-}
+enum VersionBump { patch, minor, major, breaking }
 
 class ConstrainPubspecVersions {
-  const ConstrainPubspecVersions({
-    required this.fs,
-    required this.logger,
-  });
+  const ConstrainPubspecVersions({required this.fs, required this.logger});
 
   final FileSystem fs;
   final Logger logger;
@@ -41,9 +33,7 @@ class ConstrainPubspecVersions {
       bump: bump,
       packages: packages,
       pin: pin,
-      additionalKeys: [
-        if (includeDevDependencies) 'dev_dependencies',
-      ],
+      additionalKeys: [if (includeDevDependencies) 'dev_dependencies'],
     );
 
     if (result == null) {
@@ -68,10 +58,7 @@ class ConstrainPubspecVersions {
   }) {
     final yaml = YamlEditor(content);
 
-    final dependencies = [
-      'dependencies',
-      ...additionalKeys,
-    ];
+    final dependencies = ['dependencies', ...additionalKeys];
 
     var changesMade = false;
 

@@ -2,9 +2,7 @@ import 'package:file/file.dart';
 import 'package:glob/glob.dart';
 
 class FindFile {
-  const FindFile({
-    required this.fs,
-  });
+  const FindFile({required this.fs});
   final FileSystem fs;
 
   String? nearest(String fileName) {

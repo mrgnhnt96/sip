@@ -37,24 +37,27 @@ void main() {
       expect(determineFlutterOrDart.isFlutter, isFalse);
     });
 
-    test('should return flutter as the tool if flutter is found in contents',
-        () {
-      when(() => mockFindFile.retrieveContent(any())).thenReturn('flutter:');
-      when(() => mockPubspecLock.findIn(any())).thenReturn(null);
-      when(() => mockScriptsYaml.executables()).thenReturn(null);
+    test(
+      'should return flutter as the tool if flutter is found in contents',
+      () {
+        when(() => mockFindFile.retrieveContent(any())).thenReturn('flutter:');
+        when(() => mockPubspecLock.findIn(any())).thenReturn(null);
+        when(() => mockScriptsYaml.executables()).thenReturn(null);
 
-      final tool = determineFlutterOrDart.tool();
+        final tool = determineFlutterOrDart.tool();
 
-      expect(tool, 'flutter');
-      expect(determineFlutterOrDart.isDart, isFalse);
-      expect(determineFlutterOrDart.isFlutter, isTrue);
-    });
+        expect(tool, 'flutter');
+        expect(determineFlutterOrDart.isDart, isFalse);
+        expect(determineFlutterOrDart.isFlutter, isTrue);
+      },
+    );
 
     test('should return custom dart executable if provided', () {
       when(() => mockFindFile.retrieveContent(any())).thenReturn(null);
       when(() => mockPubspecLock.findIn(any())).thenReturn(null);
-      when(() => mockScriptsYaml.executables())
-          .thenReturn({'dart': 'custom_dart'});
+      when(
+        () => mockScriptsYaml.executables(),
+      ).thenReturn({'dart': 'custom_dart'});
 
       final tool = determineFlutterOrDart.tool();
 
@@ -66,8 +69,9 @@ void main() {
     test('should return custom flutter executable if provided', () {
       when(() => mockFindFile.retrieveContent(any())).thenReturn('flutter:');
       when(() => mockPubspecLock.findIn(any())).thenReturn(null);
-      when(() => mockScriptsYaml.executables())
-          .thenReturn({'flutter': 'custom_flutter'});
+      when(
+        () => mockScriptsYaml.executables(),
+      ).thenReturn({'flutter': 'custom_flutter'});
 
       final tool = determineFlutterOrDart.tool();
 

@@ -9,9 +9,7 @@ import 'package:sip_cli/domain/command_result.dart';
 import 'package:sip_cli/domain/filter_type.dart';
 
 class BindingsImpl implements Bindings {
-  const BindingsImpl({
-    required this.logger,
-  });
+  const BindingsImpl({required this.logger});
 
   final Logger logger;
 
@@ -24,10 +22,7 @@ class BindingsImpl implements Bindings {
   }) async {
     final port = ReceivePort();
 
-    final isolate = await Isolate.spawn(
-      _runScript,
-      port.sendPort,
-    );
+    final isolate = await Isolate.spawn(_runScript, port.sendPort);
 
     final completer = Completer<CommandResult>();
 
@@ -187,14 +182,13 @@ Future<void> _runScript(SendPort sendPort) async {
   }
 
   await for (final event in port) {
-    if (event
-        case {
-          'script': final String script,
-          'showOutput': final bool showOutput,
-          'filterType': final String? type,
-          'loggerLevel': final String loggerLevel,
-          'bail': final bool bail,
-        }) {
+    if (event case {
+      'script': final String script,
+      'showOutput': final bool showOutput,
+      'filterType': final String? type,
+      'loggerLevel': final String loggerLevel,
+      'bail': final bool bail,
+    }) {
       final logger = Logger(
         level: Level.values.asNameMap()[loggerLevel] ?? Level.info,
       );

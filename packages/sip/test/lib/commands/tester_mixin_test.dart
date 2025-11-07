@@ -222,8 +222,10 @@ void main() {
             testables.first: _FakeDetermineFlutterOrDart.dart(),
           };
 
-          final optimizedFiles =
-              tester.prepareOptimizedFilesFromDirs(testables, testableTools);
+          final optimizedFiles = tester.prepareOptimizedFilesFromDirs(
+            testables,
+            testableTools,
+          );
 
           expect(optimizedFiles, hasLength(1));
           expect(optimizedFiles.first.tool.isDart, isTrue);
@@ -257,8 +259,10 @@ void main() {
             testables.first: _FakeDetermineFlutterOrDart.flutter(),
           };
 
-          final optimizedFiles =
-              tester.prepareOptimizedFilesFromDirs(testables, testableTools);
+          final optimizedFiles = tester.prepareOptimizedFilesFromDirs(
+            testables,
+            testableTools,
+          );
 
           expect(optimizedFiles, hasLength(1));
           expect(optimizedFiles.first.tool.isFlutter, isTrue);
@@ -270,8 +274,10 @@ void main() {
       });
 
       group('optimized file content', () {
-        final importPattern =
-            RegExp(r"^import '(.*)' as _i\d+;$", multiLine: true);
+        final importPattern = RegExp(
+          r"^import '(.*)' as _i\d+;$",
+          multiLine: true,
+        );
 
         test('should not include optimized file import', () {
           const optimizedFile =
@@ -289,8 +295,9 @@ void main() {
               .prepareOptimizedFilesFromDirs(testables, testableTools)
               .toList();
 
-          final optimizedFileContent =
-              fs.file(optimizedFile).readAsStringSync();
+          final optimizedFileContent = fs
+              .file(optimizedFile)
+              .readAsStringSync();
 
           final imports = importPattern.allMatches(optimizedFileContent);
 
@@ -329,8 +336,10 @@ void main() {
             testables.first: _FakeDetermineFlutterOrDart.dart(),
           };
 
-          final optimizedFiles =
-              tester.prepareOptimizedFilesFromDirs(testables, testableTools);
+          final optimizedFiles = tester.prepareOptimizedFilesFromDirs(
+            testables,
+            testableTools,
+          );
 
           expect(optimizedFiles, hasLength(0));
         });
@@ -413,10 +422,7 @@ void main() {
         );
 
         expect(commands.length, 1);
-        expect(
-          commands.first.command.trim(),
-          'flutter test',
-        );
+        expect(commands.first.command.trim(), 'flutter test');
       });
 
       test(
@@ -437,37 +443,31 @@ void main() {
           );
 
           expect(commands.length, 1);
-          expect(
-            commands.first.command.trim(),
-            'flutter test --flutter',
-          );
+          expect(commands.first.command.trim(), 'flutter test --flutter');
         },
       );
 
-      test(
-        'should add dart args to dart command and ignore flutter args',
-        () {
-          fs.file('test/.optimized_test.dart').createSync(recursive: true);
+      test('should add dart args to dart command and ignore flutter args', () {
+        fs.file('test/.optimized_test.dart').createSync(recursive: true);
 
-          final testableTools = PackageToTest(
-            tool: _FakeDetermineFlutterOrDart.dart(),
-            packagePath: '',
-            optimizedPath: 'test/.optimized_test.dart',
-          );
+        final testableTools = PackageToTest(
+          tool: _FakeDetermineFlutterOrDart.dart(),
+          packagePath: '',
+          optimizedPath: 'test/.optimized_test.dart',
+        );
 
-          final commands = tester.getCommandsToRun(
-            [testableTools],
-            flutterArgs: ['--flutter'],
-            dartArgs: ['--dart'],
-          );
+        final commands = tester.getCommandsToRun(
+          [testableTools],
+          flutterArgs: ['--flutter'],
+          dartArgs: ['--dart'],
+        );
 
-          expect(commands.length, 1);
-          expect(
-            commands.first.command.trim(),
-            'dart test test/.optimized_test.dart --dart',
-          );
-        },
-      );
+        expect(commands.length, 1);
+        expect(
+          commands.first.command.trim(),
+          'dart test test/.optimized_test.dart --dart',
+        );
+      });
     });
 
     group('#getTests', () {
@@ -508,8 +508,7 @@ void main() {
         expect(tests.first.packagePath, '');
       });
 
-      test(
-          'should return exit code when no '
+      test('should return exit code when no '
           'tests are found and not optimizing', () {
         final (tests, exitCode) = tester.getPackagesToTest(
           ['test'],
@@ -562,11 +561,7 @@ void main() {
             workingDirectory: '.',
             keys: [],
           ),
-          const CommandToRun(
-            command: 'else',
-            workingDirectory: '.',
-            keys: [],
-          ),
+          const CommandToRun(command: 'else', workingDirectory: '.', keys: []),
         ];
 
         final results = await tester.runCommands(
@@ -736,13 +731,9 @@ class _MockProgress extends Mock implements Progress {}
 
 class _FakeDetermineFlutterOrDart extends Fake
     implements DetermineFlutterOrDart {
-  _FakeDetermineFlutterOrDart.flutter()
-      : _isFlutter = true,
-        _isDart = false;
+  _FakeDetermineFlutterOrDart.flutter() : _isFlutter = true, _isDart = false;
 
-  _FakeDetermineFlutterOrDart.dart()
-      : _isFlutter = false,
-        _isDart = true;
+  _FakeDetermineFlutterOrDart.dart() : _isFlutter = false, _isDart = true;
 
   final bool _isFlutter;
   final bool _isDart;

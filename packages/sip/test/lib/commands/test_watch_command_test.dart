@@ -52,103 +52,91 @@ void main() {
     group('#findTest', () {
       group('return directory successfully', () {
         group('when root level', () {
-          test(
-            'and modified is in lib',
-            () async {
-              final testDirs = PackageToTest(
-                tool: _FakeDetermineFlutterOrDart(),
-                packagePath: '',
-              );
+          test('and modified is in lib', () async {
+            final testDirs = PackageToTest(
+              tool: _FakeDetermineFlutterOrDart(),
+              packagePath: '',
+            );
 
-              const modifiedFile = 'lib/foo.dart';
+            const modifiedFile = 'lib/foo.dart';
 
-              final result = await testWatchCommand.findTest(
-                [testDirs],
-                modifiedFile,
-                returnTestFile: false,
-              );
+            final result = await testWatchCommand.findTest(
+              [testDirs],
+              modifiedFile,
+              returnTestFile: false,
+            );
 
-              expect(result, isNotNull);
-              expect(result?.packagePath, 'a');
-            },
-          );
+            expect(result, isNotNull);
+            expect(result?.packagePath, 'a');
+          });
 
-          test(
-            'and modified is in test',
-            () async {
-              final testDirs = PackageToTest(
-                tool: _FakeDetermineFlutterOrDart(),
-                packagePath: '',
-              );
+          test('and modified is in test', () async {
+            final testDirs = PackageToTest(
+              tool: _FakeDetermineFlutterOrDart(),
+              packagePath: '',
+            );
 
-              const modifiedFile = 'test/foo_test.dart';
+            const modifiedFile = 'test/foo_test.dart';
 
-              final result = await testWatchCommand.findTest(
-                [testDirs],
-                modifiedFile,
-                returnTestFile: false,
-              );
+            final result = await testWatchCommand.findTest(
+              [testDirs],
+              modifiedFile,
+              returnTestFile: false,
+            );
 
-              expect(result, isNotNull);
-              expect(result?.packagePath, '');
-            },
-          );
+            expect(result, isNotNull);
+            expect(result?.packagePath, '');
+          });
         });
 
         group('when nested level', () {
-          test(
-            'and modified is in lib',
-            () async {
-              final testDirs = {
-                PackageToTest(
-                  tool: _FakeDetermineFlutterOrDart(),
-                  packagePath: '',
-                ),
-                PackageToTest(
-                  tool: _FakeDetermineFlutterOrDart(),
-                  packagePath: 'packages/foo',
-                ),
-              };
+          test('and modified is in lib', () async {
+            final testDirs = {
+              PackageToTest(
+                tool: _FakeDetermineFlutterOrDart(),
+                packagePath: '',
+              ),
+              PackageToTest(
+                tool: _FakeDetermineFlutterOrDart(),
+                packagePath: 'packages/foo',
+              ),
+            };
 
-              const modifiedFile = 'packages/foo/lib/foo.dart';
+            const modifiedFile = 'packages/foo/lib/foo.dart';
 
-              final result = await testWatchCommand.findTest(
-                testDirs,
-                modifiedFile,
-                returnTestFile: false,
-              );
+            final result = await testWatchCommand.findTest(
+              testDirs,
+              modifiedFile,
+              returnTestFile: false,
+            );
 
-              expect(result, isNotNull);
-              expect(result?.packagePath, 'packages/foo');
-            },
-          );
+            expect(result, isNotNull);
+            expect(result?.packagePath, 'packages/foo');
+          });
 
-          test(
-            'and modified is in test',
-            () async {
-              final testDirs = [
-                PackageToTest(
-                  tool: _FakeDetermineFlutterOrDart(),
-                  packagePath: '',
-                ),
-                PackageToTest(
-                  tool: _FakeDetermineFlutterOrDart(),
-                  packagePath: 'packages/foo',
-                ),
-              ];
+          test('and modified is in test', () async {
+            final testDirs = [
+              PackageToTest(
+                tool: _FakeDetermineFlutterOrDart(),
+                packagePath: '',
+              ),
+              PackageToTest(
+                tool: _FakeDetermineFlutterOrDart(),
+                packagePath: 'packages/foo',
+              ),
+            ];
 
-              const modifiedFile = 'packages/foo/test/foo_test.dart';
+            const modifiedFile = 'packages/foo/test/foo_test.dart';
 
-              final result = await testWatchCommand.findTest(
-                testDirs,
-                modifiedFile,
-                returnTestFile: false,
-              );
+            final result = await testWatchCommand.findTest(
+              testDirs,
+              modifiedFile,
+              returnTestFile: false,
+            );
 
-              expect(result, isNotNull);
-              expect(result?.packagePath, 'packages/foo');
-            },
-          );
+            expect(result, isNotNull);
+            expect(result?.packagePath, 'packages/foo');
+          });
 
           test('when there are similar starting paths', () async {
             final testDirs = {

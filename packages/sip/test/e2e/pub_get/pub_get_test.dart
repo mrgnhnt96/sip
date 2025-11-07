@@ -80,13 +80,7 @@ void main() {
           label: any(named: 'label'),
         ),
       ).thenAnswer(
-        (_) async => [
-          const CommandResult(
-            exitCode: 0,
-            output: '',
-            error: '',
-          ),
-        ],
+        (_) async => [const CommandResult(exitCode: 0, output: '', error: '')],
       );
 
       final result = await command.run(['--recursive']);
@@ -116,11 +110,7 @@ class _TestBindings implements Bindings {
   }) async {
     scripts.addAll(script.split('\n'));
 
-    return const CommandResult(
-      exitCode: 0,
-      output: '',
-      error: '',
-    );
+    return const CommandResult(exitCode: 0, output: '', error: '');
   }
 }
 

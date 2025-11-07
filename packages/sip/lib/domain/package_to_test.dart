@@ -9,10 +9,12 @@ class PackageToTest {
   }) {
     final segments = p.split(packagePath);
     this.packagePath = switch (packagePath) {
-      _ when segments.contains('test') =>
-        p.joinAll(segments.takeWhile((e) => e != 'test')),
-      _ when segments.contains('lib') =>
-        p.joinAll(segments.takeWhile((e) => e != 'lib')),
+      _ when segments.contains('test') => p.joinAll(
+        segments.takeWhile((e) => e != 'test'),
+      ),
+      _ when segments.contains('lib') => p.joinAll(
+        segments.takeWhile((e) => e != 'lib'),
+      ),
       _ => packagePath,
     };
   }

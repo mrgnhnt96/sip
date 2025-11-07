@@ -8,10 +8,7 @@ import 'package:sip_cli/domain/env_config.dart';
 import 'package:sip_cli/domain/filter_type.dart';
 
 class RunOneScript {
-  const RunOneScript({
-    required this.bindings,
-    required this.logger,
-  });
+  const RunOneScript({required this.bindings, required this.logger});
 
   final Bindings bindings;
   final Logger logger;
@@ -32,7 +29,8 @@ class RunOneScript {
         cmd = '\n$cmd';
 
         for (final entry in vars.entries.toList().reversed) {
-          cmd = '''
+          cmd =
+              '''
 export ${entry.key}=${entry.value}
 $cmd''';
         }
@@ -55,7 +53,8 @@ $cmd''';
             " | grep -E '^[A-Za-z_][A-Za-z0-9_]*=')",
           ].join();
 
-          cmd = '''
+          cmd =
+              '''
 if [ -f $file ]; then
   builtin source $file
 $addToEnv
@@ -70,7 +69,8 @@ $cmd''';
     }
 
     logger.detail('Setting directory to ${command.workingDirectory}');
-    cmd = '''
+    cmd =
+        '''
 cd ${command.workingDirectory} || exit 1
 
 $cmd

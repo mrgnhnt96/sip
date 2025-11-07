@@ -4,9 +4,7 @@ import 'package:sip_cli/domain/any_arg_results.dart';
 typedef _Callback<T> = void Function(T);
 
 class AnyArgParser implements ArgParser {
-  AnyArgParser({
-    ArgParser? argParser,
-  }) : _argParser = argParser ?? ArgParser();
+  AnyArgParser({ArgParser? argParser}) : _argParser = argParser ?? ArgParser();
 
   final ArgParser _argParser;
 
@@ -26,18 +24,17 @@ class AnyArgParser implements ArgParser {
     bool hide = false,
     List<String> aliases = const [],
     bool hideNegatedUsage = false,
-  }) =>
-      _argParser.addFlag(
-        name,
-        abbr: abbr,
-        help: help,
-        defaultsTo: defaultsTo,
-        negatable: negatable,
-        callback: callback,
-        hide: hide,
-        aliases: aliases,
-        hideNegatedUsage: hideNegatedUsage,
-      );
+  }) => _argParser.addFlag(
+    name,
+    abbr: abbr,
+    help: help,
+    defaultsTo: defaultsTo,
+    negatable: negatable,
+    callback: callback,
+    hide: hide,
+    aliases: aliases,
+    hideNegatedUsage: hideNegatedUsage,
+  );
 
   @override
   void addMultiOption(
@@ -52,20 +49,19 @@ class AnyArgParser implements ArgParser {
     bool splitCommas = true,
     bool hide = false,
     List<String> aliases = const [],
-  }) =>
-      _argParser.addMultiOption(
-        name,
-        abbr: abbr,
-        help: help,
-        valueHelp: valueHelp,
-        allowed: allowed,
-        allowedHelp: allowedHelp,
-        defaultsTo: defaultsTo,
-        callback: callback,
-        splitCommas: splitCommas,
-        hide: hide,
-        aliases: aliases,
-      );
+  }) => _argParser.addMultiOption(
+    name,
+    abbr: abbr,
+    help: help,
+    valueHelp: valueHelp,
+    allowed: allowed,
+    allowedHelp: allowedHelp,
+    defaultsTo: defaultsTo,
+    callback: callback,
+    splitCommas: splitCommas,
+    hide: hide,
+    aliases: aliases,
+  );
 
   @override
   void addOption(
@@ -80,20 +76,19 @@ class AnyArgParser implements ArgParser {
     bool mandatory = false,
     bool hide = false,
     List<String> aliases = const [],
-  }) =>
-      _argParser.addOption(
-        name,
-        abbr: abbr,
-        help: help,
-        valueHelp: valueHelp,
-        allowed: allowed,
-        allowedHelp: allowedHelp,
-        defaultsTo: defaultsTo,
-        callback: callback,
-        mandatory: mandatory,
-        hide: hide,
-        aliases: aliases,
-      );
+  }) => _argParser.addOption(
+    name,
+    abbr: abbr,
+    help: help,
+    valueHelp: valueHelp,
+    allowed: allowed,
+    allowedHelp: allowedHelp,
+    defaultsTo: defaultsTo,
+    callback: callback,
+    mandatory: mandatory,
+    hide: hide,
+    aliases: aliases,
+  );
 
   @override
   void addSeparator(String text) => _argParser.addSeparator(text);
@@ -171,16 +166,19 @@ class AnyArgParser implements ArgParser {
             foundFlag = true;
             break;
           } else if (RegExp(r'^-\w').hasMatch(badFlag) &&
-              RegExp(r'(?:-)\w*' '${badFlag.replaceAll('-', '')}')
-                  .hasMatch(key)) {
+              RegExp(
+                r'(?:-)\w*'
+                '${badFlag.replaceAll('-', '')}',
+              ).hasMatch(key)) {
             final badFlagOnly = badFlag.replaceAll('-', '');
             grabValues = key.endsWith(badFlagOnly);
 
             final updatedKey = key.replaceAll(badFlagOnly, '');
 
             final replaceIndex = mutableArgs.indexOf(key);
-            mutableArgs
-                .replaceRange(replaceIndex, replaceIndex + 1, [updatedKey]);
+            mutableArgs.replaceRange(replaceIndex, replaceIndex + 1, [
+              updatedKey,
+            ]);
 
             removedArgs.add(badFlag);
             foundFlag = true;
@@ -194,19 +192,16 @@ class AnyArgParser implements ArgParser {
       }
 
       if (grabValues) {
-        final removed =
-            mutableArgs.takeWhile((value) => !value.startsWith('-'));
+        final removed = mutableArgs.takeWhile(
+          (value) => !value.startsWith('-'),
+        );
 
         removedArgs.addAll(removed.expand((element) => element.split('=')));
 
         mutableArgs = mutableArgs.skip(removed.length).toList();
       }
 
-      return parse(
-        mutableArgs,
-        badArgs: removedArgs,
-        preFlags: preFlags0,
-      );
+      return parse(mutableArgs, badArgs: removedArgs, preFlags: preFlags0);
     }
 
     final anyArgResults = AnyArgResults(backUpResult)..addAllRest(removedArgs);

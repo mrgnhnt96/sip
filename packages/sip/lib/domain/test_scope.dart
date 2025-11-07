@@ -25,13 +25,12 @@ enum TestScope {
   static TestScope toggle(TestScope runType) {
     final index = TestScope.values.indexOf(runType);
 
-    return TestScope
-        .values[index == TestScope.values.length - 1 ? 0 : index + 1];
+    return TestScope.values[index == TestScope.values.length - 1
+        ? 0
+        : index + 1];
   }
 
   static Map<String, TestScope> get options {
-    return {
-      for (final val in TestScope.values) val.option: val,
-    };
+    return {for (final val in TestScope.values) val.option: val};
   }
 }

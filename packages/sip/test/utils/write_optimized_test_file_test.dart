@@ -19,10 +19,7 @@ void main() {
     });
 
     test('does not duplicate name imports', () {
-      final content = writeOptimizedTestFile(
-        testables,
-        barrelFile: null,
-      );
+      final content = writeOptimizedTestFile(testables, barrelFile: null);
 
       final namespacesPattern = RegExp(r"import \'.*\' as (.*)\;");
 
@@ -44,10 +41,7 @@ void main() {
     });
 
     test('does not include barrel file when not provided', () {
-      final content = writeOptimizedTestFile(
-        testables,
-        barrelFile: null,
-      );
+      final content = writeOptimizedTestFile(testables, barrelFile: null);
 
       expect(content, isNot(contains("import 'package:domain/domain.dart';")));
     });

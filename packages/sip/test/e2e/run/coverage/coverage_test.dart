@@ -33,14 +33,7 @@ void main() {
 
       ScriptRunCommand prep() {
         final input = io.File(
-          path.join(
-            'test',
-            'e2e',
-            'run',
-            'coverage',
-            'inputs',
-            'scripts.yaml',
-          ),
+          path.join('test', 'e2e', 'run', 'coverage', 'inputs', 'scripts.yaml'),
         ).readAsStringSync();
 
         fs.file(ScriptsYaml.fileName)
@@ -50,10 +43,7 @@ void main() {
           ..createSync(recursive: true)
           ..writeAsStringSync('');
 
-        final runOneScript = RunOneScript(
-          bindings: bindings,
-          logger: logger,
-        );
+        final runOneScript = RunOneScript(bindings: bindings, logger: logger);
 
         final command = ScriptRunCommand(
           bindings: bindings,
@@ -85,57 +75,45 @@ void main() {
 
         await Future<void>.delayed(const Duration(milliseconds: 100));
 
-        expect(
-          bindings.scripts,
-          [
-            'cd /packages/sip || exit 1',
-            '',
-            'dart test',
-            '',
-          ],
-        );
+        expect(bindings.scripts, [
+          'cd /packages/sip || exit 1',
+          '',
+          'dart test',
+          '',
+        ]);
       });
 
       test('command: test --coverage', () async {
         await command.run(['test', '--coverage']);
 
-        expect(
-          bindings.scripts,
-          [
-            'cd /packages/sip || exit 1',
-            '',
-            'dart test --coverage',
-            '',
-          ],
-        );
+        expect(bindings.scripts, [
+          'cd /packages/sip || exit 1',
+          '',
+          'dart test --coverage',
+          '',
+        ]);
       });
 
       test('command: test --coverage=banana', () async {
         await command.run(['test', '--coverage=banana']);
 
-        expect(
-          bindings.scripts,
-          [
-            'cd /packages/sip || exit 1',
-            '',
-            'dart test --coverage=banana',
-            '',
-          ],
-        );
+        expect(bindings.scripts, [
+          'cd /packages/sip || exit 1',
+          '',
+          'dart test --coverage=banana',
+          '',
+        ]);
       });
 
       test('command: test --coverage monkey', () async {
         await command.run(['test', '--coverage', 'monkey']);
 
-        expect(
-          bindings.scripts,
-          [
-            'cd /packages/sip || exit 1',
-            '',
-            'dart test --coverage monkey',
-            '',
-          ],
-        );
+        expect(bindings.scripts, [
+          'cd /packages/sip || exit 1',
+          '',
+          'dart test --coverage monkey',
+          '',
+        ]);
       });
     });
   });
@@ -153,11 +131,7 @@ class _TestBindings implements Bindings {
   }) async {
     scripts.addAll(script.split('\n'));
 
-    return const CommandResult(
-      exitCode: 0,
-      output: '',
-      error: '',
-    );
+    return const CommandResult(exitCode: 0, output: '', error: '');
   }
 }
 

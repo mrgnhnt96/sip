@@ -8,14 +8,14 @@ part of 'command_to_run.dart';
 
 extension _$CommandToRunAutoequal on CommandToRun {
   List<Object?> get _$props => [
-        command,
-        workingDirectory,
-        label,
-        runConcurrently,
-        keys,
-        envConfig,
-        filterOutput,
-        bail,
-        needsRunBeforeNext,
-      ];
+    command,
+    workingDirectory,
+    label,
+    runConcurrently,
+    keys,
+    envConfig,
+    filterOutput,
+    bail,
+    needsRunBeforeNext,
+  ];
 }

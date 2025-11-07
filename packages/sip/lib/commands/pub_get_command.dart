@@ -31,12 +31,11 @@ class PubGetCommand extends APubCommand {
       ..addFlag(
         'enforce-lockfile',
         negatable: false,
-        help: 'Enforce pubspec.lock. Fail resolution if '
+        help:
+            'Enforce pubspec.lock. Fail resolution if '
             'pubspec.lock does not satisfy pubspec.yaml',
       )
-      ..addFlag(
-        'unlock-transitive',
-      )
+      ..addFlag('unlock-transitive')
       ..addFlag(
         'precompile',
         help: 'Build executables in immediate dependencies.',
@@ -48,15 +47,15 @@ class PubGetCommand extends APubCommand {
 
   @override
   ({Duration? dart, Duration? flutter}) get retryAfter => (
-        dart: const Duration(milliseconds: 750),
-        flutter: const Duration(milliseconds: 4000)
-      );
+    dart: const Duration(milliseconds: 750),
+    flutter: const Duration(milliseconds: 4000),
+  );
 
   @override
   List<String> get pubFlags => [
-        if (argResults?['offline'] case true) '--offline',
-        if (argResults?['dry-run'] case true) '--dry-run',
-        if (argResults?['enforce-lockfile'] case true) '--enforce-lockfile',
-        if (argResults?['precompile'] case true) '--precompile',
-      ];
+    if (argResults?['offline'] case true) '--offline',
+    if (argResults?['dry-run'] case true) '--dry-run',
+    if (argResults?['enforce-lockfile'] case true) '--enforce-lockfile',
+    if (argResults?['precompile'] case true) '--precompile',
+  ];
 }

@@ -47,14 +47,13 @@ class PubConstrainCommand extends Command<ExitCode> with DartOrFlutterMixin {
       ..addOption(
         'bump',
         help: 'Bump the type of version constraint.',
-        allowed: [
-          for (final type in VersionBump.values) type.name,
-        ],
+        allowed: [for (final type in VersionBump.values) type.name],
         defaultsTo: VersionBump.breaking.name,
       )
       ..addFlag(
         'pin',
-        help: 'Pin the version of the package (^1.0.0 -> 1.0.0). '
+        help:
+            'Pin the version of the package (^1.0.0 -> 1.0.0). '
             'Unpins otherwise (1.0.0 -> ^1.0.0)',
         defaultsTo: null,
       )
@@ -129,10 +128,7 @@ class PubConstrainCommand extends Command<ExitCode> with DartOrFlutterMixin {
     final dryRun = argResults['dry-run'] as bool;
     final pin = argResults['pin'] as bool?;
 
-    warnDartOrFlutter(
-      isDartOnly: dartOnly,
-      isFlutterOnly: flutterOnly,
-    );
+    warnDartOrFlutter(isDartOnly: dartOnly, isFlutterOnly: flutterOnly);
 
     final pubspecs = await pubspecYaml.all(recursive: recursive);
 
@@ -153,8 +149,9 @@ class PubConstrainCommand extends Command<ExitCode> with DartOrFlutterMixin {
           from: fs.currentDirectory.path,
         );
 
-        final progress =
-            logger.progress('Constraining ${cyan.wrap(relativeDir)}');
+        final progress = logger.progress(
+          'Constraining ${cyan.wrap(relativeDir)}',
+        );
 
         final success = constrainPubspecVersions.constrain(
           flutterOrDart.pubspecYaml,

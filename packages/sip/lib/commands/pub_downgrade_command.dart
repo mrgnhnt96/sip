@@ -42,14 +42,14 @@ class PubDowngradeCommand extends APubCommand {
 
   @override
   ({Duration? dart, Duration? flutter}) get retryAfter => (
-        dart: const Duration(milliseconds: 750),
-        flutter: const Duration(milliseconds: 4000)
-      );
+    dart: const Duration(milliseconds: 750),
+    flutter: const Duration(milliseconds: 4000),
+  );
 
   @override
   List<String> get pubFlags => [
-        if (argResults?['offline'] case true) '--offline',
-        if (argResults?['dry-run'] case true) '--dry-run',
-        if (argResults?['tighten'] case true) '--tighten',
-      ];
+    if (argResults?['offline'] case true) '--offline',
+    if (argResults?['dry-run'] case true) '--dry-run',
+    if (argResults?['tighten'] case true) '--tighten',
+  ];
 }

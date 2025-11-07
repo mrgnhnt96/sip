@@ -52,9 +52,9 @@ class PubDepsCommand extends APubCommand {
 
   @override
   List<String> get pubFlags => [
-        if (argResults?['style'] case final String style) '--style=$style',
-        if (argResults?['dev'] case true) '--dev',
-        if (argResults?['executables'] case true) '--executables',
-        if (argResults?['json'] case true) '--json',
-      ];
+    if (argResults?['style'] case final String style) '--style=$style',
+    if (argResults?['dev'] case true) '--dev',
+    if (argResults?['executables'] case true) '--executables',
+    if (argResults?['json'] case true) '--json',
+  ];
 }

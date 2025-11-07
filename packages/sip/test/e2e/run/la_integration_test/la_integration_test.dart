@@ -50,10 +50,7 @@ void main() {
           ..createSync(recursive: true)
           ..writeAsStringSync('');
 
-        final runOneScript = RunOneScript(
-          bindings: bindings,
-          logger: logger,
-        );
+        final runOneScript = RunOneScript(bindings: bindings, logger: logger);
 
         final command = ScriptRunCommand(
           bindings: bindings,
@@ -86,15 +83,12 @@ void main() {
 
         await Future<void>.delayed(Duration.zero);
 
-        expect(
-          bindings.scripts,
-          [
-            'cd /packages/sip || exit 1',
-            '',
-            r'C=$(sh ./scripts/integration_test.sh --platform="android"); echo $C; $C',
-            '',
-          ],
-        );
+        expect(bindings.scripts, [
+          'cd /packages/sip || exit 1',
+          '',
+          r'C=$(sh ./scripts/integration_test.sh --platform="android"); echo $C; $C',
+          '',
+        ]);
       });
     });
   });
@@ -112,11 +106,7 @@ class _TestBindings implements Bindings {
   }) async {
     scripts.addAll(script.split('\n'));
 
-    return const CommandResult(
-      exitCode: 0,
-      output: '',
-      error: '',
-    );
+    return const CommandResult(exitCode: 0, output: '', error: '');
   }
 }
 

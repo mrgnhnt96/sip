@@ -10,14 +10,11 @@ import 'package:sip_cli/sip_runner.dart';
 import 'package:sip_cli/utils/key_press_listener.dart';
 
 void main(List<String> arguments) async {
-  ProcessSignal.sigint.watch().listen(
-    (signal) {
-      // always make sure that the cursor is visible
-      stdout.write('\x1b[?25h');
-      exit(1);
-    },
-    cancelOnError: true,
-  );
+  ProcessSignal.sigint.watch().listen((signal) {
+    // always make sure that the cursor is visible
+    stdout.write('\x1b[?25h');
+    exit(1);
+  }, cancelOnError: true);
 
   final args = List<String>.from(arguments);
 
@@ -34,8 +31,8 @@ void main(List<String> arguments) async {
     level: quiet
         ? Level.error
         : loud
-            ? Level.verbose
-            : Level.info,
+        ? Level.verbose
+        : Level.info,
   );
 
   const fs = LocalFileSystem();
@@ -43,14 +40,9 @@ void main(List<String> arguments) async {
   const scriptsYaml = ScriptsYamlImpl(fs: fs);
   const pubspecYaml = PubspecYamlImpl(fs: fs);
   const cwd = CWDImpl(fs: fs);
-  final bindings = BindingsImpl(
-    logger: logger,
-  );
+  final bindings = BindingsImpl(logger: logger);
 
-  final runOneScript = RunOneScript(
-    bindings: bindings,
-    logger: logger,
-  );
+  final runOneScript = RunOneScript(bindings: bindings, logger: logger);
 
   final runManyScripts = RunManyScripts(
     bindings: bindings,

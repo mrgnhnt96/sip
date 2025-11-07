@@ -4,7 +4,7 @@ import 'package:path/path.dart' as p;
 typedef FormattedTest = ({
   String message,
   ({int passing, int failing, int skipped}) count,
-  bool isError
+  bool isError,
 });
 typedef Formatter = FormattedTest Function(String);
 
@@ -16,12 +16,11 @@ enum FilterType {
   Formatter? formatter({
     required bool hasTerminal,
     required int terminalColumns,
-  }) =>
-      _getFormatter(
-        this,
-        hasTerminal: hasTerminal,
-        terminalColumns: terminalColumns,
-      );
+  }) => _getFormatter(
+    this,
+    hasTerminal: hasTerminal,
+    terminalColumns: terminalColumns,
+  );
 
   static FilterType? fromString(String? value) {
     return FilterType.values.asNameMap()[value];
@@ -43,28 +42,28 @@ Formatter? _getFormatter(
 }) {
   return switch (type) {
     FilterType.flutterTest => (string) => _formatFlutterTest(
-          string,
-          hasTerminal: hasTerminal,
-          terminalColumns: terminalColumns,
-        ),
+      string,
+      hasTerminal: hasTerminal,
+      terminalColumns: terminalColumns,
+    ),
     FilterType.dartTest => (string) => _formatDartTest(
-          string,
-          hasTerminal: hasTerminal,
-          terminalColumns: terminalColumns,
-        ),
+      string,
+      hasTerminal: hasTerminal,
+      terminalColumns: terminalColumns,
+    ),
     null => null,
   };
 }
 
 String resetToStart({required bool hasTerminal}) => switch (hasTerminal) {
-      true => '\x1B[0G',
-      false => '',
-    };
+  true => '\x1B[0G',
+  false => '',
+};
 
 String clearToEnd({required bool hasTerminal}) => switch (hasTerminal) {
-      true => '\x1B[K',
-      false => '',
-    };
+  true => '\x1B[K',
+  false => '',
+};
 int maxCol({required bool hasTerminal, required int terminalColumns}) =>
     switch (hasTerminal) {
       true => terminalColumns,
@@ -81,7 +80,7 @@ FormattedTest _formatFlutterTest(
     return (
       message: string,
       count: (passing: 0, failing: 0, skipped: 0),
-      isError: false
+      isError: false,
     );
   }
 
@@ -97,10 +96,9 @@ FormattedTest _formatFlutterTest(
       ?.replaceAll(' ...', '')
       .replaceFirst(RegExp(': '), '');
 
-  final path = RegExp(r'([\/\\].*\.dart):?')
-      .firstMatch(description ?? '')
-      ?.group(1)
-      ?.trim();
+  final path = RegExp(
+    r'([\/\\].*\.dart):?',
+  ).firstMatch(description ?? '')?.group(1)?.trim();
 
   final isLoading = RegExp(r': loading .*\.dart').hasMatch(m);
   final isFinished =
@@ -135,8 +133,10 @@ FormattedTest _formatFlutterTest(
     description = 'loading tests...';
   }
 
-  final columnLimit =
-      maxCol(hasTerminal: hasTerminal, terminalColumns: terminalColumns);
+  final columnLimit = maxCol(
+    hasTerminal: hasTerminal,
+    terminalColumns: terminalColumns,
+  );
 
   final descriptionLength = description?.length ?? 0;
   final fullDescription = description;
@@ -173,9 +173,9 @@ FormattedTest _formatFlutterTest(
     count: (
       passing: passingCount,
       failing: failingCount,
-      skipped: skippedCount
+      skipped: skippedCount,
     ),
-    isError: hasError
+    isError: hasError,
   );
 }
 
@@ -189,7 +189,7 @@ FormattedTest _formatDartTest(
     return (
       message: string,
       count: (passing: 0, failing: 0, skipped: 0),
-      isError: false
+      isError: false,
     );
   }
 
@@ -199,8 +199,9 @@ FormattedTest _formatDartTest(
   final failing = RegExp(r'-(\d+)').firstMatch(m)?.group(1);
   final skipped = RegExp(r'~(\d+)').firstMatch(m)?.group(1);
 
-  var description =
-      RegExp(r'[\-\+\~]\d+.*\.dart:?(.*)').firstMatch(m)?.group(1)?.trim();
+  var description = RegExp(
+    r'[\-\+\~]\d+.*\.dart:?(.*)',
+  ).firstMatch(m)?.group(1)?.trim();
 
   final isLoading = RegExp(r': loading .*\.dart').hasMatch(m);
   final isFinished =
@@ -228,8 +229,10 @@ FormattedTest _formatDartTest(
     description = 'loading tests...';
   }
 
-  final columnLimit =
-      maxCol(hasTerminal: hasTerminal, terminalColumns: terminalColumns);
+  final columnLimit = maxCol(
+    hasTerminal: hasTerminal,
+    terminalColumns: terminalColumns,
+  );
 
   final descriptionLength = description?.length ?? 0;
   final fullDescription = description;
@@ -266,8 +269,8 @@ FormattedTest _formatDartTest(
     count: (
       passing: passingCount,
       failing: failingCount,
-      skipped: skippedCount
+      skipped: skippedCount,
     ),
-    isError: hasError
+    isError: hasError,
   );
 }

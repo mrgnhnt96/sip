@@ -22,8 +22,10 @@ void main() {
           final (
             message: formatted,
             count: (:passing, :failing, :skipped),
-            :isError
-          ) = formatter(output);
+            :isError,
+          ) = formatter(
+            output,
+          );
 
           final expected =
               '${resetToStart}00:00 +0: loading tests...$clearToEnd';
@@ -41,8 +43,10 @@ void main() {
           final (
             message: formatted,
             count: (:passing, :failing, :skipped),
-            :isError
-          ) = formatter(output);
+            :isError,
+          ) = formatter(
+            output,
+          );
 
           final expected =
               '${resetToStart}00:03 +5: Tests completed$clearToEnd';
@@ -61,10 +65,13 @@ void main() {
           final (
             message: formatted,
             count: (:passing, :failing, :skipped),
-            :isError
-          ) = formatter(output);
+            :isError,
+          ) = formatter(
+            output,
+          );
 
-          final expected = '${resetToStart}00:01 +178: env files e2e runs '
+          final expected =
+              '${resetToStart}00:01 +178: env files e2e runs '
               'gracefully command: be reset$clearToEnd';
 
           expect(formatted, expected);
@@ -90,8 +97,10 @@ To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin
           final (
             message: formatted,
             count: (:passing, :failing, :skipped),
-            :isError
-          ) = formatter(output);
+            :isError,
+          ) = formatter(
+            output,
+          );
 
           final expected =
               '${resetToStart}00:00 +132 -3: test/lib/domain/filter_type_test.dart | '
@@ -111,10 +120,13 @@ To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin
           final (
             message: formatted,
             count: (:passing, :failing, :skipped),
-            :isError
-          ) = formatter(output);
+            :isError,
+          ) = formatter(
+            output,
+          );
 
-          final expected = '${resetToStart}00:00 +132 ~2: FilterType '
+          final expected =
+              '${resetToStart}00:00 +132 ~2: FilterType '
               '#formatter example$clearToEnd';
 
           expect(formatted, expected);
@@ -130,10 +142,13 @@ To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin
           final (
             message: formatted,
             count: (:passing, :failing, :skipped),
-            :isError
-          ) = formatter(output);
+            :isError,
+          ) = formatter(
+            output,
+          );
 
-          final expected = '${resetToStart}00:09 +96 ~2: Home Screen Trip '
+          final expected =
+              '${resetToStart}00:09 +96 ~2: Home Screen Trip '
               'shows when user has a trip$clearToEnd';
 
           expect(formatted, expected);
@@ -157,8 +172,10 @@ To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin
           final (
             message: formatted,
             count: (:passing, :failing, :skipped),
-            :isError
-          ) = formatter(output);
+            :isError,
+          ) = formatter(
+            output,
+          );
 
           final expected =
               '${resetToStart}00:01 +0: loading tests...$clearToEnd';
@@ -176,8 +193,10 @@ To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin
           final (
             message: formatted,
             count: (:passing, :failing, :skipped),
-            :isError
-          ) = formatter(output);
+            :isError,
+          ) = formatter(
+            output,
+          );
 
           final expected =
               '${resetToStart}00:03 +5: Tests completed$clearToEnd';
@@ -195,10 +214,13 @@ To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin
           final (
             message: formatted,
             count: (:passing, :failing, :skipped),
-            :isError
-          ) = formatter(output);
+            :isError,
+          ) = formatter(
+            output,
+          );
 
-          final expected = '${resetToStart}00:09 +77: Single Friend Request '
+          final expected =
+              '${resetToStart}00:09 +77: Single Friend Request '
               'shows when friend '
               'requests is accepted$clearToEnd';
 
@@ -210,9 +232,8 @@ To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin
         });
 
         test('should detect errors', () {
-          IOOverrides.runWithIOOverrides(
-            () {
-              const output = '''
+          IOOverrides.runWithIOOverrides(() {
+            const output = '''
 00:00 +132 -3: /test/lib/domain/filter_type_test.dart: FilterType #formatter example [E]                                                                                                                                   
   Expected: false
     Actual: <true>
@@ -224,23 +245,23 @@ To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin
 To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin/dart test /test/lib/domain/filter_type_test.dart -p vm --plain-name 'FilterType #formatter example'
 ''';
 
-              final (
-                message: formatted,
-                count: (:passing, :failing, :skipped),
-                :isError
-              ) = formatter(output);
+            final (
+              message: formatted,
+              count: (:passing, :failing, :skipped),
+              :isError,
+            ) = formatter(
+              output,
+            );
 
-              final expected =
-                  '${resetToStart}00:00 +132 -3: test/lib/domain/filter_type_test.dart | FilterType #formatter example [E]$clearToEnd\n';
+            final expected =
+                '${resetToStart}00:00 +132 -3: test/lib/domain/filter_type_test.dart | FilterType #formatter example [E]$clearToEnd\n';
 
-              expect(formatted, expected);
-              expect(isError, true);
-              expect(passing, 132);
-              expect(skipped, 0);
-              expect(failing, 3);
-            },
-            _TestIOOverrides('/'),
-          );
+            expect(formatted, expected);
+            expect(isError, true);
+            expect(passing, 132);
+            expect(skipped, 0);
+            expect(failing, 3);
+          }, _TestIOOverrides('/'));
         });
 
         test('should detect skipped tests', () {
@@ -250,10 +271,13 @@ To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin
           final (
             message: formatted,
             count: (:passing, :failing, :skipped),
-            :isError
-          ) = formatter(output);
+            :isError,
+          ) = formatter(
+            output,
+          );
 
-          final expected = '${resetToStart}00:00 +132 ~2: FilterType '
+          final expected =
+              '${resetToStart}00:00 +132 ~2: FilterType '
               '#formatter example$clearToEnd';
 
           expect(formatted, expected);
@@ -269,8 +293,10 @@ To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin
           final (
             message: formatted,
             count: (:passing, :failing, :skipped),
-            :isError
-          ) = formatter(output);
+            :isError,
+          ) = formatter(
+            output,
+          );
 
           final expected =
               '${resetToStart}00:09 +96 ~2: Home Screen Trip shows '

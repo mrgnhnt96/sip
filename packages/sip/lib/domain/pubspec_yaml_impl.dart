@@ -3,9 +3,7 @@ import 'package:sip_cli/domain/find_yaml.dart';
 import 'package:sip_cli/domain/pubspec_yaml.dart';
 
 class PubspecYamlImpl extends FindYaml implements PubspecYaml {
-  const PubspecYamlImpl({
-    required super.fs,
-  });
+  const PubspecYamlImpl({required super.fs});
 
   @override
   Map<String, dynamic>? parse([String? fileName]) {
@@ -53,19 +51,18 @@ class PubspecYamlImpl extends FindYaml implements PubspecYaml {
       ..sort()
       ..sort((a, b) => path.split(b).length - path.split(a).length);
 
-    return sortedPubspecs
-      ..removeWhere((e) {
-        final segments = e.split(path.separator);
+    return sortedPubspecs..removeWhere((e) {
+      final segments = e.split(path.separator);
 
-        if (segments.contains('build')) {
-          return true;
-        }
+      if (segments.contains('build')) {
+        return true;
+      }
 
-        if (segments.any((e) => e.startsWith('.'))) {
-          return true;
-        }
+      if (segments.any((e) => e.startsWith('.'))) {
+        return true;
+      }
 
-        return false;
-      });
+      return false;
+    });
   }
 }

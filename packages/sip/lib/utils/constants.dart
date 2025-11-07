@@ -21,10 +21,7 @@ class Keys {
     env,
   ];
 
-  static const Set<String> nonScriptKeys = {
-    variables,
-    executables,
-  };
+  static const Set<String> nonScriptKeys = {variables, executables};
 }
 
 /// The variables that can be used in the scripts

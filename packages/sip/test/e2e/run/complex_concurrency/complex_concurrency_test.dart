@@ -45,11 +45,8 @@ void main() {
           retryAfter: any(named: 'retryAfter'),
         ),
       ).thenAnswer(
-        (invocation) async => const CommandResult(
-          exitCode: 0,
-          output: '',
-          error: '',
-        ),
+        (invocation) async =>
+            const CommandResult(exitCode: 0, output: '', error: ''),
       );
       when(
         () => runManyScripts.run(
@@ -65,11 +62,7 @@ void main() {
           if (invocation.namedArguments[#commands]
               case final List<CommandToRun> commands)
             for (final command in commands)
-              CommandResult(
-                exitCode: 0,
-                output: command.command,
-                error: '',
-              ),
+              CommandResult(exitCode: 0, output: command.command, error: ''),
         ],
       );
 

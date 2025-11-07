@@ -45,13 +45,11 @@ class Script extends Equatable {
       );
     }
 
-    return _$ScriptFromJson(
-      {
-        ...?json as Map?,
-        Keys.name: name,
-        if (parents != null) Keys.parents: parents,
-      },
-    );
+    return _$ScriptFromJson({
+      ...?json as Map?,
+      Keys.name: name,
+      if (parents != null) Keys.parents: parents,
+    });
   }
 
   @JsonKey(name: Keys.name)
@@ -63,16 +61,10 @@ class Script extends Equatable {
   @JsonKey(name: Keys.parents)
   final List<String>? parents;
 
-  @JsonKey(
-    name: Keys.aliases,
-    readValue: _retrieveStrings,
-  )
+  @JsonKey(name: Keys.aliases, readValue: _retrieveStrings)
   final Set<String> aliases;
 
-  @JsonKey(
-    name: Keys.bail,
-    readValue: _retrieveBool,
-  )
+  @JsonKey(name: Keys.bail, readValue: _retrieveBool)
   final bool bail;
 
   @JsonKey(name: Keys.description)
@@ -94,11 +86,7 @@ class Script extends Equatable {
     }
 
     switch (env) {
-      case ScriptEnv(
-          commands: [],
-          files: [],
-          vars: const {},
-        ):
+      case ScriptEnv(commands: [], files: [], vars: const {}):
         return null;
       default:
         break;
@@ -179,10 +167,7 @@ class Script extends Equatable {
   @override
   List<Object?> get props => _$props;
 
-  Iterable<String> get keys => [
-        ...parents ?? [],
-        name,
-      ];
+  Iterable<String> get keys => [...parents ?? [], name];
 
   String printDetails() {
     if (this.name.startsWith('_')) return '';
@@ -253,9 +238,7 @@ Map? _readScriptsConfig(Map json, String key) {
 
   final removeKeys = {...Keys.scriptParameters};
   // remove all other keys
-  mutableMap.removeWhere(
-    (key, _) => removeKeys.contains(key),
-  );
+  mutableMap.removeWhere((key, _) => removeKeys.contains(key));
 
   if (mutableMap.isEmpty) {
     return null;

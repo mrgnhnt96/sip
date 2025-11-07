@@ -1,13 +1,9 @@
 part of './tester_mixin.dart';
 
 extension _ConflictingX<T> on Command<T> {
-  static const dartOptions = {
-    'dart-coverage',
-  };
+  static const dartOptions = {'dart-coverage'};
 
-  static const flutterOptions = {
-    'flutter-coverage',
-  };
+  static const flutterOptions = {'flutter-coverage'};
 
   void _addConflictingArgs() {
     argParser
@@ -20,7 +16,8 @@ extension _ConflictingX<T> on Command<T> {
       )
       ..addOption(
         'dart-coverage',
-        help: '${red.wrap('RENAMED')} from ${magenta.wrap('coverage')}\n'
+        help:
+            '${red.wrap('RENAMED')} from ${magenta.wrap('coverage')}\n'
             'Gather coverage and output it to the specified directory.\n'
             'Implies --debug.',
         valueHelp: 'directory',
@@ -28,7 +25,8 @@ extension _ConflictingX<T> on Command<T> {
       ..addFlag(
         'flutter-coverage',
         negatable: false,
-        help: '${red.wrap('RENAMED')} from ${magenta.wrap('coverage')}\n'
+        help:
+            '${red.wrap('RENAMED')} from ${magenta.wrap('coverage')}\n'
             'Whether to merge coverage data with "coverage/lcov.base.info".\n'
             'Implies collecting coverage data. (Requires lcov.)',
       );
@@ -50,9 +48,7 @@ extension _ConflictingX<T> on Command<T> {
       argParser,
       argResults,
       options,
-      flagReplacements: {
-        'dart-coverage': 'coverage',
-      },
+      flagReplacements: {'dart-coverage': 'coverage'},
       initialArgs: args,
     );
   }
@@ -74,9 +70,7 @@ extension _ConflictingX<T> on Command<T> {
       argParser,
       argResults,
       options,
-      flagReplacements: {
-        'flutter-coverage': 'coverage',
-      },
+      flagReplacements: {'flutter-coverage': 'coverage'},
       initialArgs: args,
     );
   }

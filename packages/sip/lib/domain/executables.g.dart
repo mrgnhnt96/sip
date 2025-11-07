@@ -15,12 +15,9 @@ extension _$ExecutablesAutoequal on Executables {
 // **************************************************************************
 
 Executables _$ExecutablesFromJson(Map json) => Executables(
-      dart: json['dart'] as String?,
-      flutter: json['flutter'] as String?,
-    );
+  dart: json['dart'] as String?,
+  flutter: json['flutter'] as String?,
+);
 
 Map<String, dynamic> _$ExecutablesToJson(Executables instance) =>
-    <String, dynamic>{
-      'dart': instance.dart,
-      'flutter': instance.flutter,
-    };
+    <String, dynamic>{'dart': instance.dart, 'flutter': instance.flutter};

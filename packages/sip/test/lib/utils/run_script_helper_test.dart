@@ -16,18 +16,21 @@ import 'package:test/test.dart';
 void main() {
   group(RunScriptHelper, () {
     group('#directory', () {
-      test('should return the current directory if no scripts.yaml is found',
-          () {
-        final command = TestCommand();
+      test(
+        'should return the current directory if no scripts.yaml is found',
+        () {
+          final command = TestCommand();
 
-        expect(command.directory, '/');
-      });
+          expect(command.directory, '/');
+        },
+      );
 
       test('should return the directory of the nearest scripts.yaml', () {
         final command = TestCommand();
 
-        when(command.scriptsYaml.nearest)
-            .thenReturn('some/path/to/test/scripts.yaml');
+        when(
+          command.scriptsYaml.nearest,
+        ).thenReturn('some/path/to/test/scripts.yaml');
 
         expect(command.directory, 'some/path/to/test');
       });
@@ -110,10 +113,7 @@ void main() {
             'ref': "echo 'ref'",
             'pub': {
               '(command)': 'echo "pub"',
-              '(env)': {
-                'file': 'some/path/to/test/.env',
-                'command': r'{$ref}',
-              },
+              '(env)': {'file': 'some/path/to/test/.env', 'command': r'{$ref}'},
             },
           });
 
@@ -198,9 +198,7 @@ void main() {
       test('should return the list of commands', () {
         final command = TestCommand();
 
-        when(command.scriptsYaml.scripts).thenReturn({
-          'pub': 'echo "pub"',
-        });
+        when(command.scriptsYaml.scripts).thenReturn({'pub': 'echo "pub"'});
 
         final result = command.getCommands(['pub'], listOut: false).single;
 
@@ -221,9 +219,7 @@ void main() {
 
       test('should return an exit code when the script is empty', () {
         final command = TestCommand();
-        when(command.scriptsYaml.scripts).thenReturn({
-          'pub': null,
-        });
+        when(command.scriptsYaml.scripts).thenReturn({'pub': null});
 
         final result = command.getCommands(['pub'], listOut: false).single;
         expect(result.exitCode, isA<ExitCode>());
@@ -233,9 +229,7 @@ void main() {
       test('should return an exit code with list option is provided', () {
         final command = TestCommand();
 
-        when(command.scriptsYaml.scripts).thenReturn({
-          'pub': 'echo "pub"',
-        });
+        when(command.scriptsYaml.scripts).thenReturn({'pub': 'echo "pub"'});
 
         final result = command.getCommands(['pub'], listOut: true).single;
 
@@ -276,40 +270,28 @@ cd packages/domain
               .elementAt(0)
               .command
               ?.split('\n'),
-          [
-            'cd packages/domain',
-            'clear-coverage',
-          ],
+          ['cd packages/domain', 'clear-coverage'],
         );
         expect(
           result.resolveScript?.resolvedScripts
               .elementAt(1)
               .command
               ?.split('\n'),
-          [
-            'cd packages/domain',
-            'sip test ',
-          ],
+          ['cd packages/domain', 'sip test '],
         );
         expect(
           result.resolveScript?.resolvedScripts
               .elementAt(2)
               .command
               ?.split('\n'),
-          [
-            'cd packages/domain',
-            'format-coverage',
-          ],
+          ['cd packages/domain', 'format-coverage'],
         );
         expect(
           result.resolveScript?.resolvedScripts
               .elementAt(3)
               .command
               ?.split('\n'),
-          [
-            'cd packages/domain',
-            'open-coverage',
-          ],
+          ['cd packages/domain', 'open-coverage'],
         );
       });
     });
@@ -318,12 +300,11 @@ cd packages/domain
       test('should return the list of commands', () {
         final command = TestCommand();
 
-        when(command.scriptsYaml.nearest)
-            .thenReturn('some/path/to/test/scripts.yaml');
+        when(
+          command.scriptsYaml.nearest,
+        ).thenReturn('some/path/to/test/scripts.yaml');
 
-        when(command.scriptsYaml.scripts).thenReturn({
-          'pub': 'echo "pub"',
-        });
+        when(command.scriptsYaml.scripts).thenReturn({'pub': 'echo "pub"'});
 
         final result = command.commandsToRun(['pub'], listOut: false).single;
 
@@ -345,12 +326,11 @@ cd packages/domain
       test('should remove concurrent symbol when found', () {
         final command = TestCommand();
 
-        when(command.scriptsYaml.nearest)
-            .thenReturn('some/path/to/test/scripts.yaml');
+        when(
+          command.scriptsYaml.nearest,
+        ).thenReturn('some/path/to/test/scripts.yaml');
 
-        when(command.scriptsYaml.scripts).thenReturn({
-          'pub': '(+) echo "pub"',
-        });
+        when(command.scriptsYaml.scripts).thenReturn({'pub': '(+) echo "pub"'});
 
         final result = command.commandsToRun(['pub'], listOut: false).single;
         expect(result.exitCode, isNull);
@@ -361,8 +341,9 @@ cd packages/domain
       test('should remove concurrent symbol from env config when found', () {
         final command = TestCommand();
 
-        when(command.scriptsYaml.nearest)
-            .thenReturn('some/path/to/test/scripts.yaml');
+        when(
+          command.scriptsYaml.nearest,
+        ).thenReturn('some/path/to/test/scripts.yaml');
 
         when(command.scriptsYaml.scripts).thenReturn({
           'pub': {
@@ -383,12 +364,13 @@ cd packages/domain
       test('should remove extra concurrent symbols when found', () {
         final command = TestCommand();
 
-        when(command.scriptsYaml.nearest)
-            .thenReturn('some/path/to/test/scripts.yaml');
+        when(
+          command.scriptsYaml.nearest,
+        ).thenReturn('some/path/to/test/scripts.yaml');
 
-        when(command.scriptsYaml.scripts).thenReturn({
-          'pub': '(+) (+) echo "pub"',
-        });
+        when(
+          command.scriptsYaml.scripts,
+        ).thenReturn({'pub': '(+) (+) echo "pub"'});
 
         final result = command.commandsToRun(['pub'], listOut: false).single;
         expect(result.exitCode, isNull);
@@ -408,8 +390,9 @@ cd packages/domain
         test('should get env config when provided', () {
           final command = TestCommand();
 
-          when(command.scriptsYaml.nearest)
-              .thenReturn('some/path/to/test/scripts.yaml');
+          when(
+            command.scriptsYaml.nearest,
+          ).thenReturn('some/path/to/test/scripts.yaml');
 
           when(command.scriptsYaml.scripts).thenReturn({
             'pub': {
@@ -449,8 +432,9 @@ cd packages/domain
         test('should keep envs scoped to commands when multiple are found', () {
           final command = TestCommand();
 
-          when(command.scriptsYaml.nearest)
-              .thenReturn('some/path/to/test/scripts.yaml');
+          when(
+            command.scriptsYaml.nearest,
+          ).thenReturn('some/path/to/test/scripts.yaml');
 
           when(command.scriptsYaml.scripts).thenReturn({
             'pub': {
@@ -502,14 +486,12 @@ cd packages/domain
         test('should pass envs from references', () {
           final command = TestCommand();
 
-          when(command.scriptsYaml.nearest)
-              .thenReturn('some/path/to/test/scripts.yaml');
+          when(
+            command.scriptsYaml.nearest,
+          ).thenReturn('some/path/to/test/scripts.yaml');
 
           when(command.scriptsYaml.scripts).thenReturn({
-            'all': [
-              r'{$pub}',
-              r'{$other}',
-            ],
+            'all': [r'{$pub}', r'{$other}'],
             'pub': {
               '(command)': 'echo "pub"',
               '(env)': {
@@ -574,8 +556,9 @@ cd packages/domain
         test('should pass envs from references and keep parent env', () {
           final command = TestCommand();
 
-          when(command.scriptsYaml.nearest)
-              .thenReturn('some/path/to/test/scripts.yaml');
+          when(
+            command.scriptsYaml.nearest,
+          ).thenReturn('some/path/to/test/scripts.yaml');
 
           when(command.scriptsYaml.scripts).thenReturn({
             'all': {
@@ -583,10 +566,7 @@ cd packages/domain
                 'file': 'some/path/to/all/.env',
                 'command': 'all env command',
               },
-              '(command)': [
-                r'{$pub}',
-                r'{$other}',
-              ],
+              '(command)': [r'{$pub}', r'{$other}'],
             },
             'pub': {
               '(command)': 'echo "pub"',
@@ -672,10 +652,10 @@ class _MockCWD extends Mock implements CWD {}
 class TestCommand extends Command<ExitCode>
     with RunScriptHelper, WorkingDirectory {
   TestCommand()
-      : cwd = _MockCWD()..stub(),
-        logger = _MockLogger()..stub(),
-        scriptsYaml = _MockScriptsYaml()..stub(),
-        pubspecYaml = _MockPubspecYaml()..stub() {
+    : cwd = _MockCWD()..stub(),
+      logger = _MockLogger()..stub(),
+      scriptsYaml = _MockScriptsYaml()..stub(),
+      pubspecYaml = _MockPubspecYaml()..stub() {
     addFlags();
   }
   @override
@@ -690,11 +670,8 @@ class TestCommand extends Command<ExitCode>
   final PubspecYaml pubspecYaml;
 
   @override
-  Variables get variables => Variables(
-        pubspecYaml: pubspecYaml,
-        scriptsYaml: scriptsYaml,
-        cwd: cwd,
-      );
+  Variables get variables =>
+      Variables(pubspecYaml: pubspecYaml, scriptsYaml: scriptsYaml, cwd: cwd);
 
   @override
   String get name => '';

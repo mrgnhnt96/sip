@@ -6,10 +6,7 @@ import 'package:sip_cli/utils/exit_code.dart';
 
 /// The command to list all available scripts
 class ListCommand extends Command<ExitCode> {
-  ListCommand({
-    required this.scriptsYaml,
-    required this.logger,
-  });
+  ListCommand({required this.scriptsYaml, required this.logger});
 
   final ScriptsYaml scriptsYaml;
   final Logger logger;
