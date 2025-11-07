@@ -1,27 +1,24 @@
 install:
-  (command): cd packages/sip && dart pub global activate --source path . --overwrite
+  (command): cd sip && dart pub global activate --source path . --overwrite
   (description): Install `sip` globally
   (aliases):
     - i
 
-_packages:
-  - cd packages/sip &&
-
-pana: "{$_packages} dart pub run pana"
+pana: "sip sip && dart pub run pana"
 
 format:
-  - "(+) {$_packages} dart format ."
-  - "(+) {$_packages} dart format ."
-  - "(+) {$_packages} dart format ."
-analyze: "(+) {$_packages} dart analyze ."
+  - "(+) sip sip && dart format ."
+  - "(+) sip sip && dart format ."
+  - "(+) sip sip && dart format ."
+analyze: "(+) sip sip && dart analyze ."
 
-barrel: cd packages/sip && dart run barreler build
+barrel: cd sip && dart run barreler build
 
 build_runner:
   (aliases):
     - b
     - br
-  _: cd packages/sip && dart run build_runner
+  _: cd sip && dart run build_runner
   clean:
     (command): "{$build_runner:_} clean"
     (aliases):
@@ -40,7 +37,7 @@ build_runner:
 
 clean: find . -name ".dart_tool" -type d -exec rm -rf {} +
 
-build: (+) {$_packages} dart run build_runner build --delete-conflicting-outputs
+build: (+) sip sip && dart run build_runner build --delete-conflicting-outputs
 
 prep:
   (command):
@@ -48,8 +45,8 @@ prep:
     - (+) {$analyze} --fatal-infos --fatal-warnings
     - (+) {$prep:pubspecs}
     - |
-      # make sure that the changelog version is the same as packages/sip/lib/src/version.dart
-      version=$(grep -m 1 "const packageVersion" packages/sip/lib/src/version.dart | awk -F "'" '{print $2}')
+      # make sure that the changelog version is the same as sip/lib/src/version.dart
+      version=$(grep -m 1 "const packageVersion" sip/lib/src/version.dart | awk -F "'" '{print $2}')
       changelogVersion=$(grep -m 1 "# " CHANGELOG.md | awk '{print $2}')
 
       if [ "$version" != "$changelogVersion" ]; then
@@ -75,33 +72,31 @@ prep:
       cp LICENSE $dir/LICENSE
     done
   readme: |
-    echo "Copying README.md to packages/sip & example"
-    cp README.md packages/sip/README.md
-    cp README.md packages/sip/example/README.md
+    echo "Copying README.md to sip & example"
+    cp README.md sip/README.md
+    cp README.md sip/example/README.md
     # update asset paths to ../assets in example
-    sed -i '' "s|assets/|../assets/|g" packages/sip/example/README.md
+    sed -i '' "s|assets/|../assets/|g" sip/example/README.md
   pubspecs: |
     # get version from changelog
     version=$(grep -m 1 "# " CHANGELOG.md | awk '{print $2}')
 
     echo "Updating pubspec.yaml version to $version"
-    for dir in packages/*; do
-      sed -i '' "s|^version: .*|version: $version|g" "$dir/pubspec.yaml"
-    done
+    sed -i '' "s|^version: .*|version: $version|g" "sip/pubspec.yaml"
 
-    # update version in packages/sip/lib/src/version.dart
-    sed -i '' "s|const packageVersion = '.*';|const packageVersion = '$version';|g" packages/sip/lib/src/version.dart
+    # update version in sip/lib/src/version.dart
+    sed -i '' "s|const packageVersion = '.*';|const packageVersion = '$version';|g" sip/lib/src/version.dart
   assets: |
-    echo "Copying assets to packages/sip"
-    rm -rf packages/sip/assets
-    cp -r assets packages/sip
+    echo "Copying assets to sip"
+    rm -rf sip/assets
+    cp -r assets sip
 
 publish:
   (bail):
   (command):
     - sip test --bail --recursive --concurrent
     - "{$prep}"
-    - "{$_packages} dart pub publish"
+    - "sip sip && dart pub publish"
     - "{$publish:commit}"
     - "{$publish:tag}"
     - "{$publish:_push}"
