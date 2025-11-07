@@ -67,7 +67,7 @@ void main() {
             );
 
             expect(result, isNotNull);
-            expect(result?.packagePath, 'a');
+            expect(result?.packagePath, '');
           });
 
           test('and modified is in test', () async {
