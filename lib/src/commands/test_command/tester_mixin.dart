@@ -1,15 +1,12 @@
-import 'package:args/args.dart';
 import 'package:file/file.dart';
 import 'package:glob/glob.dart';
 import 'package:mason_logger/mason_logger.dart' hide ExitCode;
 import 'package:path/path.dart' as path;
-import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
 import 'package:sip_cli/src/deps/run_many_scripts.dart';
 import 'package:sip_cli/src/deps/run_one_script.dart';
-import 'package:sip_cli/src/domain/any_arg_parser.dart';
 import 'package:sip_cli/src/domain/command_to_run.dart';
 import 'package:sip_cli/src/domain/filter_type.dart';
 import 'package:sip_cli/src/domain/package_to_test.dart';
@@ -21,37 +18,10 @@ import 'package:sip_cli/src/utils/exit_code_extensions.dart';
 import 'package:sip_cli/src/utils/stopwatch_extensions.dart';
 import 'package:sip_cli/src/utils/write_optimized_test_file.dart';
 
-part '__both_args.dart';
-part '__conflicting_args.dart';
-part '__dart_args.dart';
-part '__flutter_args.dart';
-
 abstract mixin class TesterMixin {
   const TesterMixin();
 
   static const String optimizedTestBasename = '.test_optimizer';
-
-  ({List<String> both, List<String> dart, List<String> flutter}) getArgs(
-    ArgParser args,
-    ArgResults results,
-  ) {
-    final bothArgs = getBothArgs(args, results);
-    final dartArgs = getDartArgs(args, results);
-    final flutterArgs = getFlutterArgs(args, results);
-
-    return (both: bothArgs, dart: dartArgs, flutter: flutterArgs);
-  }
-
-  void addTestFlags(ArgParser args) {
-    args.addSeparator(cyan.wrap('Dart Flags:')!);
-    addDartArgs(args);
-    args.addSeparator(cyan.wrap('Flutter Flags:')!);
-    addFlutterArgs(args);
-    args.addSeparator(cyan.wrap('Overlapping Flags:')!);
-    addBothArgs(args);
-    args.addSeparator(cyan.wrap('Conflicting Flags:')!);
-    addConflictingArgs(args);
-  }
 
   void warnDartOrFlutterTests({
     required bool isFlutterOnly,

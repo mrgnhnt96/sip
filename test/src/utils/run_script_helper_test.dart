@@ -1,4 +1,3 @@
-import 'package:args/command_runner.dart';
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
 import 'package:meta/meta.dart';
@@ -42,14 +41,14 @@ void main() {
       test(
         'should return the current directory if no scripts.yaml is found',
         () {
-          final command = TestCommand();
+          final command = _TestCommand();
 
           expect(command.directory, '/');
         },
       );
 
       test('should return the directory of the nearest scripts.yaml', () {
-        final command = TestCommand();
+        final command = _TestCommand();
 
         when(scriptsYaml.nearest).thenReturn('some/path/to/test/scripts.yaml');
 
@@ -59,14 +58,14 @@ void main() {
 
     group('#validate', () {
       test('returns an exit code when no keys are provided', () async {
-        final command = TestCommand();
+        final command = _TestCommand();
         final result = await command.validate(null);
 
         expect(result, isA<ExitCode>());
       });
 
       test('returns an exit code when a private script is provided', () async {
-        final command = TestCommand();
+        final command = _TestCommand();
         final result = await command.validate(['_private']);
 
         expect(result, isA<ExitCode>());
@@ -81,13 +80,13 @@ void main() {
 
     group('#optionalFlags', () {
       test('should return an nothing', () {
-        final command = TestCommand();
+        final command = _TestCommand();
 
         expect(command.optionalFlags([]), OptionalFlags(const []));
       });
 
       test('should return a map with the provided flags', () {
-        final command = TestCommand();
+        final command = _TestCommand();
 
         expect(
           command.optionalFlags(['--verbose', 'true']),
@@ -104,7 +103,7 @@ void main() {
     group('#getCommands', () {
       group('#env', () {
         test('should get the env config', () {
-          final command = TestCommand();
+          final command = _TestCommand();
           when(scriptsYaml.scripts).thenReturn({
             'pub': {
               '(command)': 'echo "pub"',
@@ -129,7 +128,7 @@ void main() {
         });
 
         test('should resolve the env command reference', () {
-          final command = TestCommand();
+          final command = _TestCommand();
           when(scriptsYaml.scripts).thenReturn({
             'ref': "echo 'ref'",
             'pub': {
@@ -152,7 +151,7 @@ void main() {
         });
 
         test('should get the env config for the referenced script', () {
-          final command = TestCommand();
+          final command = _TestCommand();
           when(scriptsYaml.scripts).thenReturn({
             'pub': {
               '(command)': r'{$other}',
@@ -184,7 +183,7 @@ void main() {
         });
 
         test('should remove duplicate env configs', () {
-          final command = TestCommand();
+          final command = _TestCommand();
           when(scriptsYaml.scripts).thenReturn({
             'pub': {
               '(command)': r'{$other}',
@@ -217,7 +216,7 @@ void main() {
       });
 
       test('should return the list of commands', () {
-        final command = TestCommand();
+        final command = _TestCommand();
 
         when(scriptsYaml.scripts).thenReturn({'pub': 'echo "pub"'});
 
@@ -231,7 +230,7 @@ void main() {
       });
 
       test('should return an exit code when the script is not found', () {
-        final command = TestCommand();
+        final command = _TestCommand();
         final result = command.getCommands(['pub'], listOut: false).single;
 
         expect(result.exitCode, isA<ExitCode>());
@@ -239,7 +238,7 @@ void main() {
       });
 
       test('should return an exit code when the script is empty', () {
-        final command = TestCommand();
+        final command = _TestCommand();
         when(scriptsYaml.scripts).thenReturn({'pub': null});
 
         final result = command.getCommands(['pub'], listOut: false).single;
@@ -248,7 +247,7 @@ void main() {
       });
 
       test('should return an exit code with list option is provided', () {
-        final command = TestCommand();
+        final command = _TestCommand();
 
         when(scriptsYaml.scripts).thenReturn({'pub': 'echo "pub"'});
 
@@ -259,7 +258,7 @@ void main() {
       });
 
       test('should resolve multiple references', () {
-        final command = TestCommand();
+        final command = _TestCommand();
 
         when(scriptsYaml.scripts).thenReturn({
           'test-domain': r'''
@@ -319,7 +318,7 @@ cd packages/domain
 
     group('#commandsToRun', () {
       test('should return the list of commands', () {
-        final command = TestCommand();
+        final command = _TestCommand();
 
         when(scriptsYaml.nearest).thenReturn('some/path/to/test/scripts.yaml');
 
@@ -343,7 +342,7 @@ cd packages/domain
       });
 
       test('should remove concurrent symbol when found', () {
-        final command = TestCommand();
+        final command = _TestCommand();
 
         when(scriptsYaml.nearest).thenReturn('some/path/to/test/scripts.yaml');
 
@@ -356,7 +355,7 @@ cd packages/domain
       });
 
       test('should remove concurrent symbol from env config when found', () {
-        final command = TestCommand();
+        final command = _TestCommand();
 
         when(scriptsYaml.nearest).thenReturn('some/path/to/test/scripts.yaml');
 
@@ -377,7 +376,7 @@ cd packages/domain
       });
 
       test('should remove extra concurrent symbols when found', () {
-        final command = TestCommand();
+        final command = _TestCommand();
 
         when(scriptsYaml.nearest).thenReturn('some/path/to/test/scripts.yaml');
 
@@ -390,7 +389,7 @@ cd packages/domain
       });
 
       test('should return an exit code when the script is not found', () {
-        final command = TestCommand();
+        final command = _TestCommand();
 
         final result = command.commandsToRun(['pub'], listOut: false).single;
         expect(result.exitCode, isA<ExitCode>());
@@ -399,7 +398,7 @@ cd packages/domain
 
       group('env config', () {
         test('should get env config when provided', () {
-          final command = TestCommand();
+          final command = _TestCommand();
 
           when(
             scriptsYaml.nearest,
@@ -441,7 +440,7 @@ cd packages/domain
         });
 
         test('should keep envs scoped to commands when multiple are found', () {
-          final command = TestCommand();
+          final command = _TestCommand();
 
           when(
             scriptsYaml.nearest,
@@ -495,7 +494,7 @@ cd packages/domain
         });
 
         test('should pass envs from references', () {
-          final command = TestCommand();
+          final command = _TestCommand();
 
           when(
             scriptsYaml.nearest,
@@ -565,7 +564,7 @@ cd packages/domain
         });
 
         test('should pass envs from references and keep parent env', () {
-          final command = TestCommand();
+          final command = _TestCommand();
 
           when(
             scriptsYaml.nearest,
@@ -656,13 +655,6 @@ class _MockScriptsYaml extends Mock implements ScriptsYaml {}
 
 class _MockPubspecYaml extends Mock implements PubspecYaml {}
 
-class TestCommand extends Command<ExitCode>
-    with RunScriptHelper, WorkingDirectory {
-  TestCommand();
-
-  @override
-  String get name => '';
-
-  @override
-  String get description => '';
+class _TestCommand with RunScriptHelper, WorkingDirectory {
+  _TestCommand();
 }

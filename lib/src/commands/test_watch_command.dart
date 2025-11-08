@@ -10,7 +10,8 @@ import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/key_press_listener.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
-import 'package:sip_cli/src/domain/any_arg_parser.dart';
+import 'package:sip_cli/src/domain/dart_test_args.dart';
+import 'package:sip_cli/src/domain/flutter_test_args.dart';
 import 'package:sip_cli/src/domain/package_to_test.dart';
 import 'package:sip_cli/src/domain/test_scope.dart';
 import 'package:sip_cli/src/utils/exit_code.dart';
@@ -91,7 +92,7 @@ ${darkGray.wrap('Press `q` to exit')}
     );
 
     // exit code is not null
-    if (testsResult.$2 case final ExitCode exitCode) {
+    if (testsResult case (_, final ExitCode exitCode)) {
       return exitCode;
     }
 
@@ -99,13 +100,8 @@ ${darkGray.wrap('Press `q` to exit')}
 
     final libDirs = testDirs.map((e) => e.replaceAll(RegExp(r'test$'), 'lib'));
 
-    final argParser = AnyArgParser();
-    addTestFlags(argParser);
-    final argResults = argParser.parse(args.rawArgs);
-    final (:both, :dart, :flutter) = getArgs(argParser, argResults);
-
-    final flutterArgs = [...flutter, ...both];
-    final dartArgs = [...dart, ...both];
+    final flutterArgs = const FlutterTestArgs().arguments;
+    final dartArgs = const DartTestArgs().arguments;
 
     var printMessage = true;
 

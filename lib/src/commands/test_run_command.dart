@@ -6,8 +6,9 @@ import 'package:sip_cli/src/commands/test_command/tester_mixin.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
-import 'package:sip_cli/src/domain/any_arg_parser.dart';
 import 'package:sip_cli/src/domain/command_to_run.dart';
+import 'package:sip_cli/src/domain/dart_test_args.dart';
+import 'package:sip_cli/src/domain/flutter_test_args.dart';
 import 'package:sip_cli/src/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/src/utils/exit_code.dart';
 
@@ -16,17 +17,21 @@ Usage: sip test <...files or directories> [arguments]
 
 Run flutter or dart tests
 
-Options:
-  --help                  Print usage information
-  --recursive, -r         Run tests in subdirectories
-  --[no-]concurrent, -c   Run tests concurrently
-  --bail                  Bail after first test failure
-  --clean                 Remove the optimized test files after running tests
-                            (default: true)
-  --dart-only             Run only dart tests
-  --flutter-only          Run only flutter tests
-  --optimize              Create optimized test files (Dart only)
-                            (default: true)
+Flags:
+  --help                            Print usage information
+  --recursive, -r                   Run tests in subdirectories
+  --[no-]concurrent, -c             Run tests concurrently
+  --bail                            Bail after first test failure
+  --clean                           Remove the optimized test files after running tests
+                                      (default: true)
+  --dart-only                       Run only dart tests
+  --flutter-only                    Run only flutter tests
+  --optimize                        Create optimized test files (Dart only)
+                                      (default: true)
+---
+
+Include any dart or flutter args run `dart test --help` or `flutter test --help`
+for more information.
 ''';
 
 class TestRunCommand with TesterMixin {
@@ -81,13 +86,8 @@ class TestRunCommand with TesterMixin {
       return ExitCode.unavailable;
     }
 
-    final argParser = AnyArgParser();
-    addTestFlags(argParser);
-    final argResults = argParser.parse(args.rawArgs);
-    final (:both, :dart, :flutter) = getArgs(argParser, argResults);
-
-    final flutterArgs = [...flutter, ...both];
-    final dartArgs = [...dart, ...both];
+    final flutterArgs = const FlutterTestArgs().arguments;
+    final dartArgs = const DartTestArgs().arguments;
 
     if (bail) {
       logger.warn('Bailing after first test failure\n');
