@@ -150,7 +150,13 @@ class ScriptRunner {
         script,
         ({bool? showOutputOverride}) => bindings.runScript(
           execute,
-          showOutput: showOutputOverride ?? showOutput,
+          showOutput: switch (showOutputOverride ?? showOutput) {
+            false => false,
+            true => switch (script.runInParallel) {
+              true => false,
+              null || false => false,
+            },
+          },
           bail: script.bail,
         ),
       ));
@@ -184,6 +190,7 @@ class ScriptRunner {
 
       return const CommandResult(exitCode: 0, output: '', error: '');
     } else {
+      logger.detail('Running ${pending.length} scripts');
       for (final (part, future) in pending) {
         final result = await future();
         final shouldBail = switch (part) {
@@ -210,6 +217,10 @@ class ScriptRunner {
     >
     pending,
   ) async* {
+    if (pending.isEmpty) {
+      throw Exception('Unexpected: No scripts to run');
+    }
+
     final controller = StreamController<(ScriptToRun, CommandResult)>();
 
     for (final (part, _) in pending) {

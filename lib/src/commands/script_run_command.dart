@@ -188,11 +188,10 @@ class ScriptRunCommand with RunScriptHelper, WorkingDirectory {
       return envResult;
     }
 
-    final result = await scriptRunner.groupRun(
-      script.commands,
-      disableConcurrency: disableConcurrency,
-      bail: bail,
-    );
+    final result = await switch (group) {
+      true => scriptRunner.groupRun,
+      false => scriptRunner.run,
+    }(script.commands, disableConcurrency: disableConcurrency, bail: bail);
 
     if (result.exitCodeReason != ExitCode.success) {
       logger.err('Failed to run commands');

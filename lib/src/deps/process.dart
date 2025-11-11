@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io' as io;
 
 import 'package:scoped_deps/scoped_deps.dart';
@@ -35,12 +37,47 @@ final processProvider = create<Process>(() {
       mode: mode,
     );
 
+    final stdoutController = StreamController<List<int>>.broadcast();
+    final stderrController = StreamController<List<int>>.broadcast();
+
+    StreamSubscription<List<int>>? stdoutSubscription;
+    try {
+      stdoutSubscription = process.stdout.listen(stdoutController.add);
+    } catch (_) {}
+
+    StreamSubscription<List<int>>? stderrSubscription;
+    try {
+      stderrSubscription = process.stderr.listen(stderrController.add);
+    } catch (_) {}
+
+    Stream<String> stdout() async* {
+      try {
+        yield* stdoutController.stream.transform(utf8.decoder);
+      } catch (_) {
+        // ignore
+      }
+    }
+
+    Stream<String> stderr() async* {
+      try {
+        yield* stderrController.stream.transform(utf8.decoder);
+      } catch (_) {
+        // ignore
+      }
+    }
+
     return ProcessDetails(
-      stdout: process.stdout,
-      stderr: process.stderr,
+      stdout: stdout(),
+      stderr: stderr(),
       pid: process.pid,
       exitCode: process.exitCode,
-      kill: process.kill,
+      kill: () {
+        process.kill(io.ProcessSignal.sigkill);
+        stdoutSubscription?.cancel();
+        stderrSubscription?.cancel();
+        stdoutController.close();
+        stderrController.close();
+      },
     );
   };
 });

@@ -3,11 +3,11 @@ import 'dart:io' as io;
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
 import 'package:meta/meta.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/commands/script_run_command.dart';
 import 'package:sip_cli/src/domain/bindings.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
-import 'package:sip_cli/src/domain/filter_type.dart';
 import 'package:sip_cli/src/domain/pubspec_yaml.dart';
 import 'package:sip_cli/src/domain/scripts_yaml.dart';
 import 'package:test/test.dart';
@@ -17,11 +17,21 @@ import '../../../utils/test_scoped.dart';
 void main() {
   group('env files e2e', () {
     late FileSystem fs;
-    late _TestBindings bindings;
+    late Bindings bindings;
 
     setUp(() {
-      bindings = _TestBindings();
+      bindings = _MockBindings();
       fs = MemoryFileSystem.test();
+
+      when(
+        () => bindings.runScript(
+          any(),
+          showOutput: any(named: 'showOutput'),
+          bail: any(named: 'bail'),
+        ),
+      ).thenAnswer(
+        (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
+      );
 
       fs.file(path.join('packages', 'sip', 'infra', 'private', 'be.local.env'))
         ..createSync(recursive: true)
@@ -76,66 +86,72 @@ void main() {
       test('command: be reset', () async {
         await command.run(['be', 'reset']);
 
-        expect(
-          bindings.scripts,
+        final scripts = verify(
+          () => bindings.runScript(
+            captureAny(),
+            showOutput: any(named: 'showOutput'),
+            bail: any(named: 'bail'),
+          ),
+        ).captured;
+
+        const expected = [
           '''
 cd "/packages/sip" || exit 1
 
-cd infra || exit 1; pnv generate-env -i public/be.local.yaml -o private/ -f ~/.cant-run/local.key
+cd infra || exit 1; pnv generate-env -i public/be.local.yaml -o private/ -f ~/.cant-run/local.key''',
+          '''
 cd "/packages/sip" || exit 1
 
-cd infra || exit 1; pnv generate-env -i public/app.run-time.local.yaml -o private/ -f ~/.cant-run/local.key
+cd infra || exit 1; pnv generate-env -i public/app.run-time.local.yaml -o private/ -f ~/.cant-run/local.key''',
+
+          '''
 cd "/packages/sip" || exit 1
 
 export BE_ENV=local
 export APP_ENV=local
 
 cd backend || exit 1;
-dart run scripts/reset.dart'''
-              .split('\n'),
-        );
+dart run scripts/reset.dart''',
+        ];
+
+        expect(scripts, expected);
       });
 
       test('should override env variables when re-defined', () async {
         await command.run(['override']);
 
-        await Future<void>.delayed(Duration.zero);
+        final scripts = verify(
+          () => bindings.runScript(
+            captureAny(),
+            showOutput: any(named: 'showOutput'),
+            bail: any(named: 'bail'),
+          ),
+        ).captured;
 
-        expect(
-          bindings.scripts,
+        const expected = [
           '''
 cd "/packages/sip" || exit 1
 
-cd infra || exit 1; pnv generate-env -i public/be.local.yaml -o private/ -f ~/.cant-run/local.key
+cd infra || exit 1; pnv generate-env -i public/be.local.yaml -o private/ -f ~/.cant-run/local.key''',
+          '''
 cd "/packages/sip" || exit 1
 
-cd infra || exit 1; pnv generate-env -i public/app.run-time.local.yaml -o private/ -f ~/.cant-run/local.key
+cd infra || exit 1; pnv generate-env -i public/app.run-time.local.yaml -o private/ -f ~/.cant-run/local.key''',
+
+          '''
 cd "/packages/sip" || exit 1
 
 export BE_ENV=local
 export APP_ENV=local
 
 cd backend || exit 1;
-dart run scripts/reset.dart'''
-              .split('\n'),
-        );
+dart run scripts/reset.dart''',
+        ];
+
+        expect(scripts, expected);
       });
     });
   });
 }
 
-class _TestBindings implements Bindings {
-  final List<String> scripts = [];
-
-  @override
-  Future<CommandResult> runScript(
-    String script, {
-    bool showOutput = false,
-    FilterType? filterType,
-    bool bail = false,
-  }) async {
-    scripts.addAll(script.split('\n'));
-
-    return const CommandResult(exitCode: 0, output: '', error: '');
-  }
-}
+class _MockBindings extends Mock implements Bindings {}

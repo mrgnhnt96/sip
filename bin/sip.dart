@@ -24,11 +24,21 @@ import 'package:sip_cli/src/deps/scripts_yaml.dart';
 import 'package:sip_cli/src/deps/variables.dart';
 import 'package:sip_cli/src/domain/args.dart';
 
-void main(List<String> args) async {
+void main(List<String> arguments) async {
+  final args = Args.parse(arguments);
+
+  final logger = Logger(
+    level: switch ((args['quiet'], args['loud'])) {
+      (true, _) => Level.error,
+      (_, true) => Level.verbose,
+      (_, _) => Level.info,
+    },
+  );
+
   await runScoped(
     run,
     values: {
-      argsProvider.overrideWith(() => Args.parse(args)),
+      argsProvider.overrideWith(() => args),
       bindingsProvider,
       constrainPubspecVersionsProvider,
       findFileProvider,
@@ -36,7 +46,7 @@ void main(List<String> args) async {
       fsProvider,
       isUpToDateProvider,
       keyPressListenerProvider,
-      loggerProvider,
+      loggerProvider.overrideWith(() => logger),
       platformProvider,
       processProvider,
       pubUpdaterProvider,
@@ -55,17 +65,6 @@ Future<void> run() async {
     stdout.write('\x1b[?25h');
     exit(1);
   }, cancelOnError: true);
-
-  final loud = args.getOrNull<bool>('loud');
-  final quiet = args.getOrNull<bool>('quiet');
-
-  final logger = Logger(
-    level: switch ((quiet, loud)) {
-      (true, _) => Level.error,
-      (_, true) => Level.verbose,
-      (_, _) => Level.info,
-    },
-  );
 
   final exitCode = await const SipRunner().run();
 

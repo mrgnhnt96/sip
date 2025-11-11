@@ -1,9 +1,5 @@
-import 'package:json_annotation/json_annotation.dart';
 import 'package:mason_logger/mason_logger.dart';
 
-part 'command_result.g.dart';
-
-@JsonSerializable()
 class CommandResult {
   const CommandResult({
     required this.exitCode,
@@ -12,14 +8,29 @@ class CommandResult {
   });
   const CommandResult.unknown() : exitCode = 1, output = '', error = '';
 
-  factory CommandResult.fromJson(Map<dynamic, dynamic> json) =>
-      _$CommandResultFromJson(json);
-
+  factory CommandResult.fromJson(Map<dynamic, dynamic> json) {
+    return CommandResult(
+      exitCode: switch (json['exitCode']) {
+        final int exitCode => exitCode,
+        _ => 1,
+      },
+      output: switch (json['output']) {
+        final String output => output,
+        _ => '',
+      },
+      error: switch (json['error']) {
+        final String error => error,
+        _ => '',
+      },
+    );
+  }
   final int exitCode;
   final String output;
   final String error;
 
-  Map<String, dynamic> toJson() => _$CommandResultToJson(this);
+  Map<String, dynamic> toJson() {
+    return {'exitCode': exitCode, 'output': output, 'error': error};
+  }
 
   ExitCode get exitCodeReason {
     final codes = {

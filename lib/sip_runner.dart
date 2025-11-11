@@ -76,11 +76,12 @@ class SipRunner {
       return ExitCode.success;
     }
 
-    switch (args.path) {
-      case ['version', ...]:
-        logger.info(packageVersion);
+    if (args['version'] case true) {
+      logger.info(packageVersion);
+      return ExitCode.success;
+    }
 
-        return ExitCode.success;
+    switch (args.path) {
       case ['run' || 'r', ...final path]:
         return await const ScriptRunCommand().run(path);
       case ['pub', ...final path]:

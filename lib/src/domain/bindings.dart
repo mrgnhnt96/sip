@@ -1,13 +1,12 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 
-import 'package:mason_logger/mason_logger.dart';
-import 'package:sip_cli/src/deps/logger.dart';
+import 'package:scoped_deps/scoped_deps.dart';
+import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/process.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
-import 'package:sip_cli/src/domain/filter_type.dart';
+import 'package:sip_cli/src/domain/message.dart';
 
 class Bindings {
   const Bindings();
@@ -17,6 +16,23 @@ class Bindings {
     required bool showOutput,
     bool bail = false,
   }) async {
+    return _run(script, bail: bail, showOutput: showOutput);
+  }
+
+  Future<CommandResult> runScriptWithOutput(
+    String script, {
+    required void Function(Message) onOutput,
+    bool bail = false,
+  }) {
+    return _run(script, bail: bail, showOutput: false, onOutput: onOutput);
+  }
+
+  Future<CommandResult> _run(
+    String script, {
+    required bool bail,
+    required bool showOutput,
+    void Function(Message)? onOutput,
+  }) async {
     final port = ReceivePort();
 
     final isolate = await Isolate.spawn(_runScript, port.sendPort);
@@ -24,179 +40,105 @@ class Bindings {
     final completer = Completer<CommandResult>();
 
     await for (final event in port) {
-      if (event is SendPort) {
-        event.send({
-          'script': script,
-          'showOutput': showOutput,
-          'loggerLevel': logger.level.name,
-          'bail': bail,
-        });
-      } else if (event is Map) {
-        final result = CommandResult.fromJson(event);
-        completer.complete(result);
+      switch (event) {
+        case final SendPort sendPort:
+          sendPort.send({
+            'script': script,
+            'bail': bail,
+            'showOutput': showOutput,
+          });
+        case {'message': final String message, 'isError': final bool isError}:
+          final msg = Message(message, isError: isError);
+          onOutput?.call(msg);
+        case {
+          'exitCode': final int code,
+          'output': final String output,
+          'error': final String error,
+        }:
+          completer.complete(
+            CommandResult(exitCode: code, output: output, error: error),
+          );
+      }
+
+      if (completer.isCompleted) {
         break;
       }
     }
 
-    await completer.future;
+    final result = await completer.future;
 
     isolate.kill();
 
-    return completer.future;
+    return result;
   }
 }
 
 Future<void> _runScript(SendPort sendPort) async {
-  final port = ReceivePort();
+  await runScoped(values: {processProvider, fsProvider}, () async {
+    final port = ReceivePort();
 
-  sendPort.send(port.sendPort);
+    sendPort.send(port.sendPort);
 
-  Future<CommandResult> run(
-    String script, {
-    required bool showOutput,
-    required bool bail,
-    required Logger logger,
-    FilterType? type,
-  }) async {
-    final [command, arg] = switch (Platform.operatingSystem) {
-      'linux' => ['bash', '-c'],
-      'macos' => ['bash', '-c'],
-      'windows' => ['cmd', '/c'],
-      _ => throw UnsupportedError('Unsupported platform'),
-    };
+    Future<CommandResult> run(
+      String script, {
+      required bool bail,
+      required bool showOutput,
+    }) async {
+      final [command, arg] = switch (Platform.operatingSystem) {
+        'linux' => ['bash', '-c'],
+        'macos' => ['bash', '-c'],
+        'windows' => ['cmd', '/c'],
+        _ => throw UnsupportedError('Unsupported platform'),
+      };
 
-    final filterOutput = type?.filter;
-    final formatter = type?.formatter(
-      hasTerminal: stdout.hasTerminal,
-      terminalColumns: switch (stdout.hasTerminal) {
-        true => stdout.terminalColumns,
-        false => 1000,
-      },
-    );
-
-    int? overrideExitCode;
-    var haltLogs = false;
-
-    final hasTerminal = switch ((showOutput, filterOutput != null)) {
-      (false, _) => false,
-      (_, true) => false,
-      _ => true,
-    };
-    final details = await process(
-      command,
-      [arg, script],
-      runInShell: true,
-      mode: switch (hasTerminal) {
-        false => ProcessStartMode.normal,
-        _ => ProcessStartMode.inheritStdio,
-      },
-    );
-
-    final outputBuffer = StringBuffer();
-    final errorBuffer = StringBuffer();
-
-    final outputController = StreamController<List<int>>();
-    final errorController = StreamController<List<int>>();
-
-    final outputStream = outputController.stream.asBroadcastStream();
-    final errorStream = errorController.stream.asBroadcastStream();
-
-    outputStream.transform(utf8.decoder).listen(outputBuffer.write);
-    errorStream.transform(utf8.decoder).listen(errorBuffer.write);
-
-    final filter = filterOutput ?? (_) => false;
-
-    void log(String message) {
-      if (haltLogs) {
-        return;
-      }
-
-      if (logger.level.index <= Level.warning.index) {
-        logger.write(message);
-      }
-    }
-
-    outputStream.transform(utf8.decoder).listen((event) {
-      if (!filter(event)) {
-        return;
-      }
-
-      String message;
-      bool isError;
-
-      try {
-        final result = formatter?.call(event);
-
-        if (result == null) {
-          return;
-        }
-
-        // TODO(MRGNHNT): calculate total tests run
-        (:message, count: _, :isError) = result;
-      } catch (_) {
-        return;
-      }
-
-      try {
-        if (!showOutput) {
-          if (isError) {
-            log(message);
-          }
-        } else {
-          log(message);
-        }
-      } catch (_) {
-        // ignore
-      }
-
-      if (isError && bail) {
-        overrideExitCode = 1;
-        haltLogs = true;
-        details.kill();
-      }
-    });
-
-    if (!hasTerminal) {
-      try {
-        details.stdout.listen(outputController.add);
-        details.stderr.listen(errorController.add);
-      } catch (_) {
-        // ignore
-      }
-    }
-
-    final code = await details.exitCode;
-    haltLogs = true;
-
-    details.kill();
-
-    return CommandResult(
-      exitCode: overrideExitCode ?? code,
-      output: outputBuffer.toString(),
-      error: errorBuffer.toString(),
-    );
-  }
-
-  await for (final event in port) {
-    if (event case {
-      'script': final String script,
-      'showOutput': final bool showOutput,
-      'filterType': final String? type,
-      'loggerLevel': final String loggerLevel,
-      'bail': final bool bail,
-    }) {
-      final logger = Logger(
-        level: Level.values.asNameMap()[loggerLevel] ?? Level.info,
-      );
-      final result = await run(
-        script,
-        showOutput: showOutput,
-        bail: bail,
-        type: FilterType.fromString(type),
-        logger: logger,
+      final details = await process(
+        command,
+        [arg, script],
+        runInShell: false,
+        mode: switch (showOutput) {
+          true => ProcessStartMode.inheritStdio,
+          false => ProcessStartMode.normal,
+        },
       );
 
-      sendPort.send(result.toJson());
+      final outputBuffer = StringBuffer();
+      final errorBuffer = StringBuffer();
+
+      details.stdout.listen((event) {
+        if (event.trim().isEmpty) return;
+
+        sendPort.send(Message(event).toJson());
+        outputBuffer.write(event);
+      });
+
+      details.stderr.listen((event) {
+        if (event.trim().isEmpty) return;
+
+        sendPort.send(Message(event, isError: true).toJson());
+        errorBuffer.write(event);
+      });
+
+      final code = await details.exitCode;
+
+      details.kill();
+
+      return CommandResult(
+        exitCode: code,
+        output: outputBuffer.toString(),
+        error: errorBuffer.toString(),
+      );
     }
-  }
+
+    await for (final event in port) {
+      if (event case {
+        'script': final String script,
+        'bail': final bool bail,
+        'showOutput': final bool showOutput,
+      }) {
+        final result = await run(script, bail: bail, showOutput: showOutput);
+
+        sendPort.send(result.toJson());
+      }
+    }
+  });
 }

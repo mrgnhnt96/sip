@@ -7,8 +7,8 @@ class ProcessDetails {
     required this.kill,
   });
 
-  final Stream<List<int>> stdout;
-  final Stream<List<int>> stderr;
+  final Stream<String> stdout;
+  final Stream<String> stderr;
   final int pid;
   final Future<int> exitCode;
   final void Function() kill;

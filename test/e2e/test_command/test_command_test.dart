@@ -2,12 +2,12 @@ import 'package:file/file.dart';
 import 'package:file/memory.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:meta/meta.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/commands/test_run_command.dart';
 import 'package:sip_cli/src/domain/args.dart';
 import 'package:sip_cli/src/domain/bindings.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
-import 'package:sip_cli/src/domain/filter_type.dart';
 import 'package:test/test.dart';
 
 import '../../utils/test_scoped.dart';
@@ -15,14 +15,24 @@ import '../../utils/test_scoped.dart';
 void main() {
   group('finds test directories', () {
     late FileSystem fs;
-    late _TestBindings bindings;
+    late Bindings bindings;
     late TestRunCommand command;
     late Args args;
 
     setUp(() {
-      bindings = _TestBindings();
+      bindings = _MockBindings();
       fs = MemoryFileSystem.test();
       args = const Args(args: {'recursive': true});
+
+      when(
+        () => bindings.runScript(
+          any(),
+          showOutput: any(named: 'showOutput'),
+          bail: any(named: 'bail'),
+        ),
+      ).thenAnswer(
+        (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
+      );
 
       command = const TestRunCommand();
 
@@ -77,31 +87,29 @@ void main() {
         final result = await command.run([]);
 
         expect(result.code, ExitCode.success.code);
-        expect(bindings.scripts, [
-          'cd "/packages/sip/test_dir" || exit 1',
-          '',
-          'dart test test/.test_optimizer.dart',
-          'cd "/packages/sip/test_dir2" || exit 1',
-          '',
-          'dart test test/.test_optimizer.dart',
-        ]);
+        final scripts = verify(
+          () => bindings.runScript(
+            captureAny(),
+            showOutput: any(named: 'showOutput'),
+            bail: any(named: 'bail'),
+          ),
+        ).captured;
+
+        const expected = [
+          '''
+cd "/packages/sip/test_dir" || exit 1
+
+dart test test/.test_optimizer.dart''',
+          '''
+cd "/packages/sip/test_dir2" || exit 1
+
+dart test test/.test_optimizer.dart''',
+        ];
+
+        expect(scripts, expected);
       },
     );
   });
 }
 
-class _TestBindings implements Bindings {
-  final List<String> scripts = [];
-
-  @override
-  Future<CommandResult> runScript(
-    String script, {
-    bool showOutput = false,
-    FilterType? filterType,
-    bool bail = false,
-  }) async {
-    scripts.addAll(script.split('\n'));
-
-    return const CommandResult(exitCode: 0, output: '', error: '');
-  }
-}
+class _MockBindings extends Mock implements Bindings {}

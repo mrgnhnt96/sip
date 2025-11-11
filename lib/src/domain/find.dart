@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:file/file.dart';
 import 'package:glob/glob.dart';
 import 'package:platform/platform.dart';
@@ -69,7 +67,7 @@ class Find {
         "find $workingDirectory \\( ${ignore.join(' ')} \\) -prune -o -name '$name' -type $type -print";
 
     final result = await process('bash', ['-c', script]);
-    final stdout = await result.stdout.transform(utf8.decoder).join();
+    final stdout = await result.stdout.join();
     return stdout.split('\n').where((e) => e.isNotEmpty).toList();
   }
 

@@ -1,20 +1,23 @@
-import 'package:equatable/equatable.dart';
-import 'package:json_annotation/json_annotation.dart';
-
-part 'executables.g.dart';
-
-@JsonSerializable()
-class Executables extends Equatable {
+class Executables {
   const Executables({required this.dart, required this.flutter});
 
-  factory Executables.fromJson(Map<String, dynamic> json) =>
-      _$ExecutablesFromJson(json);
+  factory Executables.fromJson(Map<String, dynamic> json) {
+    return Executables(
+      dart: switch (json['dart']) {
+        final String dart => dart,
+        _ => null,
+      },
+      flutter: switch (json['flutter']) {
+        final String flutter => flutter,
+        _ => null,
+      },
+    );
+  }
 
   final String? dart;
   final String? flutter;
 
-  Map<String, dynamic> toJson() => _$ExecutablesToJson(this);
-
-  @override
-  List<Object?> get props => _$props;
+  Map<String, dynamic> toJson() {
+    return {'dart': dart, 'flutter': flutter};
+  }
 }
