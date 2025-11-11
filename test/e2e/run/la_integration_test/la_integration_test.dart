@@ -3,11 +3,11 @@ import 'dart:io' as io;
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
 import 'package:meta/meta.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/commands/script_run_command.dart';
 import 'package:sip_cli/src/domain/bindings.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
-import 'package:sip_cli/src/domain/filter_type.dart';
 import 'package:sip_cli/src/domain/pubspec_yaml.dart';
 import 'package:sip_cli/src/domain/scripts_yaml.dart';
 import 'package:test/test.dart';
@@ -17,10 +17,20 @@ import '../../../utils/test_scoped.dart';
 void main() {
   group('env files e2e', () {
     late FileSystem fs;
-    late _TestBindings bindings;
+    late Bindings bindings;
 
     setUp(() {
-      bindings = _TestBindings();
+      bindings = _MockBindings();
+
+      when(
+        () => bindings.runScript(
+          any(),
+          showOutput: any(named: 'showOutput'),
+          bail: any(named: 'bail'),
+        ),
+      ).thenAnswer(
+        (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
+      );
       fs = MemoryFileSystem.test();
 
       final cwd = fs.directory(path.join('packages', 'sip'))
@@ -29,7 +39,7 @@ void main() {
     });
 
     @isTest
-    void test(String description, void Function() fn) {
+    void test(String description, Future<void> Function() fn) {
       testScoped(
         description,
         fn,
@@ -73,31 +83,22 @@ void main() {
       test('command: test integration android', () async {
         await command.run(['test', 'integration', 'android']);
 
-        await Future<void>.delayed(Duration.zero);
+        final [script] = verify(
+          () => bindings.runScript(
+            captureAny(),
+            showOutput: any(named: 'showOutput'),
+            bail: any(named: 'bail'),
+          ),
+        ).captured;
 
-        expect(bindings.scripts, [
-          'cd /packages/sip || exit 1',
+        expect((script as String).split('\n'), [
+          'cd "/packages/sip" || exit 1',
           '',
           r'C=$(sh ./scripts/integration_test.sh --platform="android"); echo $C; $C',
-          '',
         ]);
       });
     });
   });
 }
 
-class _TestBindings implements Bindings {
-  final List<String> scripts = [];
-
-  @override
-  Future<CommandResult> runScript(
-    String script, {
-    bool showOutput = false,
-    FilterType? filterType,
-    bool bail = false,
-  }) async {
-    scripts.addAll(script.split('\n'));
-
-    return const CommandResult(exitCode: 0, output: '', error: '');
-  }
-}
+class _MockBindings extends Mock implements Bindings {}

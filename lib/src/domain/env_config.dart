@@ -1,74 +1,54 @@
-import 'package:equatable/equatable.dart';
-import 'package:sip_cli/src/utils/constants.dart';
+import 'package:sip_cli/src/deps/fs.dart';
 
-part 'env_config.g.dart';
-
-class EnvConfig extends Equatable {
+class EnvConfig {
   const EnvConfig({
-    required this.commands,
-    required this.files,
-    required this.workingDirectory,
-    required this.variables,
-  });
+    this.commands = const [],
+    this.files = const [],
+    Map<String, String> variables = const {},
+  }) : _variables = variables;
 
   const EnvConfig.empty()
     : commands = const [],
       files = const [],
-      workingDirectory = '',
-      variables = const {};
+      _variables = const {};
 
-  final List<String>? files;
-  final List<String>? commands;
-  final String workingDirectory;
-  final Map<String, String>? variables;
+  final List<String> files;
+  final List<String> commands;
+  final Map<String, String> _variables;
 
-  @override
-  List<Object?> get props => _$props;
+  Map<String, String> get variables {
+    final vars = {..._variables};
 
-  EnvConfig? forceVariableOverride(Map<String, String>? variables) {
-    final newVariables = <String, String>{...?this.variables, ...?variables};
+    final rawLines = <String>[];
 
-    return EnvConfig(
-      commands: commands,
-      files: files,
-      workingDirectory: workingDirectory,
-      variables: newVariables,
-    );
-  }
-}
+    if (files case final files) {
+      for (final path in files) {
+        final file = fs.file(path);
+        if (!file.existsSync()) {
+          throw Exception('Env file $path not found');
+        }
 
-extension CombineEnvConfigEnvConfigX on Iterable<EnvConfig?> {
-  EnvConfig? combine({required String directory}) {
-    final commands = <String>{};
-    final files = <String>{};
-    final variables = <String, String>{};
-
-    for (final config in this) {
-      if (config == null) continue;
-
-      for (var command in config.commands ?? <String>[]) {
-        command = command.replaceAll(Identifiers.concurrent, '');
-
-        commands.add(command);
-      }
-
-      files.addAll(config.files ?? []);
-
-      if (config.variables case final Map<String, String> vars
-          when vars.isNotEmpty) {
-        variables.addAll(vars);
+        rawLines.addAll(file.readAsLinesSync());
       }
     }
 
-    if (commands.isEmpty && files.isEmpty && variables.isEmpty) {
-      return null;
+    for (final line in rawLines) {
+      final trimmed = line.trim();
+      if (trimmed.isEmpty) continue;
+      if (trimmed.startsWith('#')) continue;
+
+      if (trimmed.contains('=')) {
+        final parts = trimmed.split('=');
+        if (parts.length != 2) continue;
+
+        final [key, value] = parts;
+        vars[key] = value;
+        continue;
+      }
+
+      vars[trimmed] = '';
     }
 
-    return EnvConfig(
-      commands: commands.toList(),
-      files: files.toList(),
-      workingDirectory: directory,
-      variables: variables,
-    );
+    return Map.unmodifiable(vars);
   }
 }

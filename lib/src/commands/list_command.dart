@@ -1,10 +1,7 @@
-import 'package:mason_logger/mason_logger.dart' hide ExitCode;
+import 'package:mason_logger/mason_logger.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/logger.dart';
-import 'package:sip_cli/src/deps/scripts_yaml.dart';
 import 'package:sip_cli/src/domain/scripts_config.dart';
-import 'package:sip_cli/src/domain/scripts_yaml.dart';
-import 'package:sip_cli/src/utils/exit_code.dart';
 
 const _usage = '''
 Usage: sip list [query] [arguments]
@@ -30,13 +27,7 @@ class ListCommand {
       _ => queries.join(' '),
     };
 
-    final content = scriptsYaml.scripts();
-    if (content == null) {
-      logger.err('No ${ScriptsYaml.fileName} file found');
-      return ExitCode.noInput;
-    }
-
-    final scriptConfig = ScriptsConfig.fromJson(content);
+    final scriptConfig = ScriptsConfig.load();
 
     if (query != null) {
       final result = scriptConfig.search(query);

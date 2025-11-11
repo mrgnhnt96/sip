@@ -3,11 +3,11 @@ import 'dart:io' as io;
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
 import 'package:meta/meta.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/commands/script_run_command.dart';
 import 'package:sip_cli/src/domain/bindings.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
-import 'package:sip_cli/src/domain/filter_type.dart';
 import 'package:sip_cli/src/domain/pubspec_yaml.dart';
 import 'package:sip_cli/src/domain/scripts_yaml.dart';
 import 'package:test/test.dart';
@@ -17,11 +17,21 @@ import '../../../utils/test_scoped.dart';
 void main() {
   group('env files e2e', () {
     late FileSystem fs;
-    late _TestBindings bindings;
+    late Bindings bindings;
 
     setUp(() {
-      bindings = _TestBindings();
+      bindings = _MockBindings();
       fs = MemoryFileSystem.test();
+
+      when(
+        () => bindings.runScript(
+          any(),
+          showOutput: any(named: 'showOutput'),
+          bail: any(named: 'bail'),
+        ),
+      ).thenAnswer(
+        (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
+      );
 
       final cwd = fs.directory(path.join('packages', 'sip'))
         ..createSync(recursive: true);
@@ -29,7 +39,7 @@ void main() {
     });
 
     @isTest
-    void test(String description, void Function() fn) {
+    void test(String description, Future<void> Function() fn) {
       testScoped(
         description,
         fn,
@@ -65,62 +75,88 @@ void main() {
       test('command: test', () async {
         await command.run(['test']);
 
-        expect(bindings.scripts, [
-          'cd /packages/sip || exit 1',
-          '',
-          'dart test',
-          '',
-        ]);
+        final [script] = verify(
+          () => bindings.runScript(
+            captureAny(),
+            showOutput: any(named: 'showOutput'),
+            bail: any(named: 'bail'),
+          ),
+        ).captured;
+
+        expect(
+          (script as String).split('\n'),
+          '''
+cd "/packages/sip" || exit 1
+
+dart test'''
+              .split('\n'),
+        );
       });
 
       test('command: test --coverage', () async {
         await command.run(['test', '--coverage']);
 
-        expect(bindings.scripts, [
-          'cd /packages/sip || exit 1',
-          '',
-          'dart test --coverage',
-          '',
-        ]);
+        final [script] = verify(
+          () => bindings.runScript(
+            captureAny(),
+            showOutput: any(named: 'showOutput'),
+            bail: any(named: 'bail'),
+          ),
+        ).captured;
+
+        expect(
+          (script as String).split('\n'),
+          '''
+cd "/packages/sip" || exit 1
+
+dart test --coverage'''
+              .split('\n'),
+        );
       });
 
       test('command: test --coverage=banana', () async {
         await command.run(['test', '--coverage=banana']);
 
-        expect(bindings.scripts, [
-          'cd /packages/sip || exit 1',
-          '',
-          'dart test --coverage=banana',
-          '',
-        ]);
+        final [script] = verify(
+          () => bindings.runScript(
+            captureAny(),
+            showOutput: any(named: 'showOutput'),
+            bail: any(named: 'bail'),
+          ),
+        ).captured;
+
+        expect(
+          (script as String).split('\n'),
+          '''
+cd "/packages/sip" || exit 1
+
+dart test --coverage banana'''
+              .split('\n'),
+        );
       });
 
       test('command: test --coverage monkey', () async {
         await command.run(['test', '--coverage', 'monkey']);
 
-        expect(bindings.scripts, [
-          'cd /packages/sip || exit 1',
-          '',
-          'dart test --coverage monkey',
-          '',
-        ]);
+        final [script] = verify(
+          () => bindings.runScript(
+            captureAny(),
+            showOutput: any(named: 'showOutput'),
+            bail: any(named: 'bail'),
+          ),
+        ).captured;
+
+        expect(
+          (script as String).split('\n'),
+          '''
+cd "/packages/sip" || exit 1
+
+dart test --coverage monkey'''
+              .split('\n'),
+        );
       });
     });
   });
 }
 
-class _TestBindings implements Bindings {
-  final List<String> scripts = [];
-
-  @override
-  Future<CommandResult> runScript(
-    String script, {
-    bool showOutput = false,
-    FilterType? filterType,
-    bool bail = false,
-  }) async {
-    scripts.addAll(script.split('\n'));
-
-    return const CommandResult(exitCode: 0, output: '', error: '');
-  }
-}
+class _MockBindings extends Mock implements Bindings {}

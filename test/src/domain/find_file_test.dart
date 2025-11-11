@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
 import 'package:meta/meta.dart';
@@ -19,7 +21,7 @@ void main() {
     });
 
     @isTest
-    void test(String description, void Function() fn) {
+    void test(String description, FutureOr<void> Function() fn) {
       testScoped(description, fn, fileSystem: () => fs);
     }
 

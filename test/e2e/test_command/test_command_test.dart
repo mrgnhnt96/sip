@@ -58,7 +58,7 @@ void main() {
     }
 
     @isTest
-    void test(String description, void Function() fn) {
+    void test(String description, Future<void> Function() fn) {
       testScoped(
         description,
         fn,
@@ -78,14 +78,12 @@ void main() {
 
         expect(result.code, ExitCode.success.code);
         expect(bindings.scripts, [
-          'cd /packages/sip/test_dir || exit 1',
+          'cd "/packages/sip/test_dir" || exit 1',
           '',
           'dart test test/.test_optimizer.dart',
-          '',
-          'cd /packages/sip/test_dir2 || exit 1',
+          'cd "/packages/sip/test_dir2" || exit 1',
           '',
           'dart test test/.test_optimizer.dart',
-          '',
         ]);
       },
     );

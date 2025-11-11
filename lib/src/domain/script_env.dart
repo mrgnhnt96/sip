@@ -1,74 +1,72 @@
-import 'package:equatable/equatable.dart';
-import 'package:json_annotation/json_annotation.dart';
-import 'package:sip_cli/src/utils/try_read_list_or_string.dart';
+import 'package:meta/meta.dart';
 
-part 'script_env.g.dart';
-
-@JsonSerializable()
-class ScriptEnv extends Equatable {
+@immutable
+class ScriptEnv {
   const ScriptEnv({
     this.files = const [],
     this.commands = const [],
     this.vars = const {},
   });
 
-  factory ScriptEnv.fromJson(Map<String, dynamic> json) {
-    return _$ScriptEnvFromJson(json);
+  factory ScriptEnv.fromJson(Map<dynamic, dynamic> json) {
+    final files = switch (json['files'] ?? json['file']) {
+      final String file => [file],
+      final List<dynamic> files => [
+        for (final file in files)
+          if (file case final String file)
+            if (file.trim() case final file when file.isNotEmpty) file,
+      ],
+      _ => <String>[],
+    };
+
+    final commands = switch (json['commands'] ?? json['command']) {
+      final String command => [command],
+      final List<dynamic> commands => [
+        for (final cmd in commands)
+          if (cmd case final String cmd)
+            if (cmd.trim() case final cmd when cmd.isNotEmpty) cmd,
+      ],
+      _ => <String>[],
+    };
+
+    final vars = switch (json['vars'] ?? json['variables']) {
+      final Map<String, String> vars => vars,
+      final Map<dynamic, dynamic> vars => {
+        for (final MapEntry(:key, :value) in vars.entries)
+          if (key case final String key)
+            if (key.trim() case final key when key.isNotEmpty)
+              key: switch (value) {
+                int() => value.toString(),
+                double() => value.toString(),
+                bool() => value.toString(),
+                String() => value,
+                _ => '',
+              },
+      },
+      _ => <String, String>{},
+    };
+
+    return ScriptEnv(files: files, commands: commands, vars: vars);
   }
 
   /// the file to source when running the script
-  @JsonKey(readValue: _readFiles)
   final List<String> files;
 
   /// The script to run to create the environment
-  @JsonKey(readValue: _readScript)
   final List<String> commands;
 
   /// The environment variables to set when running the script
-  @JsonKey(readValue: _readVariables)
   final Map<String, String> vars;
 
-  Map<String, dynamic> toJson() => _$ScriptEnvToJson(this);
-
   @override
-  List<Object?> get props => _$props;
-}
+  bool operator ==(Object other) {
+    if (other is! ScriptEnv) return false;
 
-// ignore: strict_raw_type
-List? _readFiles(Map json, String key) {
-  return tryReadListOrString(json[key] ?? json['file']);
-}
-
-// ignore: strict_raw_type
-List<String> _readScript(Map json, String key) {
-  return tryReadListOrString(json[key] ?? json['command']) ?? [];
-}
-
-// ignore: strict_raw_type
-Map<String, dynamic> _readVariables(Map json, String key) {
-  final map = json[key] ?? json['variables'];
-
-  final result = <String, dynamic>{};
-
-  // ignore: strict_raw_type
-  if (map case final Map map) {
-    for (final MapEntry(:key, :value) in map.entries) {
-      final resolvedValue = switch (value) {
-        String() => value,
-        int() => value.toString(),
-        double() => value.toString(),
-        bool() => value.toString(),
-        null => '',
-        _ => null,
-      };
-
-      if (resolvedValue == null) {
-        continue;
-      }
-
-      result['$key'] = resolvedValue;
-    }
+    return files == other.files &&
+        commands == other.commands &&
+        vars == other.vars;
   }
 
-  return result;
+  @override
+  int get hashCode => Object.hashAll([files, commands, vars]);
 }

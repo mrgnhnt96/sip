@@ -10,10 +10,8 @@ import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/commands/script_run_command.dart';
 import 'package:sip_cli/src/domain/bindings.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
-import 'package:sip_cli/src/domain/command_to_run.dart';
 import 'package:sip_cli/src/domain/pubspec_yaml.dart';
-import 'package:sip_cli/src/domain/run_many_scripts.dart';
-import 'package:sip_cli/src/domain/run_one_script.dart';
+import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:sip_cli/src/domain/scripts_yaml.dart';
 import 'package:test/test.dart';
 
@@ -23,48 +21,22 @@ void main() {
   group('concurrency groups test', () {
     late FileSystem fs;
     late Bindings bindings;
-    late RunOneScript runOneScript;
-    late RunManyScripts runManyScripts;
 
     setUpAll(() {
-      registerFallbackValue(
-        const CommandToRun(command: '__fake__', workingDirectory: '', keys: []),
-      );
+      registerFallbackValue(const ConcurrentBreak() as Runnable);
     });
 
     setUp(() {
       bindings = _MockBindings();
-      runOneScript = _MockRunOneScript();
-      runManyScripts = _MockRunManyScript();
 
       when(
-        () => runOneScript.run(
-          command: any(named: 'command'),
-          showOutput: any(named: 'showOutput'),
-          filter: any(named: 'filter'),
-          maxAttempts: any(named: 'maxAttempts'),
-          retryAfter: any(named: 'retryAfter'),
-        ),
-      ).thenAnswer(
-        (invocation) async =>
-            const CommandResult(exitCode: 0, output: '', error: ''),
-      );
-      when(
-        () => runManyScripts.run(
-          commands: any(named: 'commands'),
-          sequentially: any(named: 'sequentially'),
+        () => bindings.runScript(
+          any(),
           bail: any(named: 'bail'),
-          label: any(named: 'label'),
-          maxAttempts: any(named: 'maxAttempts'),
-          retryAfter: any(named: 'retryAfter'),
+          showOutput: any(named: 'showOutput'),
         ),
       ).thenAnswer(
-        (invocation) async => [
-          if (invocation.namedArguments[#commands]
-              case final List<CommandToRun> commands)
-            for (final command in commands)
-              CommandResult(exitCode: 0, output: command.command, error: ''),
-        ],
+        (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
       );
 
       fs = MemoryFileSystem.test();
@@ -97,14 +69,12 @@ void main() {
     }
 
     @isTest
-    void test(String description, void Function() fn) {
+    void test(String description, Future<void> Function() fn) {
       testScoped(
         description,
         fn,
         fileSystem: () => fs,
         bindings: () => bindings,
-        runOneScript: () => runOneScript,
-        runManyScripts: () => runManyScripts,
       );
     }
 
@@ -112,66 +82,100 @@ void main() {
       final command = setupScripts();
 
       await command.run(['test-suite']);
-      {
-        final results = <List<CommandToRun>>[];
+      final commands = verify(
+        () => bindings.runScript(captureAny(), showOutput: false),
+      ).captured;
 
-        verify(
-          () => runManyScripts.run(
-            commands: any(
-              named: 'commands',
-              that: isA<List<CommandToRun>>().having(
-                (items) {
-                  return items;
-                },
-                'has correct scripts',
-                (Object? items) {
-                  results.add(items! as List<CommandToRun>);
-                  return true;
-                },
-              ),
-            ),
-            sequentially: false,
-            bail: false,
-            label: any(named: 'label'),
-            maxAttempts: any(named: 'maxAttempts'),
-            retryAfter: any(named: 'retryAfter'),
-          ),
-        ).called(1);
+      final dirs = [
+        ('revali_server', 'methods'),
+        ('revali_server', 'custom_return_types'),
+        ('revali_server', 'primitive_return_types'),
+        ('revali_server', 'null_primitive_return_types'),
+        ('revali_server', 'middleware'),
+        ('revali_server', 'params'),
+        ('revali_server', 'custom_params'),
+        ('revali_server', 'sse'),
+        ('revali_server', 'sse_custom'),
+        ('revali_client', 'primitive_return_types'),
+        ('revali_client', 'null_primitive_return_types'),
+        ('revali_client', 'custom_return_types'),
+        ('revali_client', 'methods'),
+        ('revali_client', 'params'),
+        ('revali_client', 'sse'),
+        ('revali_client', 'sse_custom'),
+        ('revali_client', 'websockets/custom_return_types'),
+        ('revali_client', 'websockets/primitive_return_types'),
+        ('revali_client', 'websockets/params'),
+        ('revali_client', 'websockets/null_primitive_return_types'),
+        ('revali_client', 'websockets/two_way'),
+      ];
 
-        expect(results.first, hasLength(21));
+      expect(commands, hasLength(dirs.length + 2));
+
+      for (final (index, command) in commands.sublist(0, dirs.length).indexed) {
+        final (testType, dir) = dirs[index];
+        final expected =
+            '''
+cd "/packages/sip" || exit 1
+
+DIR=$dir
+TEST_DIR=test_suite/constructs/$testType/\$DIR
+echo \$TEST_DIR
+cd \$TEST_DIR || exit 1
+# get the line number of the first line that contains 'path: .revali/*'
+LINE_NUMBER=\$(grep -n "path: .revali/*" pubspec.yaml | cut -d: -f1)
+
+if [ -n "\$LINE_NUMBER" ]; then
+  # comment out the line and the preceding line
+  sed -i '' "\$((LINE_NUMBER))s/^/#/" pubspec.yaml
+  sed -i '' "\$((LINE_NUMBER - 1))s/^/#/" pubspec.yaml
+fi
+
+if [ -z "" ]; then
+  dart run revali dev --generate-only --recompile
+fi
+
+# get the line number of the first line that contains 'path: .revali/*'
+LINE_NUMBER=\$(grep -n "path: .revali/*" pubspec.yaml | cut -d: -f1)
+
+if [ -n "\$LINE_NUMBER" ]; then
+  # uncomment the line and the preceding line
+  sed -i '' "\$((LINE_NUMBER))s/^#//" pubspec.yaml
+  sed -i '' "\$((LINE_NUMBER - 1))s/^#//" pubspec.yaml
+fi
+
+if [ ! \$? = 0 ]; then
+  echo "failed to generate revali code"
+  exit 1
+fi''';
+
+        expect((command as String).split('\n'), expected.split('\n'));
       }
 
-      {
-        final results = <CommandToRun>[];
+      final [..., testScript, echo] = commands;
 
-        verify(
-          () => runOneScript.run(
-            command: any(
-              named: 'command',
-              that: isA<CommandToRun>().having(
-                (items) {
-                  return items;
-                },
-                'has correct script',
-                (Object? items) {
-                  results.add(items! as CommandToRun);
+      expect(testScript, r'''
+cd "/packages/sip" || exit 1
 
-                  return true;
-                },
-              ),
-            ),
-            showOutput: any(named: 'showOutput'),
-            maxAttempts: any(named: 'maxAttempts'),
-            retryAfter: any(named: 'retryAfter'),
-          ),
-        ).called(2);
-      }
+# if [ -n "" ]; then
+#   exit 0
+# fi
+echo "doing this"
+
+cd test_suite || exit 1
+
+sip test --test-randomize-ordering-seed random --bail --recursive --concurrent
+
+if [ $? -ne 0 ]; then
+  exit 1
+fi''');
+
+      expect(echo, '''
+cd "/packages/sip" || exit 1
+
+echo "hi"''');
     });
   });
 }
 
 class _MockBindings extends Mock implements Bindings {}
-
-class _MockRunOneScript extends Mock implements RunOneScript {}
-
-class _MockRunManyScript extends Mock implements RunManyScripts {}

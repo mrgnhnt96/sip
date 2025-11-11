@@ -60,7 +60,7 @@ void main() {
       });
 
       @isTest
-      void test(String description, void Function() fn) {
+      void test(String description, Future<void> Function() fn) {
         testScoped(
           description,
           fn,

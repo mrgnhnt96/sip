@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:file/file.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
@@ -16,8 +18,7 @@ import 'package:sip_cli/src/deps/process.dart';
 import 'package:sip_cli/src/deps/pub_updater.dart';
 import 'package:sip_cli/src/deps/pubspec_lock.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
-import 'package:sip_cli/src/deps/run_many_scripts.dart';
-import 'package:sip_cli/src/deps/run_one_script.dart';
+import 'package:sip_cli/src/deps/script_runner.dart';
 import 'package:sip_cli/src/deps/scripts_yaml.dart';
 import 'package:sip_cli/src/deps/variables.dart';
 import 'package:sip_cli/src/domain/args.dart';
@@ -26,24 +27,22 @@ import 'package:sip_cli/src/domain/constrain_pubspec_versions.dart';
 import 'package:sip_cli/src/domain/find_file.dart';
 import 'package:sip_cli/src/domain/pubspec_lock.dart';
 import 'package:sip_cli/src/domain/pubspec_yaml.dart';
-import 'package:sip_cli/src/domain/run_many_scripts.dart';
-import 'package:sip_cli/src/domain/run_one_script.dart';
+import 'package:sip_cli/src/domain/script_runner.dart';
 import 'package:sip_cli/src/domain/scripts_yaml.dart';
 import 'package:test/test.dart';
 
 void testScoped(
   String description,
-  void Function() fn, {
+  FutureOr<void> Function() fn, {
   FileSystem Function()? fileSystem,
   Bindings Function()? bindings,
   Logger Function()? logger,
   ConstrainPubspecVersions Function()? constrainPubspecVersions,
-  RunOneScript Function()? runOneScript,
-  RunManyScripts Function()? runManyScripts,
   ScriptsYaml Function()? scriptsYaml,
   PubspecLock Function()? pubspecLock,
   FindFile Function()? findFile,
   PubspecYaml Function()? pubspecYaml,
+  ScriptRunner Function()? scriptRunner,
   Args Function()? args,
 }) {
   test(description, () async {
@@ -62,6 +61,11 @@ void testScoped(
 
       loggerProvider.overrideWith(() => logger?.call() ?? mockLogger),
 
+      if (scriptRunner?.call() case final scriptRunner?)
+        scriptRunnerProvider.overrideWith(() => scriptRunner)
+      else
+        scriptRunnerProvider,
+
       if (args?.call() case final args?)
         argsProvider.overrideWith(() => args)
       else
@@ -76,16 +80,6 @@ void testScoped(
         pubspecLockProvider.overrideWith(() => pubspecLock)
       else
         pubspecLockProvider,
-
-      if (runManyScripts?.call() case final runManyScripts?)
-        runManyScriptsProvider.overrideWith(() => runManyScripts)
-      else
-        runManyScriptsProvider,
-
-      if (runOneScript?.call() case final runOneScript?)
-        runOneScriptProvider.overrideWith(() => runOneScript)
-      else
-        runOneScriptProvider,
 
       if (scriptsYaml?.call() case final scriptsYaml?)
         scriptsYamlProvider.overrideWith(() => scriptsYaml)
@@ -116,7 +110,12 @@ void testScoped(
     };
 
     await runScoped(values: testProviders, () async {
-      fn();
+      switch (fn) {
+        case final Future<void> Function() fn:
+          await fn();
+        case final void Function() fn:
+          fn();
+      }
     });
   });
 }

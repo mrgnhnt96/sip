@@ -254,7 +254,7 @@ class Args {
     return defaultValue;
   }
 
-  dynamic operator [](String key) => getOrNull(key);
+  Object? operator [](String key) => getOrNull(key);
 
   @override
   String toString() {

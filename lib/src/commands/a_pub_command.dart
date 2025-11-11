@@ -1,18 +1,15 @@
 import 'dart:math';
 
-import 'package:mason_logger/mason_logger.dart' hide ExitCode;
+import 'package:mason_logger/mason_logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
-import 'package:sip_cli/src/deps/run_many_scripts.dart';
-import 'package:sip_cli/src/deps/run_one_script.dart';
+import 'package:sip_cli/src/deps/script_runner.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
-import 'package:sip_cli/src/domain/command_to_run.dart';
+import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:sip_cli/src/utils/dart_or_flutter_mixin.dart';
-import 'package:sip_cli/src/utils/exit_code.dart';
-import 'package:sip_cli/src/utils/exit_code_extensions.dart';
 
 /// A command that runs `pub *`.
 abstract class APubCommand with DartOrFlutterMixin {
@@ -114,10 +111,9 @@ Options:
 
         final label = '$toolString $pathString';
 
-        final command = CommandToRun(
-          command: '$tool pub $name ${pubFlags.join(' ')}',
+        final command = ScriptToRun(
+          '$tool pub $name ${pubFlags.join(' ')}'.trim(),
           workingDirectory: project,
-          keys: ['dart', 'pub', name, ...pubFlags],
           label: label,
           bail: bail,
         );
@@ -137,87 +133,61 @@ Options:
     }
 
     if (concurrent) {
-      final label =
-          'Running ${lightCyan.wrap('pub $name ${pubFlags.join(' ')}')}';
-
-      final runners = <(Iterable<CommandToRun>, Future<List<CommandResult>>)>[
+      final runners = <(Iterable<ScriptToRun>, Future<CommandResult>)>[
         if (separated) ...[
           if (commands.dart.isNotEmpty)
             (
               commands.dart,
-              runManyScripts.run(
-                label: label,
+              scriptRunner.groupRun(
+                commands.dart.toList(),
                 bail: bail,
-                commands: commands.dart.toList(),
-                sequentially: false,
-                retryAfter: retryAfter?.dart,
+                showOutput: false,
               ),
             ),
           if (commands.flutter.isNotEmpty)
             (
               commands.flutter,
-              runManyScripts.run(
-                label: label,
+              scriptRunner.groupRun(
+                commands.flutter.toList(),
                 bail: bail,
-                commands: commands.flutter.toList(),
-                sequentially: false,
-                retryAfter: retryAfter?.flutter,
+                showOutput: false,
               ),
             ),
         ] else
           (
             commands.ordered.map((e) => e.$2),
-            runManyScripts.run(
-              label: label,
+            scriptRunner.groupRun(
+              commands.ordered.map((e) => e.$2).toList(),
               bail: bail,
-              commands: commands.ordered.map((e) => e.$2).toList(),
-              sequentially: false,
+              showOutput: false,
             ),
           ),
       ];
 
       ExitCode? exitCode;
-      for (final (commands, runner) in runners) {
-        final exitCodes = await runner;
+      for (final (_, runner) in runners) {
+        final result = await runner;
 
-        exitCodes.printErrors(commands, logger);
-
-        final result = exitCodes.exitCode(logger);
-        if (result != ExitCode.success) {
+        if (result.exitCodeReason != ExitCode.success) {
           if (bail) {
-            return result;
+            return result.exitCodeReason;
           }
 
-          exitCode = result;
+          exitCode = result.exitCodeReason;
         }
       }
 
       return exitCode ?? ExitCode.success;
     }
 
-    var exitCode = ExitCode.success;
+    // TODO: add label
+    logger.info('\nRunning something...');
 
-    for (final (tool, command) in commands.ordered) {
-      logger.info('\nRunning ${lightCyan.wrap(command.command)}');
+    final result = await scriptRunner.groupRun(
+      commands.ordered.map((e) => e.$2).toList(),
+      bail: bail,
+    );
 
-      final result = await runOneScript.run(
-        command: command,
-        showOutput: true,
-        retryAfter: tool.isDart ? retryAfter?.dart : retryAfter?.flutter,
-      );
-
-      if (result.exitCodeReason != ExitCode.success) {
-        if (exitCode != ExitCode.success) {
-          exitCode = result.exitCodeReason;
-        }
-
-        if (bail) {
-          result.printError(command, logger);
-          return exitCode;
-        }
-      }
-    }
-
-    return exitCode;
+    return result.exitCodeReason;
   }
 }

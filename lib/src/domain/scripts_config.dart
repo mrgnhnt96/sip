@@ -1,49 +1,35 @@
-import 'package:autoequal/autoequal.dart';
-import 'package:equatable/equatable.dart';
-import 'package:json_annotation/json_annotation.dart';
-import 'package:mason_logger/mason_logger.dart';
-import 'package:sip_cli/src/domain/script.dart';
-import 'package:sip_cli/src/utils/constants.dart';
-
 // ignore_for_file: must_be_immutable
 
-part 'scripts_config.g.dart';
+import 'package:sip_cli/src/deps/logger.dart';
+import 'package:sip_cli/src/deps/scripts_yaml.dart';
+import 'package:sip_cli/src/domain/script.dart';
+import 'package:sip_cli/src/domain/scripts_yaml.dart';
+import 'package:sip_cli/src/utils/constants.dart';
 
 /// The `scripts.yaml` file.
 ///
 /// Also nested scripts.
-@JsonSerializable(createFactory: false)
-class ScriptsConfig extends Equatable {
-  ScriptsConfig({required this.scripts, this.parents})
-    : assert(
-        !scripts.containsKey(Keys.command),
-        'The key "${Keys.command}" cannot exist in the config',
-      ),
-      assert(
-        !scripts.containsKey(Keys.description),
-        'The key "${Keys.description}" cannot exist in the config',
-      ),
-      assert(
-        !scripts.containsKey(Keys.aliases),
-        'The key "${Keys.aliases}" cannot exist in the config',
-      );
+class ScriptsConfig {
+  ScriptsConfig(this.scripts);
 
   // ignore: strict_raw_type
-  factory ScriptsConfig.fromJson(Map json_) {
-    final logger = Logger();
+  factory ScriptsConfig.load() {
+    final json = scriptsYaml.scripts();
+    if (json == null) {
+      logger.err('No ${ScriptsYaml.fileName} file found');
 
-    final json = {...json_};
+      return ScriptsConfig(const {});
+    }
+
     final scripts = <String, Script>{};
-
-    final parents = (json.remove(Keys.parents) as List?)?.cast<String>();
 
     final allowedKeys = RegExp(
       r'^_?([a-z][a-z0-9_.\-]*)?(?<=[a-z0-9_])$',
       caseSensitive: false,
     );
 
-    for (final entry in json.entries) {
-      final key = '${entry.key}'.trim();
+    for (final MapEntry(key: rawKey, :value) in json.entries) {
+      final key = rawKey.trim();
       if (key.contains(' ')) {
         logger.err(
           'The script name "$key" contains spaces, '
@@ -60,97 +46,97 @@ class ScriptsConfig extends Equatable {
         continue;
       }
 
-      scripts[key] = Script.fromJson(key, entry.value, parents: parents);
+      scripts[key] = Script.fromJson(key, value);
     }
 
-    return ScriptsConfig(scripts: scripts, parents: parents);
+    return ScriptsConfig(scripts);
   }
 
-  @JsonKey(defaultValue: {})
   final Map<String, Script> scripts;
-  final List<String>? parents;
 
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  Logger get logger => Logger();
-
-  @ignore
-  bool _hasSetupAliases = false;
-  @ignore
-  late Map<String, Script> _aliases;
-  @ignore
-  late Map<String, List<String>> _deactivatedAliases;
-
-  void _mapAliases() {
-    final aliases = <String, Script>{};
-    final deactivatedAliases = <String, List<String>>{};
-
-    for (final MapEntry(key: name, value: script) in scripts.entries) {
-      if (script.aliases.isEmpty) continue;
-
-      for (final alias in script.aliases) {
-        if (aliases.containsKey(alias)) {
-          (deactivatedAliases[alias] ??= []).add(name);
-        } else {
-          aliases[alias] = script;
-        }
-      }
+  Script? _parent;
+  Script? get parent => _parent;
+  set parent(Script? value) {
+    if (_parent != null && _parent != value) {
+      logger.err('The scripts config already has a parent');
+      return;
     }
 
-    _aliases = aliases;
-    _deactivatedAliases = deactivatedAliases;
-    _hasSetupAliases = true;
+    _parent = value;
   }
 
   Script? find(List<String> keys) {
-    Script? find(String key) {
-      if (scripts.containsKey(key)) {
-        return scripts[key];
+    Script? find(String key, Map<String, Script> scripts) {
+      if (scripts[key] case final script?) {
+        return script;
       }
 
-      if (!_hasSetupAliases) {
-        _mapAliases();
+      final aliases = <String, Script>{};
+      final deactivatedAliases = <String, List<Script>>{};
+
+      for (final script in scripts.values) {
+        for (final alias in script.aliases) {
+          if (aliases.containsKey(alias)) {
+            (deactivatedAliases[alias] ??= []).add(script);
+            continue;
+          }
+
+          aliases[alias] = script;
+        }
       }
 
-      if (_aliases.containsKey(key)) {
-        return _aliases[key];
+      if (aliases[key] case final script?) {
+        return script;
       }
 
-      if (_deactivatedAliases.containsKey(key)) {
+      if (deactivatedAliases[key] case final badScripts?) {
+        final id = badScripts
+            .map((e) => '${e.name} (${e.keys.join(' ')})')
+            .join('\n');
+
         logger.err(
           'The alias "$key" is deactivated '
           'because duplicates have been found in:'
-          '\n${_deactivatedAliases[key]!.map((e) => e).join('\n')}',
+          '\n$id',
         );
 
         return null;
       }
+
       return null;
     }
 
-    var script = find(keys.first);
-    if (script == null) return null;
+    Script? script;
+    for (final key in keys) {
+      final children = switch (key == keys.first) {
+        true => scripts,
+        false => script?.scripts,
+      };
 
-    for (var i = 1; i < keys.length; i++) {
-      final remainingKeys = keys.sublist(i);
-      final found = script?.scripts?.find(remainingKeys);
-      if (found == null) break;
+      if (children == null) {
+        break;
+      }
 
-      script = found;
+      if (find(key, children) case final s?) {
+        script = s;
+      }
     }
 
-    if (script?.name != keys.last &&
-        script?.aliases.contains(keys.last) != true) {
+    if (script == null) {
       return null;
+    }
+
+    if (script.name != keys.last) {
+      if (!script.aliases.contains(keys.last)) {
+        return null;
+      }
     }
 
     return script;
   }
 
-  Map<String, dynamic> toJson() => _$ScriptsConfigToJson(this);
-
   String listOut({
     StringBuffer? buffer,
-    String? prefix,
     String Function(String)? wrapCallableKey,
     String Function(String)? wrapNonCallableKey,
     String Function(String)? wrapMeta,
@@ -159,11 +145,9 @@ class ScriptsConfig extends Equatable {
     wrapCallableKey ??= (key) => key;
     wrapNonCallableKey ??= (key) => key;
     wrapMeta ??= (meta) => meta;
-    if (prefix == null) {
-      buffer.writeln('scripts.yaml:');
-    }
+    buffer.writeln('scripts.yaml:');
 
-    prefix ??= '   ';
+    const prefix = '   ';
 
     final keys = scripts.keys.where((e) => !e.startsWith('_'));
     bool isLast(String key) => keys.last == key;
@@ -205,7 +189,4 @@ class ScriptsConfig extends Equatable {
       yield* script.query(query);
     }
   }
-
-  @override
-  List<Object?> get props => _$props;
 }

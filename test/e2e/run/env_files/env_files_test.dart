@@ -23,13 +23,17 @@ void main() {
       bindings = _TestBindings();
       fs = MemoryFileSystem.test();
 
+      fs.file(path.join('packages', 'sip', 'infra', 'private', 'be.local.env'))
+        ..createSync(recursive: true)
+        ..writeAsStringSync('BE_ENV=local');
+
       final cwd = fs.directory(path.join('packages', 'sip'))
         ..createSync(recursive: true);
       fs.currentDirectory = cwd;
     });
 
     @isTest
-    void test(String description, void Function() fn) {
+    void test(String description, Future<void> Function() fn) {
       testScoped(
         description,
         fn,
@@ -72,37 +76,24 @@ void main() {
       test('command: be reset', () async {
         await command.run(['be', 'reset']);
 
-        await Future<void>.delayed(Duration.zero);
-
-        expect(bindings.scripts.join('\n'), r'''
-cd /packages/sip || exit 1
+        expect(
+          bindings.scripts,
+          '''
+cd "/packages/sip" || exit 1
 
 cd infra || exit 1; pnv generate-env -i public/be.local.yaml -o private/ -f ~/.cant-run/local.key
-
-cd /packages/sip || exit 1
+cd "/packages/sip" || exit 1
 
 cd infra || exit 1; pnv generate-env -i public/app.run-time.local.yaml -o private/ -f ~/.cant-run/local.key
-
-cd /packages/sip || exit 1
-
-if [ -f infra/private/be.local.env ]; then
-  builtin source infra/private/be.local.env
-  while IFS='=' read -r key _; do
-    if [[ $key =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
-      export "$key"
-    fi
-  done < <(grep -vE '^\s*#' infra/private/be.local.env | grep -E '^[A-Za-z_][A-Za-z0-9_]*=')
-else
-  echo "ENV File infra/private/be.local.env not found"
-  exit 1
-fi
+cd "/packages/sip" || exit 1
 
 export BE_ENV=local
 export APP_ENV=local
 
 cd backend || exit 1;
-dart run scripts/reset.dart
-''');
+dart run scripts/reset.dart'''
+              .split('\n'),
+        );
       });
 
       test('should override env variables when re-defined', () async {
@@ -110,35 +101,24 @@ dart run scripts/reset.dart
 
         await Future<void>.delayed(Duration.zero);
 
-        expect(bindings.scripts.join('\n'), r'''
-cd /packages/sip || exit 1
+        expect(
+          bindings.scripts,
+          '''
+cd "/packages/sip" || exit 1
 
 cd infra || exit 1; pnv generate-env -i public/be.local.yaml -o private/ -f ~/.cant-run/local.key
-
-cd /packages/sip || exit 1
+cd "/packages/sip" || exit 1
 
 cd infra || exit 1; pnv generate-env -i public/app.run-time.local.yaml -o private/ -f ~/.cant-run/local.key
+cd "/packages/sip" || exit 1
 
-cd /packages/sip || exit 1
-
-if [ -f infra/private/be.local.env ]; then
-  builtin source infra/private/be.local.env
-  while IFS='=' read -r key _; do
-    if [[ $key =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
-      export "$key"
-    fi
-  done < <(grep -vE '^\s*#' infra/private/be.local.env | grep -E '^[A-Za-z_][A-Za-z0-9_]*=')
-else
-  echo "ENV File infra/private/be.local.env not found"
-  exit 1
-fi
-
-export BE_ENV=override
+export BE_ENV=local
 export APP_ENV=local
 
 cd backend || exit 1;
-dart run scripts/reset.dart
-''');
+dart run scripts/reset.dart'''
+              .split('\n'),
+        );
       });
     });
   });

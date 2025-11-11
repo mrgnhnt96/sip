@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:file/memory.dart';
 import 'package:meta/meta.dart';
 import 'package:sip_cli/src/domain/constrain_pubspec_versions.dart';
@@ -15,7 +17,7 @@ void main() {
   });
 
   @isTest
-  void test(String description, void Function() fn) {
+  void test(String description, FutureOr<void> Function() fn) {
     testScoped(
       description,
       fn,

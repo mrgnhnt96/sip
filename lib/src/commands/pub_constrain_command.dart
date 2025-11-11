@@ -1,14 +1,12 @@
-import 'package:mason_logger/mason_logger.dart' hide ExitCode;
+import 'package:mason_logger/mason_logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/constrain_pubspec_versions.dart';
 import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
-import 'package:sip_cli/src/domain/command_to_run.dart';
 import 'package:sip_cli/src/domain/constrain_pubspec_versions.dart';
 import 'package:sip_cli/src/utils/dart_or_flutter_mixin.dart';
-import 'package:sip_cli/src/utils/exit_code.dart';
 
 const _usage = '''
 Usage: sip pub constrain [options] [packages] [arguments]
@@ -113,13 +111,5 @@ class PubConstrainCommand with DartOrFlutterMixin {
     );
 
     return ExitCode.success;
-  }
-
-  CommandToRun getCommandToRun(String pubspec) {
-    return CommandToRun(
-      command: 'pub',
-      keys: const [],
-      workingDirectory: pubspec,
-    );
   }
 }

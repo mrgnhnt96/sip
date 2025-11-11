@@ -1,14 +1,11 @@
-import 'package:mason_logger/mason_logger.dart' hide ExitCode;
+import 'package:mason_logger/mason_logger.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
-import 'package:sip_cli/src/deps/run_many_scripts.dart';
-import 'package:sip_cli/src/deps/run_one_script.dart';
-import 'package:sip_cli/src/domain/command_to_run.dart';
+import 'package:sip_cli/src/deps/script_runner.dart';
+import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:sip_cli/src/utils/determine_flutter_or_dart.dart';
-import 'package:sip_cli/src/utils/exit_code.dart';
-import 'package:sip_cli/src/utils/exit_code_extensions.dart';
 
 const _usage = '''
 Usage: sip clean [options]
@@ -58,7 +55,7 @@ class CleanCommand {
       if (erasePubspecLock) 'rm -f pubspec.lock',
     ];
 
-    final commands = <CommandToRun>[];
+    final commands = <ScriptToRun>[];
     for (final package in packages) {
       final removeCommands = [...baseRemoveCommands];
       if (package.isFlutter) {
@@ -72,46 +69,30 @@ class CleanCommand {
         package.directory(fromDirectory: fs.currentDirectory.path),
       )!;
 
-      final command = CommandToRun(
-        command: removeCommands.join(' && '),
+      final command = ScriptToRun(
+        removeCommands.join(' && '),
         workingDirectory: package.directory(),
-        runConcurrently: isConcurrent,
-        keys: const ['clean'],
         label: label,
       );
 
       commands.add(command);
     }
 
-    ExitCode exitCode;
-
     if (isConcurrent) {
-      final results = await runManyScripts.run(
-        commands: commands.toList(),
-        sequentially: false,
+      final results = await scriptRunner.groupRun(
+        commands.toList(),
         bail: false,
       );
 
-      results.printErrors(commands, logger);
-
-      exitCode = results.exitCode(logger);
+      return results.exitCodeReason;
     } else {
-      exitCode = ExitCode.success;
+      final result = await scriptRunner.groupRun(
+        commands.toList(),
+        disableConcurrency: true,
+        bail: false,
+      );
 
-      for (final command in commands) {
-        final result = await runOneScript.run(
-          command: command,
-          showOutput: true,
-        );
-
-        result.printError(command, logger);
-
-        if (result.exitCodeReason != ExitCode.success) {
-          exitCode = result.exitCodeReason;
-        }
-      }
+      return result.exitCodeReason;
     }
-
-    return exitCode;
   }
 }

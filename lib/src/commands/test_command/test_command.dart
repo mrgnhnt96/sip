@@ -1,11 +1,11 @@
 // ignore_for_file: cascade_invocations
 
+import 'package:mason_logger/mason_logger.dart';
 import 'package:sip_cli/src/commands/test_clean_command.dart';
 import 'package:sip_cli/src/commands/test_run_command.dart';
 import 'package:sip_cli/src/commands/test_watch_command.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/logger.dart';
-import 'package:sip_cli/src/utils/exit_code.dart';
 
 const _usage = '''
 Usage: sip test <command>

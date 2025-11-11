@@ -19,8 +19,7 @@ import 'package:sip_cli/src/deps/process.dart';
 import 'package:sip_cli/src/deps/pub_updater.dart';
 import 'package:sip_cli/src/deps/pubspec_lock.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
-import 'package:sip_cli/src/deps/run_many_scripts.dart';
-import 'package:sip_cli/src/deps/run_one_script.dart';
+import 'package:sip_cli/src/deps/script_runner.dart';
 import 'package:sip_cli/src/deps/scripts_yaml.dart';
 import 'package:sip_cli/src/deps/variables.dart';
 import 'package:sip_cli/src/domain/args.dart';
@@ -43,10 +42,9 @@ void main(List<String> args) async {
       pubUpdaterProvider,
       pubspecLockProvider,
       pubspecYamlProvider,
-      runManyScriptsProvider,
-      runOneScriptProvider,
       scriptsYamlProvider,
       variablesProvider,
+      scriptRunnerProvider,
     },
   );
 }

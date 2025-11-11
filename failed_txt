@@ -1,0 +1,10 @@
+e2e/run/concurrency_groups/concurrency_groups_test.dart
+e2e/run/coverage/coverage_test.dart
+e2e/run/env_files/env_files_test.dart
+e2e/run/lint/lint_test.dart
+e2e/test_command/test_command_test.dart
+src/domain/script_env_test.dart
+src/domain/script_test.dart
+src/utils/run_script_helper_test.dart
+---
+src/commands/tester_mixin_test.dart

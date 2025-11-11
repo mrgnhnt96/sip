@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:mason_logger/mason_logger.dart';
 import 'package:sip_cli/src/commands/clean_command.dart';
 import 'package:sip_cli/src/commands/list_command.dart';
 import 'package:sip_cli/src/commands/pub_command.dart';
@@ -8,7 +9,6 @@ import 'package:sip_cli/src/commands/test_command/test_command.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/is_up_to_date.dart';
 import 'package:sip_cli/src/deps/logger.dart';
-import 'package:sip_cli/src/utils/exit_code.dart';
 import 'package:sip_cli/src/version.dart';
 
 const _usage = '''

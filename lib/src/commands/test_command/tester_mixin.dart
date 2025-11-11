@@ -1,21 +1,16 @@
 import 'package:file/file.dart';
 import 'package:glob/glob.dart';
-import 'package:mason_logger/mason_logger.dart' hide ExitCode;
+import 'package:mason_logger/mason_logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
-import 'package:sip_cli/src/deps/run_many_scripts.dart';
-import 'package:sip_cli/src/deps/run_one_script.dart';
-import 'package:sip_cli/src/domain/command_to_run.dart';
-import 'package:sip_cli/src/domain/filter_type.dart';
+import 'package:sip_cli/src/deps/script_runner.dart';
 import 'package:sip_cli/src/domain/package_to_test.dart';
 import 'package:sip_cli/src/domain/pubspec_yaml.dart';
+import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:sip_cli/src/domain/testable.dart';
 import 'package:sip_cli/src/utils/determine_flutter_or_dart.dart';
-import 'package:sip_cli/src/utils/exit_code.dart';
-import 'package:sip_cli/src/utils/exit_code_extensions.dart';
-import 'package:sip_cli/src/utils/stopwatch_extensions.dart';
 import 'package:sip_cli/src/utils/write_optimized_test_file.dart';
 
 abstract mixin class TesterMixin {
@@ -212,35 +207,39 @@ abstract mixin class TesterMixin {
     return root;
   }
 
-  Iterable<CommandToRun> getCommandsToRun(
+  List<Runnable> getCommandsToRun(
     Iterable<PackageToTest> packagesToTest, {
     required List<String> flutterArgs,
     required List<String> dartArgs,
     bool bail = false,
-  }) sync* {
-    for (final packageToTest in packagesToTest) {
-      yield createTestCommand(
-        projectRoot: packageToTest.packagePath,
-        relativeProjectRoot: packageRootFor(
-          path.relative(packageToTest.packagePath),
-        ),
-        pathToProjectRoot: path.dirname(
-          path.relative(packageToTest.packagePath),
-        ),
-        flutterArgs: flutterArgs,
-        tool: packageToTest.tool,
-        dartArgs: dartArgs,
-        tests: [
-          if (packageToTest.optimizedPath case final test?
-              when packageToTest.tool.isDart)
-            path.relative(test, from: packageToTest.packagePath),
-        ],
-        bail: bail,
-      );
+  }) {
+    Iterable<Runnable> create() sync* {
+      for (final packageToTest in packagesToTest) {
+        yield createTestCommand(
+          projectRoot: packageToTest.packagePath,
+          relativeProjectRoot: packageRootFor(
+            path.relative(packageToTest.packagePath),
+          ),
+          pathToProjectRoot: path.dirname(
+            path.relative(packageToTest.packagePath),
+          ),
+          flutterArgs: flutterArgs,
+          tool: packageToTest.tool,
+          dartArgs: dartArgs,
+          tests: [
+            if (packageToTest.optimizedPath case final test?
+                when packageToTest.tool.isDart)
+              path.relative(test, from: packageToTest.packagePath),
+          ],
+          bail: bail,
+        );
+      }
     }
+
+    return create().toList();
   }
 
-  CommandToRun createTestCommand({
+  Runnable createTestCommand({
     required String projectRoot,
     required DetermineFlutterOrDart tool,
     required String relativeProjectRoot,
@@ -269,72 +268,35 @@ abstract mixin class TesterMixin {
     label += darkGray.wrap(path.separator)!;
     label += yellow.wrap(relativeProjectRoot)!;
 
-    return CommandToRun(
-      command: script,
+    return ScriptToRun(
+      script,
       workingDirectory: projectRoot,
-      keys: ['dart', 'test', ...tests, ...toolArgs],
       label: label,
       bail: bail,
-      filterOutput: switch (tool.isFlutter) {
-        true => FilterType.flutterTest,
-        false => FilterType.dartTest,
-      },
     );
   }
 
   Future<ExitCode> runCommands(
-    Iterable<CommandToRun> commandsToRun, {
-    required bool runConcurrently,
+    List<Runnable> commandsToRun, {
+    required bool showOutput,
     required bool bail,
   }) async {
-    if (runConcurrently) {
-      for (final command in commandsToRun) {
-        logger.detail('Script: ${darkGray.wrap(command.command)}');
-      }
-
-      final exitCodes = await runManyScripts.run(
-        commands: commandsToRun.toList(),
-        sequentially: false,
-        label: 'Running tests ',
-        bail: bail,
-      );
-
-      exitCodes.printErrors(commandsToRun, logger);
-
-      return exitCodes.exitCode(logger);
-    }
-
-    ExitCode? exitCode;
-
     for (final command in commandsToRun) {
-      logger.detail(command.command);
-
-      final stopwatch = Stopwatch()..start();
-
-      logger.info(darkGray.wrap(command.label));
-
-      final result = await runOneScript.run(
-        command: command,
-        showOutput: true,
-        filter: command.filterOutput,
-      );
-
-      final time = (stopwatch..stop()).format();
-
-      logger
-        ..info('Finished in ${cyan.wrap(time)}')
-        ..write('\n');
-
-      if (result.exitCodeReason != ExitCode.success) {
-        exitCode = result.exitCodeReason;
-
-        if (bail || command.bail) {
-          return exitCode;
-        }
+      switch (command) {
+        case ConcurrentBreak():
+          continue;
+        case final ScriptToRun script:
+          logger.info(darkGray.wrap(script.exe));
       }
     }
 
-    return exitCode ?? ExitCode.success;
+    final result = await scriptRunner.run(
+      commandsToRun,
+      bail: bail,
+      showOutput: showOutput,
+    );
+
+    return result.exitCodeReason;
   }
 
   void cleanUpOptimizedFiles(Iterable<String?> optimizedFiles) {

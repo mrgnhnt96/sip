@@ -3,14 +3,13 @@ import 'dart:io' as io;
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
 import 'package:meta/meta.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/commands/script_run_command.dart';
 import 'package:sip_cli/src/domain/bindings.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
-import 'package:sip_cli/src/domain/filter_type.dart';
 import 'package:sip_cli/src/domain/pubspec_yaml.dart';
 import 'package:sip_cli/src/domain/scripts_yaml.dart';
-import 'package:sip_cli/src/utils/constants.dart';
 import 'package:test/test.dart';
 
 import '../../../utils/test_scoped.dart';
@@ -18,10 +17,20 @@ import '../../../utils/test_scoped.dart';
 void main() {
   group('compound env vars e2e', () {
     late FileSystem fs;
-    late _TestBindings bindings;
+    late Bindings bindings;
 
     setUp(() {
-      bindings = _TestBindings();
+      bindings = _MockBindings();
+
+      when(
+        () => bindings.runScript(
+          any(),
+          showOutput: any(named: 'showOutput'),
+          bail: any(named: 'bail'),
+        ),
+      ).thenAnswer(
+        (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
+      );
 
       fs = MemoryFileSystem.test();
 
@@ -62,7 +71,7 @@ void main() {
       });
 
       @isTest
-      void test(String description, void Function() fn) {
+      void test(String description, Future<void> Function() fn) {
         testScoped(
           description,
           fn,
@@ -74,32 +83,113 @@ void main() {
       test('command: bricks bundle', () async {
         await command.run(['bricks', 'bundle']);
 
-        await Future<void>.delayed(Duration.zero);
+        final commands = verify(
+          () => bindings.runScript(captureAny(), showOutput: false),
+        ).captured;
 
-        expect(bindings.scripts, contains('export RELEASE=true'));
-        expect(bindings.scripts, contains('export RELEASE=false'));
+        const expected = [
+          r'''
+cd "/packages/sip" || exit 1
 
-        expect(
-          bindings.scripts.join('\n'),
-          isNot(contains(Identifiers.concurrent)),
-        );
+export RELEASE=true
+
+cd development/generated_lints || exit 1
+
+RELEASE_FLAG=""
+if [ "$RELEASE" = true ]; then
+  RELEASE_FLAG="--release"
+fi
+
+echo "RELEASE_FLAG: $RELEASE_FLAG"
+echo "RELEASE: $RELEASE"
+
+dart run revali dev --generate-only $RELEASE_FLAG --recompile''',
+
+          '''
+cd "/packages/sip" || exit 1
+
+export RELEASE=true
+
+cd mason || exit 1
+dart run brick_oven cook analysis_server --output .''',
+
+          '''
+cd "/packages/sip" || exit 1
+
+export RELEASE=true
+
+cd mason/analysis_server/post_generate || exit 1
+dart run lib/main.dart''',
+
+          '''
+cd "/packages/sip" || exit 1
+
+export RELEASE=true
+
+cd mason || exit 1
+dart run mason_cli:mason bundle analysis_server --type dart --output-dir bundles''',
+
+          '''
+cd "/packages/sip" || exit 1
+
+export RELEASE=true
+
+mv mason/bundles/analysis_server_bundle.dart mason/bundles/release.dart''',
+          r'''
+cd "/packages/sip" || exit 1
+
+export RELEASE=false
+
+cd development/generated_lints || exit 1
+
+RELEASE_FLAG=""
+if [ "$RELEASE" = true ]; then
+  RELEASE_FLAG="--release"
+fi
+
+echo "RELEASE_FLAG: $RELEASE_FLAG"
+echo "RELEASE: $RELEASE"
+
+dart run revali dev --generate-only $RELEASE_FLAG --recompile''',
+
+          '''
+cd "/packages/sip" || exit 1
+
+export RELEASE=false
+
+cd mason || exit 1
+dart run brick_oven cook analysis_server --output .''',
+
+          '''
+cd "/packages/sip" || exit 1
+
+export RELEASE=false
+
+cd mason/analysis_server/post_generate || exit 1
+dart run lib/main.dart''',
+
+          '''
+cd "/packages/sip" || exit 1
+
+export RELEASE=false
+
+cd mason || exit 1
+dart run mason_cli:mason bundle analysis_server --type dart --output-dir bundles''',
+
+          '''
+cd "/packages/sip" || exit 1
+
+export RELEASE=false
+
+mv mason/bundles/analysis_server_bundle.dart mason/bundles/debug.dart''',
+        ];
+
+        for (final (index, command) in commands.indexed) {
+          expect((command as String).split('\n'), expected[index].split('\n'));
+        }
       });
     });
   });
 }
 
-class _TestBindings implements Bindings {
-  final List<String> scripts = [];
-
-  @override
-  Future<CommandResult> runScript(
-    String script, {
-    bool showOutput = false,
-    FilterType? filterType,
-    bool bail = false,
-  }) async {
-    scripts.addAll(script.split('\n'));
-
-    return const CommandResult(exitCode: 0, output: '', error: '');
-  }
-}
+class _MockBindings extends Mock implements Bindings {}

@@ -1,13 +1,14 @@
+import 'dart:async';
+
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
+import 'package:mason_logger/mason_logger.dart';
 import 'package:meta/meta.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:sip_cli/src/domain/command_to_run.dart';
 import 'package:sip_cli/src/domain/env_config.dart';
-import 'package:sip_cli/src/domain/optional_flags.dart';
 import 'package:sip_cli/src/domain/pubspec_yaml.dart';
+import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:sip_cli/src/domain/scripts_yaml.dart';
-import 'package:sip_cli/src/utils/exit_code.dart';
 import 'package:sip_cli/src/utils/run_script_helper.dart';
 import 'package:sip_cli/src/utils/working_directory.dart';
 import 'package:test/test.dart';
@@ -24,10 +25,14 @@ void main() {
       fs = MemoryFileSystem.test();
       scriptsYaml = _MockScriptsYaml();
       pubspecYaml = _MockPubspecYaml();
+
+      fs.file(fs.path.join('some', 'path', 'to', 'test', '.env'))
+        ..createSync(recursive: true)
+        ..writeAsStringSync('TEST_VAR=test');
     });
 
     @isTest
-    void test(String description, void Function() fn) {
+    void test(String description, FutureOr<void> Function() fn) {
       testScoped(
         description,
         fn,
@@ -78,32 +83,11 @@ void main() {
       });
     });
 
-    group('#optionalFlags', () {
-      test('should return an nothing', () {
-        final command = _TestCommand();
-
-        expect(command.optionalFlags([]), OptionalFlags(const []));
-      });
-
-      test('should return a map with the provided flags', () {
-        final command = _TestCommand();
-
-        expect(
-          command.optionalFlags(['--verbose', 'true']),
-          OptionalFlags(const ['--verbose', 'true']),
-        );
-
-        expect(
-          command.optionalFlags(['some', 'script', '--verbose', 'true']),
-          OptionalFlags(const ['--verbose', 'true']),
-        );
-      });
-    });
-
     group('#getCommands', () {
       group('#env', () {
         test('should get the env config', () {
           final command = _TestCommand();
+
           when(scriptsYaml.scripts).thenReturn({
             'pub': {
               '(command)': 'echo "pub"',
@@ -114,72 +98,20 @@ void main() {
             },
           });
 
-          final result = command.getCommands(['pub'], listOut: false).single;
+          final (resolveScript, exitCode) = command.getCommands([
+            'pub',
+          ], listOut: false);
 
-          expect(result.exitCode, isNull);
+          expect(exitCode, isNull);
           const expectedConfig = EnvConfig(
             commands: ['echo "env"'],
             files: ['some/path/to/test/.env'],
-            workingDirectory: '/',
-            variables: {},
+            variables: {'TEST_VAR': 'test'},
           );
 
-          expect(result.resolveScript?.envConfig, expectedConfig);
-        });
-
-        test('should resolve the env command reference', () {
-          final command = _TestCommand();
-          when(scriptsYaml.scripts).thenReturn({
-            'ref': "echo 'ref'",
-            'pub': {
-              '(command)': 'echo "pub"',
-              '(env)': {'file': 'some/path/to/test/.env', 'command': r'{$ref}'},
-            },
-          });
-
-          final result = command.getCommands(['pub'], listOut: false).single;
-
-          expect(result.exitCode, isNull);
-          const expectedConfig = EnvConfig(
-            commands: ["echo 'ref'"],
-            files: ['some/path/to/test/.env'],
-            workingDirectory: '/',
-            variables: {},
-          );
-
-          expect(result.resolveScript?.envConfig, expectedConfig);
-        });
-
-        test('should get the env config for the referenced script', () {
-          final command = _TestCommand();
-          when(scriptsYaml.scripts).thenReturn({
-            'pub': {
-              '(command)': r'{$other}',
-              '(env)': {
-                'file': 'some/path/to/test/.env',
-                'command': 'pub env command',
-              },
-            },
-            'other': {
-              '(command)': 'echo "other"',
-              '(env)': {
-                'file': 'some/path/to/other/.env',
-                'command': 'other env command',
-              },
-            },
-          });
-
-          final result = command.getCommands(['pub'], listOut: false).single;
-
-          expect(result.exitCode, isNull);
-          const expectedConfig = EnvConfig(
-            workingDirectory: '/',
-            commands: ['pub env command', 'other env command'],
-            files: ['some/path/to/test/.env', 'some/path/to/other/.env'],
-            variables: {},
-          );
-
-          expect(result.resolveScript?.envConfig, expectedConfig);
+          expect(resolveScript?.envConfig!.commands, expectedConfig.commands);
+          expect(resolveScript?.envConfig!.files, expectedConfig.files);
+          expect(resolveScript?.envConfig!.variables, expectedConfig.variables);
         });
 
         test('should remove duplicate env configs', () {
@@ -201,17 +133,19 @@ void main() {
             },
           });
 
-          final result = command.getCommands(['pub'], listOut: false).single;
+          final (resolveScript, exitCode) = command.getCommands([
+            'pub',
+          ], listOut: false);
 
-          expect(result.exitCode, isNull);
+          expect(exitCode, isNull);
           const expectedConfig = EnvConfig(
-            workingDirectory: '/',
             commands: ['pub env command'],
             files: ['some/path/to/test/.env'],
-            variables: {},
           );
 
-          expect(result.resolveScript?.envConfig, expectedConfig);
+          expect(resolveScript?.envConfig!.commands, expectedConfig.commands);
+          expect(resolveScript?.envConfig!.files, expectedConfig.files);
+          expect(resolveScript?.envConfig!.variables, expectedConfig.variables);
         });
       });
 
@@ -220,30 +154,36 @@ void main() {
 
         when(scriptsYaml.scripts).thenReturn({'pub': 'echo "pub"'});
 
-        final result = command.getCommands(['pub'], listOut: false).single;
+        final (resolveScript, exitCode) = command.getCommands([
+          'pub',
+        ], listOut: false);
 
-        expect(result.exitCode, isNull);
+        expect(exitCode, isNull);
         expect(
-          result.resolveScript?.resolvedScripts.single.command,
+          (resolveScript!.commands.single as ScriptToRun).exe,
           'echo "pub"',
         );
       });
 
       test('should return an exit code when the script is not found', () {
         final command = _TestCommand();
-        final result = command.getCommands(['pub'], listOut: false).single;
+        final (resolveScript, exitCode) = command.getCommands([
+          'pub',
+        ], listOut: false);
 
-        expect(result.exitCode, isA<ExitCode>());
-        expect(result.resolveScript?.resolvedScripts, isNull);
+        expect(exitCode, isA<ExitCode>());
+        expect(resolveScript, isNull);
       });
 
       test('should return an exit code when the script is empty', () {
         final command = _TestCommand();
         when(scriptsYaml.scripts).thenReturn({'pub': null});
 
-        final result = command.getCommands(['pub'], listOut: false).single;
-        expect(result.exitCode, isA<ExitCode>());
-        expect(result.resolveScript?.resolvedScripts, isNull);
+        final (resolveScript, exitCode) = command.getCommands([
+          'pub',
+        ], listOut: false);
+        expect(exitCode, isA<ExitCode>());
+        expect(resolveScript, isNull);
       });
 
       test('should return an exit code with list option is provided', () {
@@ -251,10 +191,12 @@ void main() {
 
         when(scriptsYaml.scripts).thenReturn({'pub': 'echo "pub"'});
 
-        final result = command.getCommands(['pub'], listOut: true).single;
+        final (resolveScript, exitCode) = command.getCommands([
+          'pub',
+        ], listOut: true);
 
-        expect(result.exitCode, isA<ExitCode>());
-        expect(result.resolveScript?.resolvedScripts, isNull);
+        expect(exitCode, isA<ExitCode>());
+        expect(resolveScript, isNull);
       });
 
       test('should resolve multiple references', () {
@@ -278,374 +220,28 @@ cd packages/domain
           },
         });
 
-        final result = command
-            .getCommands(['test-domain'], listOut: false)
-            .toList()
-            .single;
+        final (resolveScript, exitCode) = command.getCommands([
+          'test-domain',
+        ], listOut: false);
 
-        expect(result.exitCode, isNull);
-        expect(result.resolveScript?.resolvedScripts, hasLength(4));
+        expect(exitCode, isNull);
+        expect(resolveScript?.commands, hasLength(4));
+        expect((resolveScript!.commands.first as ScriptToRun).exe.split('\n'), [
+          'cd packages/domain',
+          'clear-coverage',
+        ]);
         expect(
-          result.resolveScript?.resolvedScripts
-              .elementAt(0)
-              .command
-              ?.split('\n'),
-          ['cd packages/domain', 'clear-coverage'],
+          (resolveScript.commands.elementAt(1) as ScriptToRun).exe.split('\n'),
+          ['cd packages/domain', 'sip test'],
         );
         expect(
-          result.resolveScript?.resolvedScripts
-              .elementAt(1)
-              .command
-              ?.split('\n'),
-          ['cd packages/domain', 'sip test '],
-        );
-        expect(
-          result.resolveScript?.resolvedScripts
-              .elementAt(2)
-              .command
-              ?.split('\n'),
+          (resolveScript.commands.elementAt(2) as ScriptToRun).exe.split('\n'),
           ['cd packages/domain', 'format-coverage'],
         );
         expect(
-          result.resolveScript?.resolvedScripts
-              .elementAt(3)
-              .command
-              ?.split('\n'),
+          (resolveScript.commands.elementAt(3) as ScriptToRun).exe.split('\n'),
           ['cd packages/domain', 'open-coverage'],
         );
-      });
-    });
-
-    group('#commandsToRun', () {
-      test('should return the list of commands', () {
-        final command = _TestCommand();
-
-        when(scriptsYaml.nearest).thenReturn('some/path/to/test/scripts.yaml');
-
-        when(scriptsYaml.scripts).thenReturn({'pub': 'echo "pub"'});
-
-        final result = command.commandsToRun(['pub'], listOut: false).single;
-
-        expect(result.exitCode, isNull);
-        expect(result.commands, isNotNull);
-
-        final commandToRun = result.commands?.first;
-
-        const expected = CommandToRun(
-          command: 'echo "pub"',
-          label: 'echo "pub"',
-          workingDirectory: 'some/path/to/test',
-          keys: ['pub'],
-        );
-
-        expect(commandToRun, expected);
-      });
-
-      test('should remove concurrent symbol when found', () {
-        final command = _TestCommand();
-
-        when(scriptsYaml.nearest).thenReturn('some/path/to/test/scripts.yaml');
-
-        when(scriptsYaml.scripts).thenReturn({'pub': '(+) echo "pub"'});
-
-        final result = command.commandsToRun(['pub'], listOut: false).single;
-        expect(result.exitCode, isNull);
-        expect(result.commands?.map((e) => e.command), ['echo "pub"']);
-        expect(result.commands?.map((e) => e.runConcurrently), [true]);
-      });
-
-      test('should remove concurrent symbol from env config when found', () {
-        final command = _TestCommand();
-
-        when(scriptsYaml.nearest).thenReturn('some/path/to/test/scripts.yaml');
-
-        when(scriptsYaml.scripts).thenReturn({
-          'pub': {
-            '(command)': 'echo "pub"',
-            '(env)': {
-              'file': 'some/path/to/test/.env',
-              'command': '(+) echo "env"',
-            },
-          },
-        });
-
-        final result = command.commandsToRun(['pub'], listOut: false).single;
-        expect(result.exitCode, isNull);
-        expect(result.commands, hasLength(1));
-        expect(result.combinedEnvConfig?.commands, ['echo "env"']);
-      });
-
-      test('should remove extra concurrent symbols when found', () {
-        final command = _TestCommand();
-
-        when(scriptsYaml.nearest).thenReturn('some/path/to/test/scripts.yaml');
-
-        when(scriptsYaml.scripts).thenReturn({'pub': '(+) (+) echo "pub"'});
-
-        final result = command.commandsToRun(['pub'], listOut: false).single;
-        expect(result.exitCode, isNull);
-        expect(result.commands?.map((e) => e.command), ['echo "pub"']);
-        expect(result.commands?.map((e) => e.runConcurrently), [true]);
-      });
-
-      test('should return an exit code when the script is not found', () {
-        final command = _TestCommand();
-
-        final result = command.commandsToRun(['pub'], listOut: false).single;
-        expect(result.exitCode, isA<ExitCode>());
-        expect(result.commands, isNull);
-      });
-
-      group('env config', () {
-        test('should get env config when provided', () {
-          final command = _TestCommand();
-
-          when(
-            scriptsYaml.nearest,
-          ).thenReturn('some/path/to/test/scripts.yaml');
-
-          when(scriptsYaml.scripts).thenReturn({
-            'pub': {
-              '(command)': 'echo "pub"',
-              '(env)': {
-                'file': 'some/path/to/test/.env',
-                'command': 'echo "env"',
-              },
-            },
-          });
-
-          final result = command.commandsToRun(['pub'], listOut: false).single;
-
-          expect(result.exitCode, isNull);
-          expect(result.commands, hasLength(1));
-
-          const envConfig = EnvConfig(
-            commands: ['echo "env"'],
-            files: ['some/path/to/test/.env'],
-            workingDirectory: 'some/path/to/test',
-            variables: {},
-          );
-
-          expect(result.combinedEnvConfig, envConfig);
-
-          const expected = CommandToRun(
-            command: 'echo "pub"',
-            label: 'echo "pub"',
-            workingDirectory: 'some/path/to/test',
-            keys: ['pub'],
-            envConfig: envConfig,
-          );
-
-          expect(result.commands?.single, expected);
-        });
-
-        test('should keep envs scoped to commands when multiple are found', () {
-          final command = _TestCommand();
-
-          when(
-            scriptsYaml.nearest,
-          ).thenReturn('some/path/to/test/scripts.yaml');
-
-          when(scriptsYaml.scripts).thenReturn({
-            'pub': {
-              '(command)': r'{$other}',
-              '(env)': {
-                'file': 'some/path/to/test/.env',
-                'command': 'pub env command',
-              },
-            },
-            'other': {
-              '(command)': 'echo "other"',
-              '(env)': {
-                'file': 'some/path/to/other/.env',
-                'command': 'other env command',
-              },
-            },
-          });
-
-          final result = command.commandsToRun(['pub'], listOut: false).single;
-
-          expect(result.exitCode, isNull);
-          expect(result.commands, hasLength(1));
-
-          const combinedEnvConfig = EnvConfig(
-            workingDirectory: 'some/path/to/test',
-            commands: ['pub env command', 'other env command'],
-            files: ['some/path/to/test/.env', 'some/path/to/other/.env'],
-            variables: {},
-          );
-
-          expect(result.combinedEnvConfig, combinedEnvConfig);
-
-          const expected = CommandToRun(
-            command: 'echo "other"',
-            label: 'echo "other"',
-            workingDirectory: 'some/path/to/test',
-            keys: ['pub'],
-            envConfig: EnvConfig(
-              workingDirectory: 'some/path/to/test',
-              commands: ['other env command', 'pub env command'],
-              files: ['some/path/to/other/.env', 'some/path/to/test/.env'],
-              variables: {},
-            ),
-          );
-
-          expect(result.commands?.single, expected);
-        });
-
-        test('should pass envs from references', () {
-          final command = _TestCommand();
-
-          when(
-            scriptsYaml.nearest,
-          ).thenReturn('some/path/to/test/scripts.yaml');
-
-          when(scriptsYaml.scripts).thenReturn({
-            'all': [r'{$pub}', r'{$other}'],
-            'pub': {
-              '(command)': 'echo "pub"',
-              '(env)': {
-                'file': 'some/path/to/test/.env',
-                'command': 'pub env command',
-              },
-            },
-            'other': {
-              '(command)': 'echo "other"',
-              '(env)': {
-                'file': 'some/path/to/other/.env',
-                'command': 'other env command',
-              },
-            },
-          });
-
-          final result = command.commandsToRun(['all'], listOut: false).single;
-
-          expect(result.exitCode, isNull);
-          expect(result.commands, hasLength(2));
-
-          const combinedEnvConfig = EnvConfig(
-            workingDirectory: 'some/path/to/test',
-            commands: ['pub env command', 'other env command'],
-            files: ['some/path/to/test/.env', 'some/path/to/other/.env'],
-            variables: {},
-          );
-
-          expect(result.combinedEnvConfig, combinedEnvConfig);
-
-          const pubExpected = CommandToRun(
-            command: 'echo "pub"',
-            label: 'echo "pub"',
-            workingDirectory: 'some/path/to/test',
-            keys: ['all'],
-            envConfig: EnvConfig(
-              workingDirectory: 'some/path/to/test',
-              commands: ['pub env command'],
-              files: ['some/path/to/test/.env'],
-              variables: {},
-            ),
-          );
-
-          expect(result.commands?.elementAt(0), pubExpected);
-
-          const otherExpected = CommandToRun(
-            command: 'echo "other"',
-            label: 'echo "other"',
-            workingDirectory: 'some/path/to/test',
-            keys: ['all'],
-            envConfig: EnvConfig(
-              workingDirectory: 'some/path/to/test',
-              commands: ['other env command'],
-              files: ['some/path/to/other/.env'],
-              variables: {},
-            ),
-          );
-
-          expect(result.commands?.elementAt(1), otherExpected);
-        });
-
-        test('should pass envs from references and keep parent env', () {
-          final command = _TestCommand();
-
-          when(
-            scriptsYaml.nearest,
-          ).thenReturn('some/path/to/test/scripts.yaml');
-
-          when(scriptsYaml.scripts).thenReturn({
-            'all': {
-              '(env)': {
-                'file': 'some/path/to/all/.env',
-                'command': 'all env command',
-              },
-              '(command)': [r'{$pub}', r'{$other}'],
-            },
-            'pub': {
-              '(command)': 'echo "pub"',
-              '(env)': {
-                'file': 'some/path/to/test/.env',
-                'command': 'pub env command',
-              },
-            },
-            'other': {
-              '(command)': 'echo "other"',
-              '(env)': {
-                'file': 'some/path/to/other/.env',
-                'command': 'other env command',
-              },
-            },
-          });
-
-          final result = command.commandsToRun(['all'], listOut: false).single;
-
-          expect(result.exitCode, isNull);
-          expect(result.commands, hasLength(2));
-
-          const combinedEnvConfig = EnvConfig(
-            workingDirectory: 'some/path/to/test',
-            commands: [
-              'all env command',
-              'pub env command',
-              'other env command',
-            ],
-            files: [
-              'some/path/to/all/.env',
-              'some/path/to/test/.env',
-              'some/path/to/other/.env',
-            ],
-            variables: {},
-          );
-
-          expect(result.combinedEnvConfig, combinedEnvConfig);
-
-          const pubExpected = CommandToRun(
-            command: 'echo "pub"',
-            label: 'echo "pub"',
-            workingDirectory: 'some/path/to/test',
-            keys: ['all'],
-            envConfig: EnvConfig(
-              workingDirectory: 'some/path/to/test',
-              commands: ['pub env command', 'all env command'],
-              files: ['some/path/to/test/.env', 'some/path/to/all/.env'],
-              variables: {},
-            ),
-          );
-
-          expect(result.commands?.elementAt(0), pubExpected);
-
-          const otherExpected = CommandToRun(
-            command: 'echo "other"',
-            label: 'echo "other"',
-            workingDirectory: 'some/path/to/test',
-            keys: ['all'],
-            envConfig: EnvConfig(
-              workingDirectory: 'some/path/to/test',
-              commands: ['other env command', 'all env command'],
-              files: ['some/path/to/other/.env', 'some/path/to/all/.env'],
-              variables: {},
-            ),
-          );
-
-          expect(result.commands?.elementAt(1), otherExpected);
-        });
       });
     });
   });

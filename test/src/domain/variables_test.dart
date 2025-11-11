@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
 import 'package:meta/meta.dart';
@@ -29,7 +31,7 @@ void main() {
     }
 
     @isTest
-    void test(String description, void Function() fn) {
+    void test(String description, FutureOr<void> Function() fn) {
       testScoped(description, fn, fileSystem: () => fs);
     }
 
@@ -37,7 +39,7 @@ void main() {
       setUp(createPubspecAndScripts);
 
       test('should add projectRoot, scriptsRoot, and cwd', () {
-        final populated = variables.populate();
+        final populated = variables.retrieve();
 
         expect(populated['projectRoot'], isNotNull);
         expect(populated['scriptsRoot'], isNotNull);
@@ -55,7 +57,7 @@ void main() {
   dart: fvm dart
 ''');
 
-        final populated = variables.populate();
+        final populated = variables.retrieve();
 
         expect(populated['flutter'], 'fvm flutter');
         expect(populated['dart'], 'fvm dart');
@@ -71,7 +73,7 @@ void main() {
         ];
 
         for (final match in matches) {
-          expect(Variables.variablePattern.hasMatch(match), isTrue);
+          expect(Variables.oldVariablePattern.hasMatch(match), isTrue);
         }
       });
     });

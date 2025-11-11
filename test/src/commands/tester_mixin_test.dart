@@ -1,22 +1,27 @@
+import 'dart:async';
+
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
-import 'package:mason_logger/mason_logger.dart' hide ExitCode;
+import 'package:mason_logger/mason_logger.dart';
 import 'package:meta/meta.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:sip_cli/src/commands/test_command/tester_mixin.dart';
 import 'package:sip_cli/src/domain/bindings.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
-import 'package:sip_cli/src/domain/command_to_run.dart';
 import 'package:sip_cli/src/domain/package_to_test.dart';
+import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:sip_cli/src/utils/determine_flutter_or_dart.dart';
-import 'package:sip_cli/src/utils/exit_code.dart';
 import 'package:test/test.dart';
 
 import '../../utils/test_scoped.dart';
 
 void main() {
   const success = CommandResult(exitCode: 0, output: 'output', error: 'error');
-  const failure = CommandResult(exitCode: 1, output: 'output', error: 'error');
+  final failure = CommandResult(
+    exitCode: ExitCode.config.code,
+    output: 'output',
+    error: 'error',
+  );
 
   group(TesterMixin, () {
     late _Tester tester;
@@ -34,7 +39,7 @@ void main() {
     });
 
     @isTest
-    void test(String description, void Function() fn) {
+    void test(String description, FutureOr<void> Function() fn) {
       testScoped(
         description,
         fn,
@@ -46,7 +51,7 @@ void main() {
 
     group('#packageRootFor', () {
       group('successfully returns the path when', () {
-        test('a dir path is provided', () {
+        test('a dir path is provided', () async {
           final expected = {
             'test': '.',
             'test/': '.',
@@ -361,7 +366,7 @@ void main() {
         );
 
         expect(commands.length, 1);
-        expect(commands.first.workingDirectory, '.');
+        expect((commands.first as ScriptToRun).workingDirectory, '.');
       });
 
       test('should set cwd to project root when optimizing', () {
@@ -380,7 +385,7 @@ void main() {
         );
 
         expect(commands.length, 1);
-        expect(commands.first.workingDirectory, '.');
+        expect((commands.first as ScriptToRun).workingDirectory, '.');
       });
 
       test('should return dart commands to run', () {
@@ -400,7 +405,7 @@ void main() {
 
         expect(commands.length, 1);
         expect(
-          commands.first.command.trim(),
+          (commands.first as ScriptToRun).exe.trim(),
           'dart test test/.optimized_test.dart',
         );
       });
@@ -421,7 +426,7 @@ void main() {
         );
 
         expect(commands.length, 1);
-        expect(commands.first.command.trim(), 'flutter test');
+        expect((commands.first as ScriptToRun).exe.trim(), 'flutter test');
       });
 
       test(
@@ -442,7 +447,10 @@ void main() {
           );
 
           expect(commands.length, 1);
-          expect(commands.first.command.trim(), 'flutter test --flutter');
+          expect(
+            (commands.first as ScriptToRun).exe.trim(),
+            'flutter test --flutter',
+          );
         },
       );
 
@@ -463,7 +471,7 @@ void main() {
 
         expect(commands.length, 1);
         expect(
-          commands.first.command.trim(),
+          (commands.first as ScriptToRun).exe.trim(),
           'dart test test/.optimized_test.dart --dart',
         );
       });
@@ -526,18 +534,12 @@ void main() {
           () => bindings.runScript(any(), showOutput: any(named: 'showOutput')),
         ).thenAnswer((_) => Future.value(success));
 
-        final commands = [
-          const CommandToRun(
-            command: 'something',
-            workingDirectory: '.',
-            keys: [],
-          ),
-        ];
+        final commands = [ScriptToRun('something', workingDirectory: '.')];
 
         final results = await tester.runCommands(
           commands,
           bail: false,
-          runConcurrently: false,
+          showOutput: false,
         );
 
         expect(results, ExitCode.success);
@@ -549,21 +551,17 @@ void main() {
         ).thenAnswer((_) => Future.value(failure));
 
         final commands = [
-          const CommandToRun(
-            command: 'something',
-            workingDirectory: '.',
-            keys: [],
-          ),
-          const CommandToRun(command: 'else', workingDirectory: '.', keys: []),
+          ScriptToRun('something', workingDirectory: '.'),
+          ScriptToRun('else', workingDirectory: '.'),
         ];
 
         final results = await tester.runCommands(
           commands,
           bail: true,
-          runConcurrently: false,
+          showOutput: false,
         );
 
-        expect(results.code, 1);
+        expect(results.code, failure.exitCode);
         verify(
           () => bindings.runScript(any(), showOutput: any(named: 'showOutput')),
         ).called(1);
@@ -577,22 +575,14 @@ void main() {
           ).thenAnswer((_) => Future.value(success));
 
           final commands = [
-            const CommandToRun(
-              command: 'something',
-              workingDirectory: '.',
-              keys: [],
-            ),
-            const CommandToRun(
-              command: 'else',
-              workingDirectory: '.',
-              keys: [],
-            ),
+            ScriptToRun('something', workingDirectory: '.'),
+            ScriptToRun('else', workingDirectory: '.'),
           ];
 
           final results = await tester.runCommands(
             commands,
             bail: false,
-            runConcurrently: true,
+            showOutput: true,
           );
 
           expect(results, ExitCode.success);
@@ -609,22 +599,14 @@ void main() {
           ).thenAnswer((_) => Future.value(success));
 
           final commands = [
-            const CommandToRun(
-              command: 'something',
-              workingDirectory: '.',
-              keys: [],
-            ),
-            const CommandToRun(
-              command: 'else',
-              workingDirectory: '.',
-              keys: [],
-            ),
+            ScriptToRun('something', workingDirectory: '.'),
+            ScriptToRun('else', workingDirectory: '.'),
           ];
 
           final results = await tester.runCommands(
             commands,
             bail: false,
-            runConcurrently: true,
+            showOutput: true,
           );
 
           expect(results, ExitCode.success);

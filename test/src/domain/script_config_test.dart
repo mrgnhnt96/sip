@@ -6,9 +6,9 @@ void main() {
   group(ScriptsConfig, () {
     group('#search', () {
       test('returns a script by name', () {
-        const script = Script.defaults(name: 'foo', commands: ['echo foo']);
+        final script = Script(name: 'foo', commands: ['echo foo']);
 
-        final config = ScriptsConfig(scripts: {script.name: script});
+        final config = ScriptsConfig({script.name: script});
 
         final result = config.search('foo');
 
@@ -17,16 +17,11 @@ void main() {
       });
 
       test('can find nested script', () {
-        const script = Script.defaults(name: 'foo', commands: ['echo foo']);
+        final script = Script(name: 'foo', commands: ['echo foo']);
 
-        final config = ScriptsConfig(
-          scripts: {
-            'bar': Script.defaults(
-              name: 'bar',
-              scripts: ScriptsConfig(scripts: {script.name: script}),
-            ),
-          },
-        );
+        final config = ScriptsConfig({
+          'bar': Script(name: 'bar', scripts: {script.name: script}),
+        });
 
         final result = config.search('foo');
 
@@ -35,24 +30,13 @@ void main() {
       });
 
       test('can find multiple scripts', () {
-        const script1 = Script.defaults(
-          name: 'foo-bar-baz',
-          commands: ['echo foo'],
-        );
-        const script2 = Script.defaults(
-          name: 'bar-foo-baz',
-          commands: ['echo foo'],
-        );
+        final script1 = Script(name: 'foo-bar-baz', commands: ['echo foo']);
+        final script2 = Script(name: 'bar-foo-baz', commands: ['echo foo']);
 
-        final config = ScriptsConfig(
-          scripts: {
-            script1.name: script1,
-            'bar': Script.defaults(
-              name: 'bar',
-              scripts: ScriptsConfig(scripts: {script2.name: script2}),
-            ),
-          },
-        );
+        final config = ScriptsConfig({
+          script1.name: script1,
+          'bar': Script(name: 'bar', scripts: {script2.name: script2}),
+        });
 
         final result = config.search('foo').toList();
 
@@ -61,17 +45,15 @@ void main() {
       });
 
       test('stops search when parent is found', () {
-        final script = Script.defaults(
+        final script = Script(
           name: 'foo-bar-baz',
           commands: const ['echo foo'],
-          scripts: ScriptsConfig(
-            scripts: const {
-              'foo': Script.defaults(name: '2', commands: ['echo foo']),
-            },
-          ),
+          scripts: {
+            'foo': Script(name: '2', commands: ['echo foo']),
+          },
         );
 
-        final config = ScriptsConfig(scripts: {script.name: script});
+        final config = ScriptsConfig({script.name: script});
 
         final result = config.search('foo').toList();
 
@@ -80,15 +62,13 @@ void main() {
       });
 
       test('returns nothing when alias is not exact', () {
-        final config = ScriptsConfig(
-          scripts: const {
-            'foo': Script.defaults(
-              name: 'name',
-              commands: ['echo foo'],
-              aliases: {'loz-mm'},
-            ),
-          },
-        );
+        final config = ScriptsConfig({
+          'foo': Script(
+            name: 'name',
+            commands: ['echo foo'],
+            aliases: {'loz-mm'},
+          ),
+        });
 
         final result = config.search('loz');
 
@@ -96,8 +76,8 @@ void main() {
       });
 
       test('returns nothing when no scripts are found', () {
-        const script = Script.defaults(name: 'foo', commands: ['echo foo']);
-        final config = ScriptsConfig(scripts: {script.name: script});
+        final script = Script(name: 'foo', commands: ['echo foo']);
+        final config = ScriptsConfig({script.name: script});
 
         final result = config.search('bar');
 
@@ -105,13 +85,13 @@ void main() {
       });
 
       test('returns when alias matches', () {
-        const script = Script.defaults(
+        final script = Script(
           name: 'name',
           commands: ['echo foo'],
           aliases: {'loz-mm'},
         );
 
-        final config = ScriptsConfig(scripts: {script.name: script});
+        final config = ScriptsConfig({script.name: script});
 
         final result = config.search('loz-mm');
 

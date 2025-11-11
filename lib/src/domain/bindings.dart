@@ -5,6 +5,7 @@ import 'dart:isolate';
 
 import 'package:mason_logger/mason_logger.dart';
 import 'package:sip_cli/src/deps/logger.dart';
+import 'package:sip_cli/src/deps/process.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
 import 'package:sip_cli/src/domain/filter_type.dart';
 
@@ -15,7 +16,6 @@ class Bindings {
     String script, {
     required bool showOutput,
     bool bail = false,
-    FilterType? filterType,
   }) async {
     final port = ReceivePort();
 
@@ -28,7 +28,6 @@ class Bindings {
         event.send({
           'script': script,
           'showOutput': showOutput,
-          'filterType': filterType?.name,
           'loggerLevel': logger.level.name,
           'bail': bail,
         });
@@ -83,7 +82,7 @@ Future<void> _runScript(SendPort sendPort) async {
       (_, true) => false,
       _ => true,
     };
-    final process = await Process.start(
+    final details = await process(
       command,
       [arg, script],
       runInShell: true,
@@ -153,23 +152,23 @@ Future<void> _runScript(SendPort sendPort) async {
       if (isError && bail) {
         overrideExitCode = 1;
         haltLogs = true;
-        process.kill();
+        details.kill();
       }
     });
 
     if (!hasTerminal) {
       try {
-        process.stdout.listen(outputController.add);
-        process.stderr.listen(errorController.add);
+        details.stdout.listen(outputController.add);
+        details.stderr.listen(errorController.add);
       } catch (_) {
         // ignore
       }
     }
 
-    final code = await process.exitCode;
+    final code = await details.exitCode;
     haltLogs = true;
 
-    process.kill();
+    details.kill();
 
     return CommandResult(
       exitCode: overrideExitCode ?? code,

@@ -2,15 +2,14 @@ import 'dart:io' as io;
 
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
+import 'package:mason_logger/mason_logger.dart';
 import 'package:meta/meta.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/sip_runner.dart';
 import 'package:sip_cli/src/commands/script_run_command.dart';
-import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/domain/bindings.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
-import 'package:sip_cli/src/domain/filter_type.dart';
 import 'package:sip_cli/src/domain/pubspec_yaml.dart';
 import 'package:sip_cli/src/domain/scripts_yaml.dart';
 import 'package:test/test.dart';
@@ -21,13 +20,28 @@ import '../../../utils/test_scoped.dart';
 void main() {
   group('lint e2e', () {
     late FileSystem fs;
-    late _TestBindings bindings;
+    late Bindings bindings;
+    late SipRunner runner;
     late FakeArgs args;
+    late Logger logger;
 
     setUp(() {
-      bindings = _TestBindings();
+      bindings = _MockBindings();
       fs = MemoryFileSystem.test();
       args = FakeArgs();
+      logger = _MockLogger();
+
+      when(() => logger.progress(any())).thenAnswer((_) => _MockProgress());
+
+      when(
+        () => bindings.runScript(
+          any(),
+          showOutput: any(named: 'showOutput'),
+          bail: any(named: 'bail'),
+        ),
+      ).thenAnswer(
+        (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
+      );
 
       final cwd = fs.directory(path.join('packages', 'sip'))
         ..createSync(recursive: true);
@@ -35,19 +49,19 @@ void main() {
     });
 
     @isTest
-    void test(String description, void Function() fn) {
+    void test(String description, Future<void> Function() fn) {
       testScoped(
         description,
         fn,
         fileSystem: () => fs,
         bindings: () => bindings,
         args: () => args,
+        logger: () => logger,
       );
     }
 
     group('runs gracefully', () {
       late ScriptRunCommand command;
-      late SipRunner runner;
 
       ScriptRunCommand prep() {
         final input = io.File(
@@ -62,7 +76,6 @@ void main() {
           ..writeAsStringSync('');
 
         const command = ScriptRunCommand();
-
         runner = const SipRunner();
 
         return command;
@@ -75,10 +88,18 @@ void main() {
       test('command: lint --package application', () async {
         await command.run(['lint', '--package', 'application']);
 
-        await Future<void>.delayed(Duration.zero);
+        final [script] = verify(
+          () => bindings.runScript(
+            captureAny(),
+            bail: any(named: 'bail'),
+            showOutput: any(named: 'showOutput'),
+          ),
+        ).captured;
 
-        expect(bindings.scripts.join('\n'), r'''
-cd /packages/sip || exit 1
+        expect(
+          (script as String).split('\n'),
+          r'''
+cd "/packages/sip" || exit 1
 
 PKG_PATH="--package application"
 PKG_PATH=$(echo "$PKG_PATH" | sed 's/^--package[ =]*//')
@@ -86,8 +107,9 @@ if [ -n "$PKG_PATH" ]; then
   dart analyze ./packages/$PKG_PATH --fatal-infos --fatal-warnings 
 else
   dart analyze . --fatal-infos --fatal-warnings 
-fi
-''');
+fi'''
+              .split('\n'),
+        );
       });
 
       test('command: lint --package application --print', () async {
@@ -98,36 +120,29 @@ fi
 
         await runner.run();
 
-        await Future<void>.delayed(Duration.zero);
+        final [message, ...] = verify(
+          () => logger.write(captureAny()),
+        ).captured;
 
-        expect(bindings.scripts, isEmpty);
-        verify(
-          () => logger.write(r'''
+        expect(
+          (message as String).split('\n'),
+          r'''
 PKG_PATH="--package application"
 PKG_PATH=$(echo "$PKG_PATH" | sed 's/^--package[ =]*//')
 if [ -n "$PKG_PATH" ]; then
   dart analyze ./packages/$PKG_PATH --fatal-infos --fatal-warnings 
 else
   dart analyze . --fatal-infos --fatal-warnings 
-fi'''),
-        ).called(1);
+fi'''
+              .split('\n'),
+        );
       });
     });
   });
 }
 
-class _TestBindings implements Bindings {
-  final List<String> scripts = [];
+class _MockBindings extends Mock implements Bindings {}
 
-  @override
-  Future<CommandResult> runScript(
-    String script, {
-    bool showOutput = false,
-    FilterType? filterType,
-    bool bail = false,
-  }) async {
-    scripts.addAll(script.split('\n'));
+class _MockLogger extends Mock implements Logger {}
 
-    return const CommandResult(exitCode: 0, output: '', error: '');
-  }
-}
+class _MockProgress extends Mock implements Progress {}

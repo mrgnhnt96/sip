@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:meta/meta.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:sip_cli/src/domain/find_file.dart';
@@ -27,7 +29,7 @@ void main() {
   });
 
   @isTest
-  void test(String description, void Function() fn) {
+  void test(String description, FutureOr<void> Function() fn) {
     testScoped(
       description,
       fn,

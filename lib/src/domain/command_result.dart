@@ -1,5 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
-import 'package:sip_cli/src/utils/exit_code.dart';
+import 'package:mason_logger/mason_logger.dart';
 
 part 'command_result.g.dart';
 
@@ -40,7 +40,7 @@ class CommandResult {
       ExitCode.config.code: ExitCode.config,
     };
 
-    return codes[exitCode] ?? ExitCode.unknown(exitCode);
+    return codes[exitCode] ?? ExitCode.usage;
   }
 
   @override

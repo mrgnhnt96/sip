@@ -7,8 +7,8 @@ import 'package:path/path.dart' as p;
 import 'package:sip_cli/src/commands/pub_get_command.dart';
 import 'package:sip_cli/src/domain/bindings.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
-import 'package:sip_cli/src/domain/filter_type.dart';
-import 'package:sip_cli/src/domain/run_many_scripts.dart';
+import 'package:sip_cli/src/domain/script_runner.dart';
+import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:test/test.dart';
 
 import '../../utils/fake_args.dart';
@@ -17,15 +17,15 @@ import '../../utils/test_scoped.dart';
 void main() {
   group('finds test directories', () {
     late FileSystem fs;
-    late _TestBindings bindings;
+    late Bindings bindings;
     late PubGetCommand command;
-    late _MockRunManyScripts runManyScripts;
     late FakeArgs args;
+    late ScriptRunner scriptRunner;
 
     setUp(() {
-      bindings = _TestBindings();
-      runManyScripts = _MockRunManyScripts();
+      bindings = _MockBindings();
       args = FakeArgs();
+      scriptRunner = _MockScriptRunner();
       fs = MemoryFileSystem.test();
 
       command = const PubGetCommand();
@@ -33,6 +33,17 @@ void main() {
       final cwd = fs.directory(p.join('packages', 'sip'))
         ..createSync(recursive: true);
       fs.currentDirectory = cwd;
+
+      when(
+        () => scriptRunner.groupRun(
+          any(),
+          bail: any(named: 'bail'),
+          disableConcurrency: any(named: 'disableConcurrency'),
+          showOutput: any(named: 'showOutput'),
+        ),
+      ).thenAnswer(
+        (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
+      );
     });
 
     /// Create a directory with a pubspec.yaml file inside.
@@ -47,14 +58,14 @@ void main() {
     }
 
     @isTest
-    void test(String description, void Function() fn) {
+    void test(String description, Future<void> Function() fn) {
       testScoped(
         description,
         fn,
         fileSystem: () => fs,
         bindings: () => bindings,
-        runManyScripts: () => runManyScripts,
         args: () => args,
+        scriptRunner: () => scriptRunner,
       );
     }
 
@@ -66,50 +77,37 @@ void main() {
         ['packages', 'd'],
       ]);
 
-      when(
-        () => runManyScripts.run(
-          commands: any(named: 'commands'),
-          bail: any(named: 'bail'),
-          sequentially: any(named: 'sequentially'),
-          retryAfter: any(named: 'retryAfter'),
-          maxAttempts: any(named: 'maxAttempts'),
-          label: any(named: 'label'),
-        ),
-      ).thenAnswer(
-        (_) async => [const CommandResult(exitCode: 0, output: '', error: '')],
-      );
-
       args['recursive'] = true;
 
       final result = await command.run();
 
       expect(result.code, ExitCode.success.code);
-      verify(
-        () => runManyScripts.run(
-          commands: any(named: 'commands', that: hasLength(4)),
-          bail: false,
-          sequentially: false,
-          label: any(named: 'label'),
-        ),
-      );
+      final [commands] = verify(
+        () =>
+            scriptRunner.groupRun(captureAny(), bail: false, showOutput: false),
+      ).captured;
+
+      final [a, b, c, d] = commands as List<ScriptToRun>;
+
+      expect(a.exe, 'dart pub get');
+      expect(a.workingDirectory, '/packages/sip/packages/a');
+      expect(a.label, '(dart)    ./packages/a');
+
+      expect(b.exe, 'dart pub get');
+      expect(b.workingDirectory, '/packages/sip/packages/b');
+      expect(b.label, '(dart)    ./packages/b');
+
+      expect(c.exe, 'dart pub get');
+      expect(c.workingDirectory, '/packages/sip/packages/c');
+      expect(c.label, '(dart)    ./packages/c');
+
+      expect(d.exe, 'dart pub get');
+      expect(d.workingDirectory, '/packages/sip/packages/d');
+      expect(d.label, '(dart)    ./packages/d');
     });
   });
 }
 
-class _TestBindings implements Bindings {
-  final List<String> scripts = [];
+class _MockBindings extends Mock implements Bindings {}
 
-  @override
-  Future<CommandResult> runScript(
-    String script, {
-    bool showOutput = false,
-    FilterType? filterType,
-    bool bail = false,
-  }) async {
-    scripts.addAll(script.split('\n'));
-
-    return const CommandResult(exitCode: 0, output: '', error: '');
-  }
-}
-
-class _MockRunManyScripts extends Mock implements RunManyScripts {}
+class _MockScriptRunner extends Mock implements ScriptRunner {}

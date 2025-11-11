@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:sip_cli/src/domain/find_yaml.dart';
 import 'package:sip_cli/src/utils/constants.dart';
 
@@ -32,7 +34,10 @@ class ScriptsYaml extends FindYaml {
     final all = {...?parsed}
       ..removeWhere((e, _) => Keys.nonScriptKeys.contains(e));
 
-    return all;
+    return switch (jsonDecode(jsonEncode(all))) {
+      final Map<String, dynamic> json => json,
+      _ => {},
+    };
   }
 
   Map<String, dynamic>? variables() {

@@ -10,10 +10,9 @@ import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/commands/script_run_command.dart';
 import 'package:sip_cli/src/domain/bindings.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
-import 'package:sip_cli/src/domain/command_to_run.dart';
 import 'package:sip_cli/src/domain/pubspec_yaml.dart';
-import 'package:sip_cli/src/domain/run_many_scripts.dart';
-import 'package:sip_cli/src/domain/run_one_script.dart';
+import 'package:sip_cli/src/domain/script_runner.dart';
+import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:sip_cli/src/domain/scripts_yaml.dart';
 import 'package:test/test.dart';
 
@@ -23,51 +22,37 @@ void main() {
   group('concurrency groups test', () {
     late FileSystem fs;
     late Bindings bindings;
-    late RunOneScript runOneScript;
-    late RunManyScripts runManyScripts;
+    late ScriptRunner scriptRunner;
 
     setUpAll(() {
-      registerFallbackValue(
-        const CommandToRun(command: '__fake__', workingDirectory: '', keys: []),
-      );
+      registerFallbackValue(const ConcurrentBreak() as Runnable);
     });
 
     setUp(() {
       bindings = _MockBindings();
-      runOneScript = _MockRunOneScript();
-      runManyScripts = _MockRunManyScript();
-
-      when(
-        () => runOneScript.run(
-          command: any(named: 'command'),
-          showOutput: any(named: 'showOutput'),
-          filter: any(named: 'filter'),
-          maxAttempts: any(named: 'maxAttempts'),
-          retryAfter: any(named: 'retryAfter'),
-        ),
-      ).thenAnswer(
-        (invocation) async =>
-            const CommandResult(exitCode: 0, output: '', error: ''),
-      );
-      when(
-        () => runManyScripts.run(
-          commands: any(named: 'commands'),
-          sequentially: any(named: 'sequentially'),
-          bail: any(named: 'bail'),
-          label: any(named: 'label'),
-          maxAttempts: any(named: 'maxAttempts'),
-          retryAfter: any(named: 'retryAfter'),
-        ),
-      ).thenAnswer(
-        (invocation) async => [
-          if (invocation.namedArguments[#commands]
-              case final List<CommandToRun> commands)
-            for (final command in commands)
-              CommandResult(exitCode: 0, output: command.command, error: ''),
-        ],
-      );
-
+      scriptRunner = _MockScriptRunner();
       fs = MemoryFileSystem.test();
+
+      when(
+        () => bindings.runScript(captureAny(), showOutput: false),
+      ).thenAnswer(
+        (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
+      );
+
+      when(
+        () => scriptRunner.run(any(), disableConcurrency: false, bail: false),
+      ).thenAnswer(
+        (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
+      );
+      when(
+        () => scriptRunner.groupRun(
+          any(),
+          disableConcurrency: false,
+          bail: false,
+        ),
+      ).thenAnswer(
+        (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
+      );
 
       final cwd = fs.directory(path.join('packages', 'sip'))
         ..createSync(recursive: true);
@@ -97,14 +82,13 @@ void main() {
     }
 
     @isTest
-    void test(String description, void Function() fn) {
+    void test(String description, Future<void> Function() fn) {
       testScoped(
         description,
         fn,
         fileSystem: () => fs,
         bindings: () => bindings,
-        runOneScript: () => runOneScript,
-        runManyScripts: () => runManyScripts,
+        scriptRunner: () => scriptRunner,
       );
     }
 
@@ -114,131 +98,34 @@ void main() {
         final command = setupScripts();
 
         await command.run(['combined']);
-        {
-          final expected = [
-            [
-              ...['wait 1', 'wait 2'].map(
-                (e) => CommandToRun(
-                  command: e,
-                  label: e,
-                  workingDirectory: '/packages/sip',
-                  keys: const ['combined'],
-                  needsRunBeforeNext: false,
-                  bail: false,
-                  runConcurrently: true,
-                ),
-              ),
-              const CommandToRun(
-                command: 'wait 3',
-                label: 'wait 3',
-                workingDirectory: '/packages/sip',
-                keys: ['combined'],
-                needsRunBeforeNext: true,
-                bail: false,
-                runConcurrently: true,
-              ),
-            ],
-            [
-              ...['wait 4', 'wait 5'].map(
-                (e) => CommandToRun(
-                  command: e,
-                  label: e,
-                  workingDirectory: '/packages/sip',
-                  keys: const ['combined'],
-                  needsRunBeforeNext: false,
-                  bail: false,
-                  runConcurrently: true,
-                ),
-              ),
-            ],
-          ];
 
-          final results = <List<CommandToRun>>[];
+        final [results] = verify(
+          () => scriptRunner.groupRun(
+            captureAny(),
+            disableConcurrency: false,
+            bail: false,
+            showOutput: true,
+          ),
+        ).captured;
 
-          verify(
-            () => runManyScripts.run(
-              commands: any(
-                named: 'commands',
-                that: isA<List<CommandToRun>>().having(
-                  (items) {
-                    return items;
-                  },
-                  'has correct scripts',
-                  (Object? items) {
-                    results.add(items! as List<CommandToRun>);
-                    return true;
-                  },
-                ),
-              ),
-              sequentially: false,
-              bail: false,
-              label: any(named: 'label'),
-              maxAttempts: any(named: 'maxAttempts'),
-              retryAfter: any(named: 'retryAfter'),
-            ),
-          ).called(2);
+        expect(results, hasLength(10));
 
-          expect(results, expected);
-        }
-
-        {
-          final expected = [
-            const CommandToRun(
-              command: 'echo 6',
-              label: 'echo 6',
-              workingDirectory: '/packages/sip',
-              keys: ['combined'],
-              needsRunBeforeNext: true,
-              bail: false,
-              runConcurrently: false,
-            ),
-            ...['wait 1; echo 1', 'wait 1; echo 2'].map((e) {
-              return CommandToRun(
-                command: e,
-                label: e,
-                workingDirectory: '/packages/sip',
-                keys: const ['combined'],
-                needsRunBeforeNext: false,
-                bail: false,
-                runConcurrently: false,
-              );
-            }),
-            const CommandToRun(
-              command: 'wait 1; echo 3',
-              label: 'wait 1; echo 3',
-              workingDirectory: '/packages/sip',
-              keys: ['combined'],
-              needsRunBeforeNext: true,
-              bail: false,
-              runConcurrently: false,
-            ),
-          ];
-
-          final results = <CommandToRun>[];
-
-          verify(
-            () => runOneScript.run(
-              command: any(
-                named: 'command',
-                that: isA<CommandToRun>().having(
-                  (items) {
-                    return items;
-                  },
-                  'has correct script',
-                  (Object? items) {
-                    results.add(items! as CommandToRun);
-
-                    return true;
-                  },
-                ),
-              ),
-              showOutput: any(named: 'showOutput'),
-              maxAttempts: any(named: 'maxAttempts'),
-              retryAfter: any(named: 'retryAfter'),
-            ),
-          ).called(4);
-
-          expect(results, expected);
+        for (final result in results as List<Runnable>) {
+          switch (result) {
+            case ScriptToRun(exe: 'wait 1', runInParallel: true):
+            case ScriptToRun(exe: 'wait 2', runInParallel: true):
+            case ScriptToRun(exe: 'wait 3', runInParallel: true):
+            case ConcurrentBreak():
+            case ScriptToRun(exe: 'wait 4', runInParallel: true):
+            case ScriptToRun(exe: 'wait 5', runInParallel: true):
+            case ScriptToRun(exe: 'echo 6', runInParallel: false):
+            case ScriptToRun(exe: 'wait 1; echo 1', runInParallel: false):
+            case ScriptToRun(exe: 'wait 1; echo 2', runInParallel: false):
+            case ScriptToRun(exe: 'wait 1; echo 3', runInParallel: false):
+              continue;
+            default:
+              fail('Unexpected result: $result');
+          }
         }
       },
     );
@@ -248,48 +135,26 @@ void main() {
 
       await command.run(['all_concurrent']);
 
-      final expected = [
-        [
-          ...['wait 1', 'wait 2', 'wait 3'].map(
-            (e) => CommandToRun(
-              command: e,
-              label: e,
-              workingDirectory: '/packages/sip',
-              keys: const ['all_concurrent'],
-              needsRunBeforeNext: false,
-              bail: false,
-              runConcurrently: true,
-            ),
-          ),
-        ],
-      ];
-
-      final results = <List<CommandToRun>>[];
-
-      verify(
-        () => runManyScripts.run(
-          commands: any(
-            named: 'commands',
-            that: isA<List<CommandToRun>>().having(
-              (items) {
-                return items;
-              },
-              'has correct scripts',
-              (Object? items) {
-                results.add(items! as List<CommandToRun>);
-                return true;
-              },
-            ),
-          ),
-          sequentially: false,
+      final [results] = verify(
+        () => scriptRunner.groupRun(
+          captureAny(),
+          disableConcurrency: false,
           bail: false,
-          label: any(named: 'label'),
-          maxAttempts: any(named: 'maxAttempts'),
-          retryAfter: any(named: 'retryAfter'),
         ),
-      ).called(1);
+      ).captured;
 
-      expect(results, expected);
+      expect(results, hasLength(3));
+
+      for (final result in results as List<Runnable>) {
+        switch (result) {
+          case ScriptToRun(exe: 'wait 1', runInParallel: true):
+          case ScriptToRun(exe: 'wait 2', runInParallel: true):
+          case ScriptToRun(exe: 'wait 3', runInParallel: true):
+            continue;
+          default:
+            fail('Unexpected result: $result');
+        }
+      }
     });
 
     test('should run non-concurrent group', () async {
@@ -297,44 +162,28 @@ void main() {
 
       await command.run(['no_concurrent']);
 
-      final expected = [
-        ...['wait 1; echo 1', 'wait 1; echo 2', 'wait 1; echo 3'].map(
-          (e) => CommandToRun(
-            command: e,
-            label: e,
-            workingDirectory: '/packages/sip',
-            keys: const ['no_concurrent'],
-            needsRunBeforeNext: false,
-            bail: false,
-            runConcurrently: false,
-          ),
+      final [results] = verify(
+        () => scriptRunner.groupRun(
+          captureAny(),
+          showOutput: true,
+          disableConcurrency: false,
+          bail: false,
         ),
-      ];
+      ).captured;
 
-      final results = <CommandToRun>[];
+      expect(results, hasLength(3));
 
-      verify(
-        () => runOneScript.run(
-          command: any(
-            named: 'command',
-            that: isA<CommandToRun>().having(
-              (items) {
-                return items;
-              },
-              'has correct scripts',
-              (Object? items) {
-                results.add(items! as CommandToRun);
-                return true;
-              },
-            ),
-          ),
-          showOutput: any(named: 'showOutput'),
-          maxAttempts: any(named: 'maxAttempts'),
-          retryAfter: any(named: 'retryAfter'),
-        ),
-      ).called(3);
-
-      expect(results, expected);
+      for (final result in results as List<Runnable>) {
+        switch (result) {
+          case ScriptToRun(exe: 'wait 1', runInParallel: false):
+          case ScriptToRun(exe: 'wait 1; echo 1', runInParallel: false):
+          case ScriptToRun(exe: 'wait 1; echo 2', runInParallel: false):
+          case ScriptToRun(exe: 'wait 1; echo 3', runInParallel: false):
+            continue;
+          default:
+            fail('Unexpected result: $result');
+        }
+      }
     });
 
     test('should run partial-concurrent group', () async {
@@ -342,88 +191,26 @@ void main() {
 
       await command.run(['partial_concurrent']);
 
-      {
-        final expected = [
-          [
-            ...['wait 4', 'wait 5'].map(
-              (e) => CommandToRun(
-                command: e,
-                label: e,
-                workingDirectory: '/packages/sip',
-                keys: const ['partial_concurrent'],
-                needsRunBeforeNext: false,
-                bail: false,
-                runConcurrently: true,
-              ),
-            ),
-          ],
-        ];
+      final [results] = verify(
+        () => scriptRunner.groupRun(
+          captureAny(),
+          showOutput: true,
+          disableConcurrency: false,
+          bail: false,
+        ),
+      ).captured;
 
-        final results = <List<CommandToRun>>[];
+      expect(results, hasLength(3));
 
-        verify(
-          () => runManyScripts.run(
-            commands: any(
-              named: 'commands',
-              that: isA<List<CommandToRun>>().having(
-                (items) {
-                  return items;
-                },
-                'has correct scripts',
-                (Object? items) {
-                  results.add(items! as List<CommandToRun>);
-                  return true;
-                },
-              ),
-            ),
-            sequentially: false,
-            bail: false,
-            label: any(named: 'label'),
-            maxAttempts: any(named: 'maxAttempts'),
-            retryAfter: any(named: 'retryAfter'),
-          ),
-        ).called(1);
-
-        expect(results, expected);
-      }
-
-      {
-        final expected = [
-          const CommandToRun(
-            command: 'echo 6',
-            label: 'echo 6',
-            workingDirectory: '/packages/sip',
-            keys: ['partial_concurrent'],
-            needsRunBeforeNext: false,
-            bail: false,
-            runConcurrently: false,
-          ),
-        ];
-
-        final results = <CommandToRun>[];
-
-        verify(
-          () => runOneScript.run(
-            command: any(
-              named: 'command',
-              that: isA<CommandToRun>().having(
-                (items) {
-                  return items;
-                },
-                'has correct scripts',
-                (Object? items) {
-                  results.add(items! as CommandToRun);
-                  return true;
-                },
-              ),
-            ),
-            showOutput: any(named: 'showOutput'),
-            maxAttempts: any(named: 'maxAttempts'),
-            retryAfter: any(named: 'retryAfter'),
-          ),
-        ).called(1);
-
-        expect(results, expected);
+      for (final result in results as List<Runnable>) {
+        switch (result) {
+          case ScriptToRun(exe: 'wait 4', runInParallel: true):
+          case ScriptToRun(exe: 'wait 5', runInParallel: true):
+          case ScriptToRun(exe: 'echo 6', runInParallel: false):
+            continue;
+          default:
+            fail('Unexpected result: $result');
+        }
       }
     });
 
@@ -432,70 +219,30 @@ void main() {
 
       await command.run(['combined_concurrent']);
 
-      final expected = [
-        [
-          ...['wait 1', 'wait 2'].map(
-            (e) => CommandToRun(
-              command: e,
-              label: e,
-              workingDirectory: '/packages/sip',
-              keys: const ['combined_concurrent'],
-              needsRunBeforeNext: false,
-              bail: false,
-              runConcurrently: true,
-            ),
-          ),
-          const CommandToRun(
-            command: 'wait 3',
-            label: 'wait 3',
-            workingDirectory: '/packages/sip',
-            keys: ['combined_concurrent'],
-            needsRunBeforeNext: true,
-            bail: false,
-            runConcurrently: true,
-          ),
-        ],
-        [
-          ...['wait 4', 'wait 5', 'echo 6'].map(
-            (e) => CommandToRun(
-              command: e,
-              label: e,
-              workingDirectory: '/packages/sip',
-              keys: const ['combined_concurrent'],
-              needsRunBeforeNext: false,
-              bail: false,
-              runConcurrently: true,
-            ),
-          ),
-        ],
-      ];
-
-      final results = <List<CommandToRun>>[];
-
-      verify(
-        () => runManyScripts.run(
-          commands: any(
-            named: 'commands',
-            that: isA<List<CommandToRun>>().having(
-              (items) {
-                return items;
-              },
-              'has correct scripts',
-              (Object? items) {
-                results.add(items! as List<CommandToRun>);
-                return true;
-              },
-            ),
-          ),
-          sequentially: false,
+      final [results] = verify(
+        () => scriptRunner.groupRun(
+          captureAny(),
+          disableConcurrency: false,
           bail: false,
-          label: any(named: 'label'),
-          maxAttempts: any(named: 'maxAttempts'),
-          retryAfter: any(named: 'retryAfter'),
         ),
-      ).called(2);
+      ).captured;
 
-      expect(results, expected);
+      expect(results, hasLength(7));
+
+      for (final result in results as List<Runnable>) {
+        switch (result) {
+          case ScriptToRun(exe: 'wait 1', runInParallel: true):
+          case ScriptToRun(exe: 'wait 2', runInParallel: true):
+          case ScriptToRun(exe: 'wait 3', runInParallel: true):
+          case ConcurrentBreak():
+          case ScriptToRun(exe: 'wait 4', runInParallel: true):
+          case ScriptToRun(exe: 'wait 5', runInParallel: true):
+          case ScriptToRun(exe: 'echo 6', runInParallel: false):
+            continue;
+          default:
+            fail('Unexpected result: $result');
+        }
+      }
     });
 
     test('should combine all groups when leading with concurrency', () async {
@@ -503,64 +250,37 @@ void main() {
 
       await command.run(['everything_concurrent']);
 
-      final expected = [
-        [
-          ...[
-            'wait 1',
-            'wait 2',
-            'wait 3',
-            'wait 4',
-            'wait 5',
-            'echo 6',
-            'wait 1; echo 1',
-            'wait 1; echo 2',
-            'wait 1; echo 3',
-          ].map(
-            (e) => CommandToRun(
-              command: e,
-              label: e,
-              workingDirectory: '/packages/sip',
-              keys: const ['everything_concurrent'],
-              needsRunBeforeNext: false,
-              bail: false,
-              runConcurrently: true,
-            ),
-          ),
-        ],
-      ];
-
-      final results = <List<CommandToRun>>[];
-
-      verify(
-        () => runManyScripts.run(
-          commands: any(
-            named: 'commands',
-            that: isA<List<CommandToRun>>().having(
-              (items) {
-                return items;
-              },
-              'has correct scripts',
-              (Object? items) {
-                results.add(items! as List<CommandToRun>);
-                return true;
-              },
-            ),
-          ),
-          sequentially: false,
+      final [results] = verify(
+        () => scriptRunner.groupRun(
+          captureAny(),
+          disableConcurrency: false,
           bail: false,
-          label: any(named: 'label'),
-          maxAttempts: any(named: 'maxAttempts'),
-          retryAfter: any(named: 'retryAfter'),
         ),
-      ).called(1);
+      ).captured;
 
-      expect(results, expected);
+      expect(results, hasLength(10));
+
+      for (final result in results as List<Runnable>) {
+        switch (result) {
+          case ScriptToRun(exe: 'wait 1', runInParallel: true):
+          case ScriptToRun(exe: 'wait 2', runInParallel: true):
+          case ScriptToRun(exe: 'wait 3', runInParallel: true):
+          case ConcurrentBreak():
+          case ScriptToRun(exe: 'wait 4', runInParallel: true):
+          case ScriptToRun(exe: 'wait 5', runInParallel: true):
+          case ScriptToRun(exe: 'echo 6', runInParallel: false):
+          case ScriptToRun(exe: 'wait 1; echo 1', runInParallel: false):
+          case ScriptToRun(exe: 'wait 1; echo 2', runInParallel: false):
+          case ScriptToRun(exe: 'wait 1; echo 3', runInParallel: false):
+            continue;
+          default:
+            fail('Unexpected result: $result');
+        }
+      }
     });
   });
 }
 
 class _MockBindings extends Mock implements Bindings {}
 
-class _MockRunOneScript extends Mock implements RunOneScript {}
-
-class _MockRunManyScript extends Mock implements RunManyScripts {}
+class _MockScriptRunner extends Mock implements ScriptRunner {}

@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:file/file.dart';
-import 'package:mason_logger/mason_logger.dart' hide ExitCode;
+import 'package:mason_logger/mason_logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/commands/test_command/tester_mixin.dart';
 import 'package:sip_cli/src/deps/args.dart';
@@ -14,7 +14,6 @@ import 'package:sip_cli/src/domain/dart_test_args.dart';
 import 'package:sip_cli/src/domain/flutter_test_args.dart';
 import 'package:sip_cli/src/domain/package_to_test.dart';
 import 'package:sip_cli/src/domain/test_scope.dart';
-import 'package:sip_cli/src/utils/exit_code.dart';
 import 'package:sip_cli/src/utils/stream_group.dart';
 
 class TestWatchCommand with TesterMixin {
@@ -208,7 +207,7 @@ ${darkGray.wrap('Press `q` to exit')}
 
       final exitCode = await runCommands(
         commandsToRun,
-        runConcurrently: runConcurrently,
+        showOutput: runConcurrently,
         bail: false,
       );
 

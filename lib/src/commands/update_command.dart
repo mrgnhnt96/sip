@@ -1,13 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:mason_logger/mason_logger.dart' hide ExitCode;
+import 'package:mason_logger/mason_logger.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pub_updater.dart';
 import 'package:sip_cli/src/package.dart' as pkg;
-import 'package:sip_cli/src/utils/exit_code.dart';
 import 'package:sip_cli/src/version.dart';
 
 const _usage = '''

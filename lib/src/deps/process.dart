@@ -40,6 +40,7 @@ final processProvider = create<Process>(() {
       stderr: process.stderr,
       pid: process.pid,
       exitCode: process.exitCode,
+      kill: process.kill,
     );
   };
 });

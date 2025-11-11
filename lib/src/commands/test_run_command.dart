@@ -1,16 +1,15 @@
 // ignore_for_file: cascade_invocations
 
-import 'package:mason_logger/mason_logger.dart' hide ExitCode;
+import 'package:mason_logger/mason_logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/commands/test_command/tester_mixin.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
-import 'package:sip_cli/src/domain/command_to_run.dart';
 import 'package:sip_cli/src/domain/dart_test_args.dart';
 import 'package:sip_cli/src/domain/flutter_test_args.dart';
+import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:sip_cli/src/utils/determine_flutter_or_dart.dart';
-import 'package:sip_cli/src/utils/exit_code.dart';
 
 const _usage = '''
 Usage: sip test <...files or directories> [arguments]
@@ -93,7 +92,7 @@ class TestRunCommand with TesterMixin {
       logger.warn('Bailing after first test failure\n');
     }
 
-    final commandsToRun = <CommandToRun>[];
+    final commandsToRun = <Runnable>[];
 
     void Function()? cleanUp;
 
@@ -190,7 +189,7 @@ class TestRunCommand with TesterMixin {
 
     final exitCode = await runCommands(
       commandsToRun,
-      runConcurrently: args.get<bool>('concurrent', defaultValue: false),
+      showOutput: args.get<bool>('concurrent', defaultValue: false),
       bail: bail,
     );
 

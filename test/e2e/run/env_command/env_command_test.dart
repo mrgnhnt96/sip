@@ -3,11 +3,11 @@ import 'dart:io' as io;
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
 import 'package:meta/meta.dart';
+import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/commands/script_run_command.dart';
 import 'package:sip_cli/src/domain/bindings.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
-import 'package:sip_cli/src/domain/filter_type.dart';
 import 'package:sip_cli/src/domain/pubspec_yaml.dart';
 import 'package:sip_cli/src/domain/scripts_yaml.dart';
 import 'package:test/test.dart';
@@ -17,10 +17,20 @@ import '../../../utils/test_scoped.dart';
 void main() {
   group('env command e2e', () {
     late FileSystem fs;
-    late _TestBindings bindings;
+    late Bindings bindings;
 
     setUp(() {
-      bindings = _TestBindings();
+      bindings = _MockBindings();
+
+      when(
+        () => bindings.runScript(
+          any(),
+          showOutput: any(named: 'showOutput'),
+          bail: any(named: 'bail'),
+        ),
+      ).thenAnswer(
+        (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
+      );
 
       fs = MemoryFileSystem.test();
 
@@ -30,7 +40,7 @@ void main() {
     });
 
     @isTest
-    void test(String description, void Function() fn) {
+    void test(String description, Future<void> Function() fn) {
       testScoped(
         description,
         fn,
@@ -71,29 +81,43 @@ void main() {
       });
 
       test('command: server pocketbase migrate', () async {
+        fs.file(fs.path.join('infra', 'private', 'pocketbase.local.env'))
+          ..createSync(recursive: true)
+          ..writeAsStringSync('''
+# Comment
+FOO=bar
+BAR=baz
+''');
+
         await command.run(['server', 'pocketbase', 'migrate']);
 
-        await Future<void>.delayed(Duration.zero);
+        final scripts = verify(
+          () => bindings.runScript(
+            captureAny(),
+            showOutput: any(named: 'showOutput'),
+            bail: any(named: 'bail'),
+          ),
+        ).captured;
 
-        expect(bindings.scripts.join('\n'), r'''
-cd /packages/sip || exit 1
+        final [env, one, two] = scripts;
+
+        expect(
+          (env as String).split('\n'),
+          '''
+cd "/packages/sip" || exit 1
 
 cd infra || exit 1
-dart run pnv generate env --flavor local --output private --directory public
+dart run pnv generate env --flavor local --output private --directory public'''
+              .split('\n'),
+        );
 
-cd /packages/sip || exit 1
+        expect(
+          (one as String).split('\n'),
+          r'''
+cd "/packages/sip" || exit 1
 
-if [ -f infra/private/pocketbase.local.env ]; then
-  builtin source infra/private/pocketbase.local.env
-  while IFS='=' read -r key _; do
-    if [[ $key =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
-      export "$key"
-    fi
-  done < <(grep -vE '^\s*#' infra/private/pocketbase.local.env | grep -E '^[A-Za-z_][A-Za-z0-9_]*=')
-else
-  echo "ENV File infra/private/pocketbase.local.env not found"
-  exit 1
-fi
+export FOO=bar
+export BAR=baz
 
 cd backend/pocketbase || exit 1
 MIGRATIONS_COUNT=$(ls -1 pb_migrations | wc -l)
@@ -102,41 +126,24 @@ if [ "$MIGRATIONS_COUNT" -eq 0 ]; then
   exit 0
 fi
 
-echo "y" | ./pocketbase migrate down $MIGRATIONS_COUNT
+echo "y" | ./pocketbase migrate down $MIGRATIONS_COUNT'''
+              .split('\n'),
+        );
 
-cd /packages/sip || exit 1
+        expect(
+          (two as String).split('\n'),
+          '''
+cd "/packages/sip" || exit 1
 
-if [ -f infra/private/pocketbase.local.env ]; then
-  builtin source infra/private/pocketbase.local.env
-  while IFS='=' read -r key _; do
-    if [[ $key =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
-      export "$key"
-    fi
-  done < <(grep -vE '^\s*#' infra/private/pocketbase.local.env | grep -E '^[A-Za-z_][A-Za-z0-9_]*=')
-else
-  echo "ENV File infra/private/pocketbase.local.env not found"
-  exit 1
-fi
+export FOO=bar
+export BAR=baz
 
-cd backend/pocketbase &&./pocketbase migrate up
-''');
+cd backend/pocketbase &&./pocketbase migrate up'''
+              .split('\n'),
+        );
       });
     });
   });
 }
 
-class _TestBindings implements Bindings {
-  final List<String> scripts = [];
-
-  @override
-  Future<CommandResult> runScript(
-    String script, {
-    bool showOutput = false,
-    FilterType? filterType,
-    bool bail = false,
-  }) async {
-    scripts.addAll(script.split('\n'));
-
-    return const CommandResult(exitCode: 0, output: '', error: '');
-  }
-}
+class _MockBindings extends Mock implements Bindings {}
