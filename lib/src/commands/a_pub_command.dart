@@ -138,7 +138,7 @@ Options:
           if (commands.dart.isNotEmpty)
             (
               commands.dart,
-              scriptRunner.groupRun(
+              scriptRunner.run(
                 commands.dart.toList(),
                 bail: bail,
                 showOutput: false,
@@ -147,7 +147,7 @@ Options:
           if (commands.flutter.isNotEmpty)
             (
               commands.flutter,
-              scriptRunner.groupRun(
+              scriptRunner.run(
                 commands.flutter.toList(),
                 bail: bail,
                 showOutput: false,
@@ -156,7 +156,7 @@ Options:
         ] else
           (
             commands.ordered.map((e) => e.$2),
-            scriptRunner.groupRun(
+            scriptRunner.run(
               commands.ordered.map((e) => e.$2).toList(),
               bail: bail,
               showOutput: false,
@@ -183,7 +183,7 @@ Options:
     // TODO: add label
     logger.info('\nRunning something...');
 
-    final result = await scriptRunner.groupRun(
+    final result = await scriptRunner.run(
       commands.ordered.map((e) => e.$2).toList(),
       bail: bail,
     );

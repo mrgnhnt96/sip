@@ -8,7 +8,6 @@ import 'package:sip_cli/sip_runner.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/bindings.dart';
 import 'package:sip_cli/src/deps/constrain_pubspec_versions.dart';
-import 'package:sip_cli/src/deps/find.dart';
 import 'package:sip_cli/src/deps/find_file.dart';
 import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/is_up_to_date.dart';
@@ -42,7 +41,6 @@ void main(List<String> arguments) async {
       bindingsProvider,
       constrainPubspecVersionsProvider,
       findFileProvider,
-      findProvider,
       fsProvider,
       isUpToDateProvider,
       keyPressListenerProvider,

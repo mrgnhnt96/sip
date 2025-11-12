@@ -27,7 +27,7 @@ Options:
   --never-exit, -n        !!USE WITH CAUTION!!! After the script is done,
                           the command will restart after a 1 second delay.
                           This is useful for long running scripts that should always be running.
-  --[no-]concurrent, -c   Runs all scripts concurrently. --no-concurrent will turn
+  --no-concurrent         Runs all scripts concurrently. --no-concurrent will turn
                           off concurrency even if set in the scripts.yaml
 ''';
 
@@ -50,12 +50,8 @@ class ScriptRunCommand with RunScriptHelper, WorkingDirectory {
     );
     final printOnly = args.get<bool>('print', defaultValue: false);
 
-    final concurrent = args.getOrNull<bool>(
-      'concurrent',
-      abbr: 'c',
-      aliases: ['parallel'],
-    );
-    final disableConcurrency = concurrent == false;
+    final disableConcurrency =
+        args.getOrNull<bool>('concurrent', aliases: ['parallel']) == false;
 
     if (disableConcurrency) {
       logger.warn('Disabling all concurrent runs');
@@ -163,7 +159,7 @@ class ScriptRunCommand with RunScriptHelper, WorkingDirectory {
       return null;
     }
 
-    final result = await scriptRunner.groupRun(envScript.commands, bail: true);
+    final result = await scriptRunner.run(envScript.commands, bail: true);
 
     if (result.exitCodeReason != ExitCode.success) {
       logger.err('Failed to run env commands');
@@ -188,10 +184,15 @@ class ScriptRunCommand with RunScriptHelper, WorkingDirectory {
       return envResult;
     }
 
-    final result = await switch (group) {
-      true => scriptRunner.groupRun,
-      false => scriptRunner.run,
-    }(script.commands, disableConcurrency: disableConcurrency, bail: bail);
+    final result = await scriptRunner.run(
+      script.commands,
+      disableConcurrency: disableConcurrency,
+      bail: bail,
+      onMessage: (message) {
+        logger.write(message.message);
+        return null;
+      },
+    );
 
     if (result.exitCodeReason != ExitCode.success) {
       logger.err('Failed to run commands');

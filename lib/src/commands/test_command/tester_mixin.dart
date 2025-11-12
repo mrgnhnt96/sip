@@ -1,13 +1,11 @@
 import 'package:file/file.dart';
 import 'package:glob/glob.dart';
 import 'package:mason_logger/mason_logger.dart';
-import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
 import 'package:sip_cli/src/deps/script_runner.dart';
 import 'package:sip_cli/src/domain/package_to_test.dart';
-import 'package:sip_cli/src/domain/pubspec_yaml.dart';
 import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:sip_cli/src/domain/testable.dart';
 import 'package:sip_cli/src/utils/determine_flutter_or_dart.dart';
@@ -53,19 +51,17 @@ abstract mixin class TesterMixin {
       'Found ${pubspecs.length} pubspecs, checking for test directories',
     );
     for (final pubspec in pubspecs) {
-      final projectRoot = path.dirname(pubspec);
-      final testDirectory = path.join(path.dirname(pubspec), 'test');
+      final projectRoot = fs.path.dirname(pubspec);
+      final testDirectory = fs.path.join(projectRoot, 'test');
 
       if (!fs.directory(testDirectory).existsSync()) {
         logger.detail(
-          'No test directory found in ${path.relative(projectRoot)}',
+          'No test directory found in ${fs.path.relative(projectRoot)}',
         );
         continue;
       }
 
-      final tool = DetermineFlutterOrDart(
-        path.join(projectRoot, PubspecYaml.fileName),
-      );
+      final tool = DetermineFlutterOrDart(pubspec);
 
       // we only care checking for flutter or
       // dart tests if we are not running both
@@ -90,7 +86,7 @@ abstract mixin class TesterMixin {
         forTool = ' ';
         forTool += isDartOnly ? 'dart' : 'flutter';
       }
-      logger.err('No$forTool tests found');
+      logger.err('No $forTool tests found');
       return (null, ExitCode.success);
     }
 
@@ -101,7 +97,7 @@ abstract mixin class TesterMixin {
     List<String> testDirs,
     Map<String, DetermineFlutterOrDart> dirTools,
   ) sync* {
-    final glob = Glob(path.join('**_test.dart'));
+    final glob = Glob(fs.path.join('**_test.dart'));
 
     for (final testDir in testDirs) {
       final tool = dirTools[testDir];
@@ -138,7 +134,7 @@ abstract mixin class TesterMixin {
     for (final file in allFiles) {
       if (file is! File) continue;
 
-      final fileName = path.basename(file.path);
+      final fileName = fs.path.basename(file.path);
 
       if (fileName.contains(optimizedTestBasename)) {
         continue;
@@ -163,14 +159,14 @@ abstract mixin class TesterMixin {
       final possibleNames = [packageName, fs.currentDirectory.basename];
 
       for (final name in possibleNames) {
-        if (path.join('lib', '$name.dart') case final path
+        if (fs.path.join('lib', '$name.dart') case final path
             when fs.file(path).existsSync()) {
           exportFile = (packageName: packageName, barrelFile: '$name.dart');
         }
       }
     }
 
-    final optimizedPath = path.join(testDir, '$optimizedTestBasename.dart');
+    final optimizedPath = fs.path.join(testDir, '$optimizedTestBasename.dart');
     fs.file(optimizedPath).createSync(recursive: true);
 
     final testDirs = files.map(
@@ -185,18 +181,18 @@ abstract mixin class TesterMixin {
   }
 
   String packageRootFor(String filePath) {
-    final parts = path.split(filePath);
+    final parts = fs.path.split(filePath);
 
     String root;
     if (parts.contains('test')) {
-      root = parts.sublist(0, parts.indexOf('test')).join(path.separator);
+      root = parts.sublist(0, parts.indexOf('test')).join(fs.path.separator);
     } else if (parts.contains('lib')) {
-      root = parts.sublist(0, parts.indexOf('lib')).join(path.separator);
+      root = parts.sublist(0, parts.indexOf('lib')).join(fs.path.separator);
     } else {
       if (fs.isFileSync(filePath)) {
-        root = path.basename(path.dirname(filePath));
+        root = fs.path.basename(fs.path.dirname(filePath));
       } else {
-        root = path.basename(filePath);
+        root = fs.path.basename(filePath);
       }
     }
 
@@ -218,10 +214,10 @@ abstract mixin class TesterMixin {
         yield createTestCommand(
           projectRoot: packageToTest.packagePath,
           relativeProjectRoot: packageRootFor(
-            path.relative(packageToTest.packagePath),
+            fs.path.relative(packageToTest.packagePath),
           ),
-          pathToProjectRoot: path.dirname(
-            path.relative(packageToTest.packagePath),
+          pathToProjectRoot: fs.path.dirname(
+            fs.path.relative(packageToTest.packagePath),
           ),
           flutterArgs: flutterArgs,
           tool: packageToTest.tool,
@@ -229,7 +225,7 @@ abstract mixin class TesterMixin {
           tests: [
             if (packageToTest.optimizedPath case final test?
                 when packageToTest.tool.isDart)
-              path.relative(test, from: packageToTest.packagePath),
+              fs.path.relative(test, from: packageToTest.packagePath),
           ],
           bail: bail,
         );
@@ -255,8 +251,10 @@ abstract mixin class TesterMixin {
 
     final script = [
       '$command test',
-      if (tests.isNotEmpty) tests.join(' '),
       if (toolArgs.isNotEmpty) toolArgs.join(' '),
+      if (tests.isNotEmpty)
+        for (final test in tests)
+          fs.path.relative(test, from: tool.directory()),
     ].join(' ');
 
     logger.detail('Test command: $script');
@@ -265,7 +263,7 @@ abstract mixin class TesterMixin {
     label += cyan.wrap(command)!;
     label += darkGray.wrap(') tests in ')!;
     label += darkGray.wrap(pathToProjectRoot)!;
-    label += darkGray.wrap(path.separator)!;
+    label += darkGray.wrap(fs.path.separator)!;
     label += yellow.wrap(relativeProjectRoot)!;
 
     return ScriptToRun(
@@ -273,6 +271,7 @@ abstract mixin class TesterMixin {
       workingDirectory: projectRoot,
       label: label,
       bail: bail,
+      runInParallel: true,
     );
   }
 
@@ -285,15 +284,18 @@ abstract mixin class TesterMixin {
       switch (command) {
         case ConcurrentBreak():
           continue;
-        case final ScriptToRun script:
-          logger.info(darkGray.wrap(script.exe));
+        case ScriptToRun(:final exe):
+          logger.detail(darkGray.wrap(exe));
       }
     }
 
     final result = await scriptRunner.run(
       commandsToRun,
       bail: bail,
-      showOutput: showOutput,
+      onMessage: (message) {
+        logger.write(message.message);
+        return null;
+      },
     );
 
     return result.exitCodeReason;
@@ -315,11 +317,17 @@ abstract mixin class TesterMixin {
     required bool optimize,
   }) {
     final dirsWithTests = <String>[];
-    final glob = Glob('**_test.dart');
-    for (final MapEntry(key: dir, value: _) in dirTools.entries) {
-      final result = glob.listFileSystemSync(fs, followLinks: false, root: dir);
+    final glob = Glob('**/*_test.dart', recursive: true);
 
-      if (result.any((e) => e is File)) {
+    for (final MapEntry(key: dir, value: _) in dirTools.entries) {
+      final results = glob.listFileSystemSync(
+        fs,
+        followLinks: false,
+        root: dir,
+      );
+      final tests = results.whereType<File>();
+
+      if (tests.isNotEmpty) {
         dirsWithTests.add(dir);
       }
     }
@@ -371,22 +379,31 @@ abstract mixin class TesterMixin {
     return (dirs, null);
   }
 
-  List<String> getTestsFromProvided(List<String> providedTests) {
+  Future<List<String>> getTestsFromProvided(List<String> providedTests) async {
     final testsToRun = <String>[];
-    for (final fileOrDir in providedTests) {
+    final glob = Glob('**/*_test.dart', recursive: true);
+
+    for (final path in providedTests) {
+      final fileOrDir = switch (path) {
+        '.' => fs.currentDirectory.path,
+        _ => path,
+      };
+
       if (fs.isFileSync(fileOrDir)) {
         if (fs.path.basename(fileOrDir).endsWith('_test.dart')) {
           testsToRun.add(fileOrDir);
         }
       } else if (fs.isDirectorySync(fileOrDir)) {
-        final files = fs.directory(fileOrDir).listSync(recursive: true);
-        for (final file in files) {
-          if (file is File) {
-            if (fs.path.basename(file.path).endsWith('_test.dart')) {
-              testsToRun.add(file.path);
-            }
-          }
-        }
+        final results = glob.listFileSystemSync(
+          fs,
+          followLinks: false,
+          root: fileOrDir,
+        );
+        final files = results.whereType<File>();
+
+        final directories = {for (final file in files) file.parent.path};
+
+        testsToRun.addAll(directories);
       } else {
         logger.err('File or directory not found: $fileOrDir');
       }

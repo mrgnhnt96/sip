@@ -79,14 +79,11 @@ class CleanCommand {
     }
 
     if (isConcurrent) {
-      final results = await scriptRunner.groupRun(
-        commands.toList(),
-        bail: false,
-      );
+      final results = await scriptRunner.run(commands.toList(), bail: false);
 
       return results.exitCodeReason;
     } else {
-      final result = await scriptRunner.groupRun(
+      final result = await scriptRunner.run(
         commands.toList(),
         disableConcurrency: true,
         bail: false,

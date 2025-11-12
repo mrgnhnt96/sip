@@ -1,7 +1,8 @@
 install:
   (command):
     - rm -rf .dart_tool/pub/bin/sip_cli
-    - sip
+    - dart pub global activate . --source path --overwrite
+    - sip > /dev/null 2>&1
   (description): Install `sip` globally
   (aliases):
     - i
@@ -12,6 +13,10 @@ format: (+) dart format .
 analyze: dart analyze .
 
 barrel: dart run barreler build
+
+test:
+  (command): ${{ test.test }}
+  test: flutter test
 
 build_runner:
   (aliases):

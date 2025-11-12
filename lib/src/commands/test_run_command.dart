@@ -1,5 +1,7 @@
 // ignore_for_file: cascade_invocations
 
+import 'dart:math';
+
 import 'package:mason_logger/mason_logger.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/commands/test_command/tester_mixin.dart';
@@ -27,6 +29,7 @@ Flags:
   --flutter-only                    Run only flutter tests
   --optimize                        Create optimized test files (Dart only)
                                       (default: true)
+  --slice [count]                   Splits test files into chunks and runs them concurrently
 ---
 
 Include any dart or flutter args run `dart test --help` or `flutter test --help`
@@ -49,12 +52,13 @@ class TestRunCommand with TesterMixin {
     final isRecursive = args.get<bool>('recursive', defaultValue: false);
     final cleanOptimizedFiles = args.get<bool>('clean', defaultValue: true);
     final bail = args.get<bool>('bail', defaultValue: false);
+    final slice = args.getOrNull<int>('slice');
 
     final providedTests = [...paths, ...args.rest];
 
     List<String>? testsToRun;
     if (providedTests.isNotEmpty) {
-      testsToRun = getTestsFromProvided(providedTests);
+      testsToRun = await getTestsFromProvided(providedTests);
 
       if (testsToRun.isEmpty) {
         logger.err('No valid files or directories found');
@@ -106,18 +110,25 @@ class TestRunCommand with TesterMixin {
 
       final tool = DetermineFlutterOrDart(pubspec);
 
-      final command = createTestCommand(
-        projectRoot: tool.directory(),
-        relativeProjectRoot: path.relative(tool.directory()),
-        pathToProjectRoot: tool.directory(),
-        tool: tool,
-        flutterArgs: flutterArgs,
-        dartArgs: dartArgs,
-        tests: testsToRun,
-        bail: bail,
-      );
+      final groups = switch (slice) {
+        null => [testsToRun],
+        final int count => testsToRun.chunked(count),
+      };
 
-      commandsToRun.add(command);
+      for (final group in groups) {
+        final command = createTestCommand(
+          projectRoot: tool.directory(),
+          relativeProjectRoot: path.relative(tool.directory()),
+          pathToProjectRoot: tool.directory(),
+          tool: tool,
+          flutterArgs: flutterArgs,
+          dartArgs: dartArgs,
+          tests: group,
+          bail: bail,
+        );
+
+        commandsToRun.add(command);
+      }
     } else {
       final (dirs, dirExitCode) = getTestDirs(
         pubspecs,
@@ -189,7 +200,7 @@ class TestRunCommand with TesterMixin {
 
     final exitCode = await runCommands(
       commandsToRun,
-      showOutput: args.get<bool>('concurrent', defaultValue: false),
+      showOutput: !args.get<bool>('concurrent', defaultValue: false),
       bail: bail,
     );
 
@@ -212,5 +223,17 @@ class TestRunCommand with TesterMixin {
     logger.write('\n');
 
     return exitCode;
+  }
+}
+
+extension _ListT<T> on List<T> {
+  List<List<T>> chunked(int count) {
+    final chunks = <List<T>>[];
+
+    for (var i = 0; i < length; i += count) {
+      chunks.add(sublist(i, min(i + count, length)));
+    }
+
+    return chunks;
   }
 }

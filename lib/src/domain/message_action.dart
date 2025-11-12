@@ -1,0 +1,1 @@
+enum MessageAction { kill }

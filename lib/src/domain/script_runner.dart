@@ -8,6 +8,8 @@ import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/scripts_yaml.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
+import 'package:sip_cli/src/domain/message.dart';
+import 'package:sip_cli/src/domain/message_action.dart';
 import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:sip_cli/src/utils/stopwatch_extensions.dart';
 
@@ -20,11 +22,12 @@ typedef _RunFunction =
 class ScriptRunner {
   const ScriptRunner();
 
-  Future<CommandResult> groupRun(
+  Future<CommandResult> run(
     List<Runnable> scripts, {
     required bool bail,
     bool disableConcurrency = false,
     bool showOutput = true,
+    MessageAction? Function(Message)? onMessage,
   }) async {
     final groups = <List<ScriptToRun>>[];
     final group = <ScriptToRun>[];
@@ -34,8 +37,14 @@ class ScriptRunner {
         case ConcurrentBreak():
           groups.add([...group]);
           group.clear();
+        case ScriptToRun(runInParallel: true):
+          group.add(command);
         case final ScriptToRun script:
-          group.add(script);
+          groups.addAll([
+            if (group.isNotEmpty) [...group],
+            [script],
+          ]);
+          group.clear();
       }
     }
 
@@ -45,72 +54,34 @@ class ScriptRunner {
 
     var result = const CommandResult(exitCode: 0, output: '', error: '');
 
+    final stopwatch = Stopwatch()..start();
+
     for (final group in groups) {
-      result = await _run(
+      result = await _runScripts(
         group,
         bail: bail,
         showOutput: showOutput,
         disableConcurrency: disableConcurrency,
-        group: true,
+        onMessage: onMessage,
       );
 
-      if (result.exitCodeReason != ExitCode.success && bail) {
+      if (result.exitCodeReason != ExitCode.success) {
         return result;
       }
     }
 
-    return result;
-  }
-
-  Future<CommandResult> run(
-    List<Runnable> scripts, {
-    required bool bail,
-    bool disableConcurrency = false,
-    bool showOutput = true,
-  }) async {
-    return _run(
-      scripts.whereType<ScriptToRun>().toList(),
-      bail: bail,
-      showOutput: showOutput,
-      disableConcurrency: disableConcurrency,
-      group: false,
-    );
-  }
-
-  Future<CommandResult> _run(
-    List<ScriptToRun> scripts, {
-    required bool bail,
-    required bool showOutput,
-    required bool group,
-    required bool disableConcurrency,
-  }) async {
-    final stopwatch = Stopwatch()..start();
-
-    final result = await _runScripts(
-      scripts,
-      bail: bail,
-      showOutput: showOutput,
-      group: group,
-      disableConcurrency: disableConcurrency,
-    );
-
     final time = (stopwatch..stop()).format();
-
     logger.info(darkGray.wrap('Finished in $time'));
 
-    if (result.exitCodeReason != ExitCode.success) {
-      return result;
-    }
-
-    return const CommandResult(exitCode: 0, output: '', error: '');
+    return result;
   }
 
   Future<CommandResult> _runScripts(
     List<ScriptToRun> scripts, {
     required bool bail,
     required bool showOutput,
-    required bool group,
     required bool disableConcurrency,
+    required MessageAction? Function(Message)? onMessage,
   }) async {
     final pending = <(ScriptToRun, _RunFunction)>[];
 
@@ -148,49 +119,32 @@ class ScriptRunner {
 
       pending.add((
         script,
-        ({bool? showOutputOverride}) => bindings.runScript(
-          execute,
-          showOutput: switch (showOutputOverride ?? showOutput) {
-            false => false,
-            true => switch (script.runInParallel) {
-              true => false,
-              null || false => false,
+        ({bool? showOutputOverride}) {
+          if (onMessage case final onMessage?) {
+            return bindings.runScriptWithOutput(
+              execute,
+              onOutput: onMessage,
+              bail: script.bail,
+            );
+          }
+
+          return bindings.runScript(
+            execute,
+            showOutput: switch (showOutputOverride ?? showOutput) {
+              false => false,
+              true => switch (script.runInParallel) {
+                true => false,
+                null || false => false,
+              },
             },
-          },
-          bail: script.bail,
-        ),
+            bail: script.bail,
+          );
+        },
       ));
     }
 
-    if (group && !disableConcurrency) {
-      final tasks = _group(pending);
-
-      const count = 0;
-
-      String label() {
-        final counter = magenta.wrap('$count/${pending.length}')!;
-        return 'Running $counter';
-      }
-
-      final done = logger.progress(label());
-      await for (final (part, result) in tasks) {
-        done.update(label());
-
-        if (result.exitCodeReason != ExitCode.success && bail) {
-          final label = part.label;
-
-          if (label case final String label) {
-            done.fail('Script $label failed');
-          }
-          break;
-        }
-      }
-
-      done.complete();
-
-      return const CommandResult(exitCode: 0, output: '', error: '');
-    } else {
-      logger.detail('Running ${pending.length} scripts');
+    if (disableConcurrency) {
+      logger.detail('Running ${pending.length} scripts sequentially');
       for (final (part, future) in pending) {
         final result = await future();
         final shouldBail = switch (part) {
@@ -206,6 +160,37 @@ class ScriptRunner {
           return result;
         }
       }
+    } else {
+      final tasks = _group(pending);
+
+      var count = 0;
+
+      String label() {
+        final counter = magenta.wrap('$count/${pending.length}')!;
+        return 'Running $counter';
+      }
+
+      final done = switch (scripts.length) {
+        1 => null,
+        _ => logger.progress(label()),
+      };
+      await for (final (part, result) in tasks) {
+        done?.update(label());
+        count++;
+
+        if (result.exitCodeReason != ExitCode.success && bail) {
+          final label = part.label;
+
+          if (label case final String label) {
+            done?.fail('Script $label failed');
+          }
+          break;
+        }
+      }
+
+      done?.complete();
+
+      return const CommandResult(exitCode: 0, output: '', error: '');
     }
 
     return const CommandResult(exitCode: 0, output: '', error: '');
@@ -239,12 +224,10 @@ class ScriptRunner {
 
         future(showOutputOverride: false).then((result) {
           running.remove(part);
-          if (running.isEmpty) {
-            waitForRunning?.complete();
-          }
           controller.add((part, result));
 
-          if (index == pending.length - 1) {
+          if (running.isEmpty) {
+            waitForRunning?.complete();
             controller.close().ignore();
           }
         }).ignore();

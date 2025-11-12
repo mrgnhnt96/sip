@@ -45,11 +45,7 @@ void main() {
         (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
       );
       when(
-        () => scriptRunner.groupRun(
-          any(),
-          disableConcurrency: false,
-          bail: false,
-        ),
+        () => scriptRunner.run(any(), disableConcurrency: false, bail: false),
       ).thenAnswer(
         (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
       );
@@ -100,7 +96,7 @@ void main() {
         await command.run(['combined']);
 
         final [results] = verify(
-          () => scriptRunner.groupRun(
+          () => scriptRunner.run(
             captureAny(),
             disableConcurrency: false,
             bail: false,
@@ -136,7 +132,7 @@ void main() {
       await command.run(['all_concurrent']);
 
       final [results] = verify(
-        () => scriptRunner.groupRun(
+        () => scriptRunner.run(
           captureAny(),
           disableConcurrency: false,
           bail: false,
@@ -163,7 +159,7 @@ void main() {
       await command.run(['no_concurrent']);
 
       final [results] = verify(
-        () => scriptRunner.groupRun(
+        () => scriptRunner.run(
           captureAny(),
           showOutput: true,
           disableConcurrency: false,
@@ -192,7 +188,7 @@ void main() {
       await command.run(['partial_concurrent']);
 
       final [results] = verify(
-        () => scriptRunner.groupRun(
+        () => scriptRunner.run(
           captureAny(),
           showOutput: true,
           disableConcurrency: false,
@@ -220,7 +216,7 @@ void main() {
       await command.run(['combined_concurrent']);
 
       final [results] = verify(
-        () => scriptRunner.groupRun(
+        () => scriptRunner.run(
           captureAny(),
           disableConcurrency: false,
           bail: false,
@@ -251,7 +247,7 @@ void main() {
       await command.run(['everything_concurrent']);
 
       final [results] = verify(
-        () => scriptRunner.groupRun(
+        () => scriptRunner.run(
           captureAny(),
           disableConcurrency: false,
           bail: false,

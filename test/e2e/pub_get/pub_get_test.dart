@@ -35,7 +35,7 @@ void main() {
       fs.currentDirectory = cwd;
 
       when(
-        () => scriptRunner.groupRun(
+        () => scriptRunner.run(
           any(),
           bail: any(named: 'bail'),
           disableConcurrency: any(named: 'disableConcurrency'),
@@ -83,8 +83,7 @@ void main() {
 
       expect(result.code, ExitCode.success.code);
       final [commands] = verify(
-        () =>
-            scriptRunner.groupRun(captureAny(), bail: false, showOutput: false),
+        () => scriptRunner.run(captureAny(), bail: false, showOutput: false),
       ).captured;
 
       final [a, b, c, d] = commands as List<ScriptToRun>;

@@ -34,7 +34,7 @@ class TestCleanCommand with TesterMixin {
     );
 
     // exit code is not null
-    if (testDirsResult.$2 case final ExitCode exitCode) {
+    if (testDirsResult case (_, final ExitCode exitCode)) {
       return exitCode;
     }
     final (testDirs, _) = testDirsResult.$1!;

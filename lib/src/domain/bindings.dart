@@ -7,6 +7,7 @@ import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/process.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
 import 'package:sip_cli/src/domain/message.dart';
+import 'package:sip_cli/src/domain/message_action.dart';
 
 class Bindings {
   const Bindings();
@@ -15,13 +16,13 @@ class Bindings {
     String script, {
     required bool showOutput,
     bool bail = false,
-  }) async {
+  }) {
     return _run(script, bail: bail, showOutput: showOutput);
   }
 
   Future<CommandResult> runScriptWithOutput(
     String script, {
-    required void Function(Message) onOutput,
+    required MessageAction? Function(Message) onOutput,
     bool bail = false,
   }) {
     return _run(script, bail: bail, showOutput: false, onOutput: onOutput);
@@ -31,15 +32,30 @@ class Bindings {
     String script, {
     required bool bail,
     required bool showOutput,
-    void Function(Message)? onOutput,
+    MessageAction? Function(Message)? onOutput,
   }) async {
     final port = ReceivePort();
 
     final isolate = await Isolate.spawn(_runScript, port.sendPort);
 
     final completer = Completer<CommandResult>();
+    StreamSubscription<dynamic>? subscription;
 
-    await for (final event in port) {
+    void kill() {
+      try {
+        isolate.kill();
+        subscription?.cancel();
+        if (!completer.isCompleted) {
+          completer.complete(
+            const CommandResult(exitCode: 1, output: '', error: ''),
+          );
+        }
+      } catch (_) {
+        // ignore
+      }
+    }
+
+    subscription = port.listen((event) {
       switch (event) {
         case final SendPort sendPort:
           sendPort.send({
@@ -49,7 +65,13 @@ class Bindings {
           });
         case {'message': final String message, 'isError': final bool isError}:
           final msg = Message(message, isError: isError);
-          onOutput?.call(msg);
+          final action = onOutput?.call(msg);
+          switch (action) {
+            case null:
+              break;
+            case MessageAction.kill:
+              kill();
+          }
         case {
           'exitCode': final int code,
           'output': final String output,
@@ -61,13 +83,13 @@ class Bindings {
       }
 
       if (completer.isCompleted) {
-        break;
+        subscription?.cancel();
       }
-    }
+    });
 
     final result = await completer.future;
 
-    isolate.kill();
+    kill();
 
     return result;
   }

@@ -107,8 +107,8 @@ class ScriptsConfig {
     }
 
     Script? script;
-    for (final key in keys) {
-      final children = switch (key == keys.first) {
+    for (final (index, key) in keys.indexed) {
+      final children = switch (index == 0) {
         true => scripts,
         false => script?.scripts,
       };
@@ -119,17 +119,15 @@ class ScriptsConfig {
 
       if (find(key, children) case final s?) {
         script = s;
+        continue;
       }
+
+      script = null;
+      break;
     }
 
     if (script == null) {
       return null;
-    }
-
-    if (script.name != keys.last) {
-      if (!script.aliases.contains(keys.last)) {
-        return null;
-      }
     }
 
     return script;
