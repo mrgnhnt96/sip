@@ -37,7 +37,7 @@ $description
 Options:
   --help                  Print usage information
   --recursive, -r         Run command recursively in all subdirectories.
-  --[no-]concurrent, -c   Run command concurrently.
+  --no-concurrent         Disabled concurrency for this command.
   --bail, -b              Stop on first error.
   --dart-only             Run command only in Dart projects.
   --flutter-only          Run command only in Flutter projects.
@@ -70,12 +70,13 @@ Options:
     );
     final dartOnly = args.get<bool>('dart-only', defaultValue: false);
     final flutterOnly = args.get<bool>('flutter-only', defaultValue: false);
-    final concurrent = args.get<bool>(
-      'concurrent',
-      abbr: 'c',
-      aliases: ['parallel'],
-      defaultValue: runConcurrently,
-    );
+    final disableConcurrency =
+        args.get<bool>(
+          'concurrent',
+          aliases: ['parallel'],
+          defaultValue: false,
+        ) ==
+        true;
     final separated = args.get<bool>('separated', defaultValue: false);
 
     warnDartOrFlutter(isDartOnly: dartOnly, isFlutterOnly: flutterOnly);
@@ -116,6 +117,7 @@ Options:
           workingDirectory: project,
           label: label,
           bail: bail,
+          runInParallel: true,
         );
 
         return command;
@@ -132,7 +134,7 @@ Options:
       return ExitCode.unavailable;
     }
 
-    if (concurrent) {
+    if (!disableConcurrency) {
       final runners = <(Iterable<ScriptToRun>, Future<CommandResult>)>[
         if (separated) ...[
           if (commands.dart.isNotEmpty)
@@ -160,6 +162,7 @@ Options:
               commands.ordered.map((e) => e.$2).toList(),
               bail: bail,
               showOutput: false,
+              disableConcurrency: disableConcurrency,
             ),
           ),
       ];

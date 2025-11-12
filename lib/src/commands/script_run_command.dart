@@ -27,8 +27,7 @@ Options:
   --never-exit, -n        !!USE WITH CAUTION!!! After the script is done,
                           the command will restart after a 1 second delay.
                           This is useful for long running scripts that should always be running.
-  --no-concurrent         Runs all scripts concurrently. --no-concurrent will turn
-                          off concurrency even if set in the scripts.yaml
+  --no-concurrent         Turns off all concurrency, even if set in the scripts.yaml (using `(+)` symbol)
 ''';
 
 /// The command to run a script
