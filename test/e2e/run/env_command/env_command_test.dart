@@ -31,6 +31,15 @@ void main() {
       ).thenAnswer(
         (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
       );
+      when(
+        () => bindings.runScriptWithOutput(
+          any(),
+          onOutput: any(named: 'onOutput'),
+          bail: any(named: 'bail'),
+        ),
+      ).thenAnswer(
+        (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
+      );
 
       fs = MemoryFileSystem.test();
 
@@ -91,15 +100,20 @@ BAR=baz
 
         await command.run(['server', 'pocketbase', 'migrate']);
 
-        final scripts = verify(
+        final [env] = verify(
           () => bindings.runScript(
             captureAny(),
             showOutput: any(named: 'showOutput'),
             bail: any(named: 'bail'),
           ),
         ).captured;
-
-        final [env, one, two] = scripts;
+        final [one, two] = verify(
+          () => bindings.runScriptWithOutput(
+            captureAny(),
+            onOutput: any(named: 'onOutput'),
+            bail: any(named: 'bail'),
+          ),
+        ).captured;
 
         expect(
           (env as String).split('\n'),

@@ -24,9 +24,9 @@ void main() {
       fs = MemoryFileSystem.test();
 
       when(
-        () => bindings.runScript(
+        () => bindings.runScriptWithOutput(
           any(),
-          showOutput: any(named: 'showOutput'),
+          onOutput: any(named: 'onOutput'),
           bail: any(named: 'bail'),
         ),
       ).thenAnswer(
@@ -76,9 +76,9 @@ void main() {
         await command.run(['test']);
 
         final [script] = verify(
-          () => bindings.runScript(
+          () => bindings.runScriptWithOutput(
             captureAny(),
-            showOutput: any(named: 'showOutput'),
+            onOutput: any(named: 'onOutput'),
             bail: any(named: 'bail'),
           ),
         ).captured;
@@ -97,9 +97,9 @@ dart test'''
         await command.run(['test', '--coverage']);
 
         final [script] = verify(
-          () => bindings.runScript(
+          () => bindings.runScriptWithOutput(
             captureAny(),
-            showOutput: any(named: 'showOutput'),
+            onOutput: any(named: 'onOutput'),
             bail: any(named: 'bail'),
           ),
         ).captured;
@@ -118,9 +118,9 @@ dart test --coverage'''
         await command.run(['test', '--coverage=banana']);
 
         final [script] = verify(
-          () => bindings.runScript(
+          () => bindings.runScriptWithOutput(
             captureAny(),
-            showOutput: any(named: 'showOutput'),
+            onOutput: any(named: 'onOutput'),
             bail: any(named: 'bail'),
           ),
         ).captured;
@@ -139,9 +139,9 @@ dart test --coverage banana'''
         await command.run(['test', '--coverage', 'monkey']);
 
         final [script] = verify(
-          () => bindings.runScript(
+          () => bindings.runScriptWithOutput(
             captureAny(),
-            showOutput: any(named: 'showOutput'),
+            onOutput: any(named: 'onOutput'),
             bail: any(named: 'bail'),
           ),
         ).captured;

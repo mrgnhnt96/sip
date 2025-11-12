@@ -23,9 +23,9 @@ void main() {
       bindings = _MockBindings();
 
       when(
-        () => bindings.runScript(
+        () => bindings.runScriptWithOutput(
           any(),
-          showOutput: any(named: 'showOutput'),
+          onOutput: any(named: 'onOutput'),
           bail: any(named: 'bail'),
         ),
       ).thenAnswer(
@@ -84,7 +84,10 @@ void main() {
         await command.run(['bricks', 'bundle']);
 
         final commands = verify(
-          () => bindings.runScript(captureAny(), showOutput: false),
+          () => bindings.runScriptWithOutput(
+            captureAny(),
+            onOutput: any(named: 'onOutput'),
+          ),
         ).captured;
 
         const expected = [

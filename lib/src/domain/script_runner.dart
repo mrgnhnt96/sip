@@ -14,7 +14,7 @@ import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:sip_cli/src/utils/stopwatch_extensions.dart';
 
 // TODO: print out bailing message
-// TODO: handle concurrent commands (add break between concurrent parts)
+// TODO: bail on concurrent commands
 
 typedef _RunFunction =
     Future<CommandResult> Function({bool? showOutputOverride});
@@ -174,11 +174,13 @@ class ScriptRunner {
         1 => null,
         _ => logger.progress(label()),
       };
-      await for (final (part, result) in tasks) {
+      CommandResult? result;
+      await for (final (part, taskResult) in tasks) {
         done?.update(label());
         count++;
+        result = taskResult;
 
-        if (result.exitCodeReason != ExitCode.success && bail) {
+        if (taskResult.exitCodeReason != ExitCode.success && bail) {
           final label = part.label;
 
           if (label case final String label) {
@@ -190,7 +192,7 @@ class ScriptRunner {
       done?.update(label());
       done?.complete();
 
-      return const CommandResult(exitCode: 0, output: '', error: '');
+      return result ?? const CommandResult(exitCode: 0, output: '', error: '');
     }
 
     return const CommandResult(exitCode: 0, output: '', error: '');

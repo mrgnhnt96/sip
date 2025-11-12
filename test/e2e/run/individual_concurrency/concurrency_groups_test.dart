@@ -24,9 +24,9 @@ void main() {
       fs = MemoryFileSystem.test();
 
       when(
-        () => bindings.runScript(
+        () => bindings.runScriptWithOutput(
           any(),
-          showOutput: any(named: 'showOutput'),
+          onOutput: any(named: 'onOutput'),
           bail: any(named: 'bail'),
         ),
       ).thenAnswer(
@@ -83,9 +83,9 @@ void main() {
         await command.run(['bricks', 'bundle', 'release']);
 
         final scripts = verify(
-          () => bindings.runScript(
+          () => bindings.runScriptWithOutput(
             captureAny(),
-            showOutput: any(named: 'showOutput'),
+            onOutput: any(named: 'onOutput'),
             bail: any(named: 'bail'),
           ),
         ).captured;

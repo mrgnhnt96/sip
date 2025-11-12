@@ -24,10 +24,19 @@ void main() {
       fs = MemoryFileSystem.test();
 
       when(
+        () => bindings.runScriptWithOutput(
+          any(),
+          onOutput: any(named: 'onOutput'),
+          bail: any(named: 'bail'),
+        ),
+      ).thenAnswer(
+        (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
+      );
+      when(
         () => bindings.runScript(
           any(),
-          showOutput: any(named: 'showOutput'),
           bail: any(named: 'bail'),
+          showOutput: any(named: 'showOutput'),
         ),
       ).thenAnswer(
         (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
@@ -86,10 +95,18 @@ void main() {
       test('command: be reset', () async {
         await command.run(['be', 'reset']);
 
-        final scripts = verify(
+        final envs = verify(
           () => bindings.runScript(
             captureAny(),
             showOutput: any(named: 'showOutput'),
+            bail: any(named: 'bail'),
+          ),
+        ).captured;
+
+        final [one] = verify(
+          () => bindings.runScriptWithOutput(
+            captureAny(),
+            onOutput: any(named: 'onOutput'),
             bail: any(named: 'bail'),
           ),
         ).captured;
@@ -114,41 +131,30 @@ cd backend || exit 1;
 dart run scripts/reset.dart''',
         ];
 
-        expect(scripts, expected);
+        expect([...envs, one], expected);
       });
 
       test('should override env variables when re-defined', () async {
         await command.run(['override']);
 
-        final scripts = verify(
-          () => bindings.runScript(
+        final [script] = verify(
+          () => bindings.runScriptWithOutput(
             captureAny(),
-            showOutput: any(named: 'showOutput'),
+            onOutput: any(named: 'onOutput'),
             bail: any(named: 'bail'),
           ),
         ).captured;
 
-        const expected = [
-          '''
-cd "/packages/sip" || exit 1
-
-cd infra || exit 1; pnv generate-env -i public/be.local.yaml -o private/ -f ~/.cant-run/local.key''',
-          '''
-cd "/packages/sip" || exit 1
-
-cd infra || exit 1; pnv generate-env -i public/app.run-time.local.yaml -o private/ -f ~/.cant-run/local.key''',
-
-          '''
+        const expected = '''
 cd "/packages/sip" || exit 1
 
 export BE_ENV=local
 export APP_ENV=local
 
 cd backend || exit 1;
-dart run scripts/reset.dart''',
-        ];
+dart run scripts/reset.dart''';
 
-        expect(scripts, expected);
+        expect((script as String).split('\n'), expected.split('\n'));
       });
     });
   });

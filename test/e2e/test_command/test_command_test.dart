@@ -25,9 +25,9 @@ void main() {
       args = const Args(args: {'recursive': true});
 
       when(
-        () => bindings.runScript(
+        () => bindings.runScriptWithOutput(
           any(),
-          showOutput: any(named: 'showOutput'),
+          onOutput: any(named: 'onOutput'),
           bail: any(named: 'bail'),
         ),
       ).thenAnswer(
@@ -88,9 +88,9 @@ void main() {
 
         expect(result.code, ExitCode.success.code);
         final scripts = verify(
-          () => bindings.runScript(
+          () => bindings.runScriptWithOutput(
             captureAny(),
-            showOutput: any(named: 'showOutput'),
+            onOutput: any(named: 'onOutput'),
             bail: any(named: 'bail'),
           ),
         ).captured;

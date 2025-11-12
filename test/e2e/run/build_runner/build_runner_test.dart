@@ -29,9 +29,9 @@ void main() {
       fs = MemoryFileSystem.test();
 
       when(
-        () => bindings.runScript(
+        () => bindings.runScriptWithOutput(
           any(),
-          showOutput: any(named: 'showOutput'),
+          onOutput: any(named: 'onOutput'),
           bail: any(named: 'bail'),
         ),
       ).thenAnswer(
@@ -75,9 +75,9 @@ void main() {
       await const ScriptRunCommand().run(['build_runner', 'b']);
 
       final [script] = verify(
-        () => bindings.runScript(
+        () => bindings.runScriptWithOutput(
           captureAny(),
-          showOutput: any(named: 'showOutput'),
+          onOutput: any(named: 'onOutput'),
           bail: any(named: 'bail'),
         ),
       ).captured;

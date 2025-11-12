@@ -405,7 +405,7 @@ void main() {
 
         expect(commands.length, 1);
         expect(
-          (commands.first as ScriptToRun).exe.trim(),
+          (commands.first as ScriptToRun).exe,
           'dart test test/.optimized_test.dart',
         );
       });
@@ -472,7 +472,7 @@ void main() {
         expect(commands.length, 1);
         expect(
           (commands.first as ScriptToRun).exe.trim(),
-          'dart test test/.optimized_test.dart --dart',
+          'dart test --dart test/.optimized_test.dart',
         );
       });
     });
@@ -531,7 +531,11 @@ void main() {
     group('#runCommands', () {
       test('should run commands', () async {
         when(
-          () => bindings.runScript(any(), showOutput: any(named: 'showOutput')),
+          () => bindings.runScriptWithOutput(
+            any(),
+            onOutput: any(named: 'onOutput'),
+            bail: any(named: 'bail'),
+          ),
         ).thenAnswer((_) => Future.value(success));
 
         final commands = [ScriptToRun('something', workingDirectory: '.')];
@@ -547,7 +551,11 @@ void main() {
 
       test('should bail when first fails', () async {
         when(
-          () => bindings.runScript(any(), showOutput: any(named: 'showOutput')),
+          () => bindings.runScriptWithOutput(
+            any(),
+            onOutput: any(named: 'onOutput'),
+            bail: any(named: 'bail'),
+          ),
         ).thenAnswer((_) => Future.value(failure));
 
         final commands = [
@@ -563,15 +571,22 @@ void main() {
 
         expect(results.code, failure.exitCode);
         verify(
-          () => bindings.runScript(any(), showOutput: any(named: 'showOutput')),
+          () => bindings.runScriptWithOutput(
+            any(),
+            onOutput: any(named: 'onOutput'),
+            bail: any(named: 'bail'),
+          ),
         ).called(1);
       });
 
       group('should run all commands', () {
         test('concurrently', () async {
           when(
-            () =>
-                bindings.runScript(any(), showOutput: any(named: 'showOutput')),
+            () => bindings.runScriptWithOutput(
+              any(),
+              onOutput: any(named: 'onOutput'),
+              bail: any(named: 'bail'),
+            ),
           ).thenAnswer((_) => Future.value(success));
 
           final commands = [
@@ -587,15 +602,21 @@ void main() {
 
           expect(results, ExitCode.success);
           verify(
-            () =>
-                bindings.runScript(any(), showOutput: any(named: 'showOutput')),
+            () => bindings.runScriptWithOutput(
+              any(),
+              onOutput: any(named: 'onOutput'),
+              bail: any(named: 'bail'),
+            ),
           ).called(2);
         });
 
         test('not concurrently', () async {
           when(
-            () =>
-                bindings.runScript(any(), showOutput: any(named: 'showOutput')),
+            () => bindings.runScriptWithOutput(
+              any(),
+              onOutput: any(named: 'onOutput'),
+              bail: any(named: 'bail'),
+            ),
           ).thenAnswer((_) => Future.value(success));
 
           final commands = [
@@ -606,13 +627,16 @@ void main() {
           final results = await tester.runCommands(
             commands,
             bail: false,
-            showOutput: true,
+            showOutput: false,
           );
 
           expect(results, ExitCode.success);
           verify(
-            () =>
-                bindings.runScript(any(), showOutput: any(named: 'showOutput')),
+            () => bindings.runScriptWithOutput(
+              any(),
+              onOutput: any(named: 'onOutput'),
+              bail: any(named: 'bail'),
+            ),
           ).called(2);
         });
       });
@@ -670,6 +694,11 @@ class _FakeDetermineFlutterOrDart extends Fake
   bool get isDart => _isDart;
   @override
   bool get isFlutter => _isFlutter;
+
+  @override
+  String directory({String? fromDirectory}) {
+    return 'path/to';
+  }
 
   @override
   String tool() {

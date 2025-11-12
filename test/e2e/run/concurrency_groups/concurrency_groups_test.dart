@@ -8,7 +8,6 @@ import 'package:meta/meta.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/commands/script_run_command.dart';
-import 'package:sip_cli/src/domain/bindings.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
 import 'package:sip_cli/src/domain/pubspec_yaml.dart';
 import 'package:sip_cli/src/domain/script_runner.dart';
@@ -21,7 +20,6 @@ import '../../../utils/test_scoped.dart';
 void main() {
   group('concurrency groups test', () {
     late FileSystem fs;
-    late Bindings bindings;
     late ScriptRunner scriptRunner;
 
     setUpAll(() {
@@ -29,23 +27,16 @@ void main() {
     });
 
     setUp(() {
-      bindings = _MockBindings();
       scriptRunner = _MockScriptRunner();
       fs = MemoryFileSystem.test();
 
       when(
-        () => bindings.runScript(captureAny(), showOutput: false),
-      ).thenAnswer(
-        (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
-      );
-
-      when(
-        () => scriptRunner.run(any(), disableConcurrency: false, bail: false),
-      ).thenAnswer(
-        (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
-      );
-      when(
-        () => scriptRunner.run(any(), disableConcurrency: false, bail: false),
+        () => scriptRunner.run(
+          any(),
+          disableConcurrency: false,
+          bail: false,
+          onMessage: any(named: 'onMessage'),
+        ),
       ).thenAnswer(
         (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
       );
@@ -83,7 +74,6 @@ void main() {
         description,
         fn,
         fileSystem: () => fs,
-        bindings: () => bindings,
         scriptRunner: () => scriptRunner,
       );
     }
@@ -101,6 +91,7 @@ void main() {
             disableConcurrency: false,
             bail: false,
             showOutput: true,
+            onMessage: any(named: 'onMessage'),
           ),
         ).captured;
 
@@ -136,6 +127,7 @@ void main() {
           captureAny(),
           disableConcurrency: false,
           bail: false,
+          onMessage: any(named: 'onMessage'),
         ),
       ).captured;
 
@@ -164,6 +156,7 @@ void main() {
           showOutput: true,
           disableConcurrency: false,
           bail: false,
+          onMessage: any(named: 'onMessage'),
         ),
       ).captured;
 
@@ -193,6 +186,7 @@ void main() {
           showOutput: true,
           disableConcurrency: false,
           bail: false,
+          onMessage: any(named: 'onMessage'),
         ),
       ).captured;
 
@@ -220,6 +214,7 @@ void main() {
           captureAny(),
           disableConcurrency: false,
           bail: false,
+          onMessage: any(named: 'onMessage'),
         ),
       ).captured;
 
@@ -251,6 +246,7 @@ void main() {
           captureAny(),
           disableConcurrency: false,
           bail: false,
+          onMessage: any(named: 'onMessage'),
         ),
       ).captured;
 
@@ -276,7 +272,5 @@ void main() {
     });
   });
 }
-
-class _MockBindings extends Mock implements Bindings {}
 
 class _MockScriptRunner extends Mock implements ScriptRunner {}

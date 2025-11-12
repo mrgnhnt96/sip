@@ -31,6 +31,16 @@ void main() {
       args = FakeArgs();
       logger = _MockLogger();
 
+      when(
+        () => bindings.runScriptWithOutput(
+          any(),
+          onOutput: any(named: 'onOutput'),
+          bail: any(named: 'bail'),
+        ),
+      ).thenAnswer(
+        (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
+      );
+
       when(() => logger.progress(any())).thenAnswer((_) => _MockProgress());
 
       when(
@@ -89,10 +99,10 @@ void main() {
         await command.run(['lint', '--package', 'application']);
 
         final [script] = verify(
-          () => bindings.runScript(
+          () => bindings.runScriptWithOutput(
             captureAny(),
+            onOutput: any(named: 'onOutput'),
             bail: any(named: 'bail'),
-            showOutput: any(named: 'showOutput'),
           ),
         ).captured;
 

@@ -254,7 +254,7 @@ abstract mixin class TesterMixin {
       if (toolArgs.isNotEmpty) toolArgs.join(' '),
       if (tests.isNotEmpty)
         for (final test in tests)
-          fs.path.relative(test, from: tool.directory()),
+          fs.path.relative(test, from: fs.currentDirectory.path),
     ].join(' ');
 
     logger.detail('Test command: $script');
@@ -293,6 +293,7 @@ abstract mixin class TesterMixin {
       commandsToRun,
       bail: bail,
       onMessage: (message) {
+        // TODO: format test output
         logger.write(message.message);
         return null;
       },
@@ -317,7 +318,7 @@ abstract mixin class TesterMixin {
     required bool optimize,
   }) {
     final dirsWithTests = <String>[];
-    final glob = Glob('**/*_test.dart', recursive: true);
+    final glob = Glob('**_test.dart', recursive: true);
 
     for (final MapEntry(key: dir, value: _) in dirTools.entries) {
       final results = glob.listFileSystemSync(
