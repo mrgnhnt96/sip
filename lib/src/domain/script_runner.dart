@@ -187,7 +187,7 @@ class ScriptRunner {
           break;
         }
       }
-
+      done?.update(label());
       done?.complete();
 
       return const CommandResult(exitCode: 0, output: '', error: '');
