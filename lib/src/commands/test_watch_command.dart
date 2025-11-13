@@ -218,11 +218,7 @@ ${darkGray.wrap('Press `q` to exit')}
     }
 
     if (optimize && clean) {
-      final done = logger.progress('Cleaning up optimized test files');
-
       cleanUpOptimizedFiles(tests.map((e) => e.optimizedPath));
-
-      done.complete('Optimized test files cleaned!');
     }
 
     return exitCode;

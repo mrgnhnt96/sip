@@ -300,6 +300,7 @@ abstract mixin class TesterMixin {
       final result = await scriptRunner.run(
         commandsToRun,
         bail: bail,
+        logTime: false,
         onMessage: (runnable, message) {
           final tool = switch (runnable) {
             ScriptToRun(:final DetermineFlutterOrDart data) => data,

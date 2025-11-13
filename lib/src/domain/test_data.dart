@@ -160,8 +160,16 @@ class TestData {
         _skipped.add(output);
       }
 
-      data._last = output;
-      _print(output);
+      // Print the previous output to allow for
+      // content aggregation (e.g. error messages) which often
+      // arrive in chunks
+      if (data._last case final last?) {
+        _print(last);
+      }
+
+      data
+        .._previous = null
+        .._last = output;
     }
   }
 
@@ -177,17 +185,17 @@ class TestData {
 
   void _print(TestOutput output) {
     Iterable<String?> items() sync* {
+      if (hasTerminal) {
+        // move the cursor to the start of the line
+        yield '\x1B[2K\x1B[0G';
+      }
+
       if (time.get(TimeKey.test) case final stopwatch) {
         final minutes = stopwatch.elapsed.inMinutes;
         final seconds = stopwatch.elapsed.inSeconds % 60;
         final min = '$minutes'.padLeft(2, '0');
         final sec = '$seconds'.padLeft(2, '0');
-        yield '$min:$sec';
-      }
-
-      if (hasTerminal) {
-        // move the cursor to the start of the line
-        yield '\x1B[0G';
+        yield cyan.wrap('$min:$sec');
       }
 
       if (passing > 0) {
@@ -203,7 +211,7 @@ class TestData {
       }
 
       if (output case TestOutput(:final path, :final test)) {
-        yield darkGray.wrap('$path |');
+        yield darkGray.wrap('$path │');
         yield white.wrap(test);
       }
 
@@ -215,7 +223,12 @@ class TestData {
       if (output case TestOutput(didFail: true, :final String error)) {
         if (error.trim() case final error when error.isNotEmpty) {
           yield '\n';
-          yield error;
+
+          final lines = error.split('\n');
+          for (final line in lines) {
+            yield lightRed.wrap('│');
+            yield '${darkGray.wrap(resetAll.wrap(line))}\n';
+          }
         }
 
         if (hasTerminal) {
@@ -228,13 +241,26 @@ class TestData {
       }
     }
 
-    logger.write(items().join(' '));
+    final out = items().join(' ');
+
+    if (out.split('\n').length > 1 || !hasTerminal) {
+      logger.write(out);
+    } else {
+      logger
+        // disable wrap around mode
+        ..write('\x1b[?7l')
+        ..write(out)
+        // enable wrap around mode
+        ..write('\x1b[?7h');
+    }
   }
 
   void printResults() {
     final buf = StringBuffer();
 
     if (_isCi case true) {
+      buf.writeln();
+
       if (failure case final Object e) {
         buf
           ..writeln('::group::❌ Failed to finish')
@@ -267,14 +293,27 @@ class TestData {
         buf.writeln('::endgroup::\n');
       }
     } else {
+      if (!hasTerminal) {
+        buf.writeln();
+      } else {
+        // move the cursor to the start of the line
+        buf.write('\x1B[0G');
+      }
+
+      buf.write('Results: ✅ $passing ❌ $failing ⚠️ $skipped');
+      if (hasTerminal) {
+        // clear the rest of the line
+        buf.write('\x1B[K');
+      } else {
+        buf.writeln();
+      }
+
       if (failure case final Object e) {
         buf
           ..writeln('❌ Failed to finish')
           ..writeln('$e'.trim())
           ..writeln();
       }
-
-      buf.writeln('✅ $passing ❌ $failing ⚠️ $skipped');
     }
 
     logger.write(buf.toString());

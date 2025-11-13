@@ -7,11 +7,12 @@ import 'package:sip_cli/src/deps/bindings.dart';
 import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/scripts_yaml.dart';
+import 'package:sip_cli/src/deps/time.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
 import 'package:sip_cli/src/domain/message.dart';
 import 'package:sip_cli/src/domain/message_action.dart';
 import 'package:sip_cli/src/domain/script_to_run.dart';
-import 'package:sip_cli/src/utils/stopwatch_extensions.dart';
+import 'package:sip_cli/src/domain/time.dart';
 
 // TODO: print out bailing message
 // TODO: bail on concurrent commands
@@ -28,6 +29,7 @@ class ScriptRunner {
     bool disableConcurrency = false,
     bool showOutput = true,
     MessageAction? Function(Runnable, Message)? onMessage,
+    bool logTime = true,
   }) async {
     final groups = <List<ScriptToRun>>[];
     final group = <ScriptToRun>[];
@@ -54,8 +56,6 @@ class ScriptRunner {
 
     var result = const CommandResult(exitCode: 0, output: '', error: '');
 
-    final stopwatch = Stopwatch()..start();
-
     for (final group in groups) {
       result = await _runScripts(
         group,
@@ -70,8 +70,10 @@ class ScriptRunner {
       }
     }
 
-    final time = (stopwatch..stop()).format();
-    logger.info(darkGray.wrap('\nFinished in $time'));
+    if (logTime) {
+      final t = time.snapshot(TimeKey.core);
+      logger.info(darkGray.wrap('\nFinished in $t'));
+    }
 
     return result;
   }

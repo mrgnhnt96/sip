@@ -48,11 +48,7 @@ class TestCleanCommand with TesterMixin {
       optimized.add(file);
     }
 
-    final done = logger.progress('Cleaning up optimized test files');
-
     cleanUpOptimizedFiles(optimized);
-
-    done.complete('Optimized test files cleaned!');
 
     return ExitCode.success;
   }

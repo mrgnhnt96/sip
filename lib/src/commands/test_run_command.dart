@@ -207,11 +207,7 @@ class TestRunCommand with TesterMixin {
     logger.write('\n');
 
     if (optimize && cleanOptimizedFiles) {
-      final done = logger.progress('Cleaning up optimized test files');
-
       cleanUp?.call();
-
-      done.complete('Optimized test files cleaned!');
     }
 
     return exitCode;
