@@ -27,7 +27,7 @@ class ScriptRunner {
     required bool bail,
     bool disableConcurrency = false,
     bool showOutput = true,
-    MessageAction? Function(Message)? onMessage,
+    MessageAction? Function(Runnable, Message)? onMessage,
   }) async {
     final groups = <List<ScriptToRun>>[];
     final group = <ScriptToRun>[];
@@ -71,7 +71,7 @@ class ScriptRunner {
     }
 
     final time = (stopwatch..stop()).format();
-    logger.info(darkGray.wrap('Finished in $time'));
+    logger.info(darkGray.wrap('\nFinished in $time'));
 
     return result;
   }
@@ -81,7 +81,7 @@ class ScriptRunner {
     required bool bail,
     required bool showOutput,
     required bool disableConcurrency,
-    required MessageAction? Function(Message)? onMessage,
+    required MessageAction? Function(Runnable, Message)? onMessage,
   }) async {
     final pending = <(ScriptToRun, _RunFunction)>[];
 
@@ -123,7 +123,9 @@ class ScriptRunner {
           if (onMessage case final onMessage?) {
             return bindings.runScriptWithOutput(
               execute,
-              onOutput: onMessage,
+              onOutput: (message) {
+                return onMessage(script, message);
+              },
               bail: script.bail,
             );
           }

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:file/file.dart';
 import 'package:glob/glob.dart';
 import 'package:mason_logger/mason_logger.dart';
@@ -7,6 +9,7 @@ import 'package:sip_cli/src/deps/pubspec_yaml.dart';
 import 'package:sip_cli/src/deps/script_runner.dart';
 import 'package:sip_cli/src/domain/package_to_test.dart';
 import 'package:sip_cli/src/domain/script_to_run.dart';
+import 'package:sip_cli/src/domain/test_data.dart';
 import 'package:sip_cli/src/domain/testable.dart';
 import 'package:sip_cli/src/utils/determine_flutter_or_dart.dart';
 import 'package:sip_cli/src/utils/write_optimized_test_file.dart';
@@ -272,6 +275,7 @@ abstract mixin class TesterMixin {
       label: label,
       bail: bail,
       runInParallel: true,
+      data: tool,
     );
   }
 
@@ -289,17 +293,65 @@ abstract mixin class TesterMixin {
       }
     }
 
-    final result = await scriptRunner.run(
-      commandsToRun,
-      bail: bail,
-      onMessage: (message) {
-        // TODO: format test output
-        logger.write(message.message);
-        return null;
-      },
-    );
+    final data = TestData();
+    ExitCode exitCode;
 
-    return result.exitCodeReason;
+    try {
+      final result = await scriptRunner.run(
+        commandsToRun,
+        bail: bail,
+        onMessage: (runnable, message) {
+          final tool = switch (runnable) {
+            ScriptToRun(:final DetermineFlutterOrDart data) => data,
+            _ => null,
+          };
+
+          switch (tool) {
+            case DetermineFlutterOrDart(isDart: true):
+              final lines = const LineSplitter().convert(
+                message.message.trim(),
+              );
+              final tests = <String>[];
+              final buf = StringBuffer();
+              final timePattern = RegExp(r'\d+:\d+');
+
+              for (final line in lines) {
+                if (timePattern.hasMatch(line)) {
+                  if (buf.isNotEmpty) {
+                    tests.add(buf.toString());
+                    buf.clear();
+                  }
+                }
+
+                buf.writeln(line);
+              }
+
+              if (buf.isNotEmpty) {
+                tests.add(buf.toString());
+              }
+
+              for (final test in tests) {
+                data.parseDart(runnable, test);
+              }
+            case DetermineFlutterOrDart(isFlutter: true):
+              data.parseFlutter(runnable, message.message);
+            default:
+              throw Exception('Unexpected: tool is expected but is null');
+          }
+
+          return null;
+        },
+      );
+
+      exitCode = result.exitCodeReason;
+    } catch (e) {
+      data.failure = e;
+      exitCode = ExitCode.software;
+    }
+
+    data.printResults();
+
+    return exitCode;
   }
 
   void cleanUpOptimizedFiles(Iterable<String?> optimizedFiles) {

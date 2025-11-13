@@ -17,6 +17,7 @@ class ScriptToRun implements Runnable {
     String? label,
     Map<String, String>? variables,
     this.runInParallel,
+    this.data,
   }) : _bail = bail,
        _label = label,
        variables = variables ?? {};
@@ -30,6 +31,7 @@ class ScriptToRun implements Runnable {
   final Set<ResolvedScript>? scripts;
   final String? workingDirectory;
   final bool? runInParallel;
+  final Object? data;
 
   String get label =>
       // TODO: handle this

@@ -214,14 +214,6 @@ class TestRunCommand with TesterMixin {
       done.complete('Optimized test files cleaned!');
     }
 
-    if (exitCode != ExitCode.success) {
-      logger.err('${red.wrap('✗')} Some tests failed');
-    } else {
-      logger.write('${green.wrap('✔')} Tests passed');
-    }
-
-    logger.write('\n');
-
     return exitCode;
   }
 }

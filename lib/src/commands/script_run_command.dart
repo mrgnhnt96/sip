@@ -187,7 +187,7 @@ class ScriptRunCommand with RunScriptHelper, WorkingDirectory {
       script.commands,
       disableConcurrency: disableConcurrency,
       bail: bail,
-      onMessage: (message) {
+      onMessage: (_, message) {
         logger.write(message.message);
         return null;
       },

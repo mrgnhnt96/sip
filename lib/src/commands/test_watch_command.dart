@@ -113,6 +113,7 @@ ${darkGray.wrap('Press `q` to exit')}
     var runConcurrently = concurrent;
 
     Iterable<PackageToTest>? lastTests;
+    var exitCode = ExitCode.success;
 
     // This setup up will not include any new packages created,
     // only the ones that exist when the command is run
@@ -205,16 +206,14 @@ ${darkGray.wrap('Press `q` to exit')}
         dartArgs: dartArgs,
       );
 
-      final exitCode = await runCommands(
+      exitCode = await runCommands(
         commandsToRun,
         showOutput: runConcurrently,
         bail: false,
       );
 
       if (exitCode != ExitCode.success) {
-        logger.err('${red.wrap('✗')} Some tests failed');
-      } else {
-        logger.write('${green.wrap('✔')} Tests passed');
+        break;
       }
     }
 
@@ -226,7 +225,7 @@ ${darkGray.wrap('Press `q` to exit')}
       done.complete('Optimized test files cleaned!');
     }
 
-    return ExitCode.success;
+    return exitCode;
   }
 
   Future<PackageToTest?> findTest(
