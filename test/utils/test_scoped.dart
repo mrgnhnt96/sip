@@ -19,6 +19,7 @@ import 'package:sip_cli/src/deps/pubspec_lock.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
 import 'package:sip_cli/src/deps/script_runner.dart';
 import 'package:sip_cli/src/deps/scripts_yaml.dart';
+import 'package:sip_cli/src/deps/time.dart';
 import 'package:sip_cli/src/deps/variables.dart';
 import 'package:sip_cli/src/domain/args.dart';
 import 'package:sip_cli/src/domain/bindings.dart';
@@ -28,6 +29,7 @@ import 'package:sip_cli/src/domain/pubspec_lock.dart';
 import 'package:sip_cli/src/domain/pubspec_yaml.dart';
 import 'package:sip_cli/src/domain/script_runner.dart';
 import 'package:sip_cli/src/domain/scripts_yaml.dart';
+import 'package:sip_cli/src/domain/time.dart';
 import 'package:test/test.dart';
 
 void testScoped(
@@ -57,6 +59,7 @@ void testScoped(
       pubUpdaterProvider,
       variablesProvider,
 
+      timeProvider.overrideWith(_MockTime.new),
       loggerProvider.overrideWith(() => logger?.call() ?? mockLogger),
 
       if (scriptRunner?.call() case final scriptRunner?)
@@ -121,3 +124,5 @@ void testScoped(
 class _MockLogger extends Mock implements Logger {}
 
 class _MockProgress extends Mock implements Progress {}
+
+class _MockTime extends Mock implements Time {}
