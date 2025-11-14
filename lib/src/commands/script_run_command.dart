@@ -35,7 +35,8 @@ class ScriptRunCommand with RunScriptHelper, WorkingDirectory {
   const ScriptRunCommand();
 
   Future<ExitCode> run(List<String> keys) async {
-    if (args.get<bool>('help', defaultValue: false)) {
+    final help = args.get<bool>('help', defaultValue: false);
+    if (help && keys.isEmpty) {
       logger.write(_usage);
       return ExitCode.success;
     }
@@ -69,8 +70,25 @@ class ScriptRunCommand with RunScriptHelper, WorkingDirectory {
       return ExitCode.config;
     }
 
-    if (listOut) {
-      logger.write(script.listOut());
+    if (listOut || help) {
+      final output = script
+          .listOut(
+            wrapCallableKey: (s) => lightGreen.wrap(s) ?? s,
+            wrapNonCallableKey: (s) => cyan.wrap(s) ?? s,
+            wrapMeta: (s) => lightBlue.wrap(s) ?? s,
+          )
+          .trim();
+
+      if (output.isEmpty) {
+        final name = green.wrap(script.keys.join(' '));
+        logger.info(
+          darkGray.wrap('No commands, aliases, nor description for $name'),
+        );
+      } else {
+        logger.write('\n${script.keys.join(' ')}\n');
+        logger.write('$output\n');
+      }
+
       return ExitCode.success;
     }
 
