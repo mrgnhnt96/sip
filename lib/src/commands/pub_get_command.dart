@@ -2,6 +2,8 @@
 
 import 'package:sip_cli/src/commands/a_pub_command.dart';
 import 'package:sip_cli/src/deps/args.dart';
+import 'package:sip_cli/src/deps/logger.dart';
+import 'package:sip_cli/src/utils/package.dart';
 
 /// The `pub get` command.
 ///
@@ -28,6 +30,31 @@ ${super.usage}
     dart: const Duration(milliseconds: 750),
     flutter: const Duration(milliseconds: 4000),
   );
+
+  @override
+  Future<List<Package>> packages({required bool recursive}) async {
+    final pubspecs = await this.pubspecs(recursive: recursive);
+    final pkgs = pubspecs.map(Package.new);
+
+    Iterable<Package> packages() sync* {
+      for (final pkg in pkgs) {
+        if (pkg.isPartOfWorkspace) {
+          logger.detail('Skipping workspace package: ${pkg.relativePath}');
+          continue;
+        }
+
+        yield pkg;
+      }
+    }
+
+    final resolved = packages().toList();
+
+    if (resolved.isNotEmpty) {
+      return resolved;
+    }
+
+    return [Package.nearest()];
+  }
 
   @override
   List<String> get pubFlags => [

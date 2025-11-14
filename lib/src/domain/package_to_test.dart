@@ -1,9 +1,9 @@
 import 'package:path/path.dart' as p;
-import 'package:sip_cli/src/utils/determine_flutter_or_dart.dart';
+import 'package:sip_cli/src/utils/package.dart';
 
 class PackageToTest {
   PackageToTest({
-    required this.tool,
+    required this.pkg,
     required String packagePath,
     this.optimizedPath,
   }) {
@@ -19,7 +19,7 @@ class PackageToTest {
     };
   }
 
-  final DetermineFlutterOrDart tool;
+  final Package pkg;
   late final String packagePath;
   String? optimizedPath;
 

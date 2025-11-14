@@ -1,12 +1,11 @@
 import 'package:mason_logger/mason_logger.dart';
-import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/constrain_pubspec_versions.dart';
-import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
 import 'package:sip_cli/src/domain/constrain_pubspec_versions.dart';
 import 'package:sip_cli/src/utils/dart_or_flutter_mixin.dart';
+import 'package:sip_cli/src/utils/package.dart';
 
 const _usage = '''
 Usage: sip pub constrain [options] [packages] [arguments]
@@ -77,39 +76,47 @@ class PubConstrainCommand with DartOrFlutterMixin {
       return ExitCode.unavailable;
     }
 
-    resolveFlutterAndDart(
-      pubspecs,
-      dartOnly: dartOnly,
-      flutterOnly: flutterOnly,
-      (flutterOrDart) {
-        final project = path.dirname(flutterOrDart.pubspecYaml);
+    final pkgs = pubspecs.map(Package.new);
 
-        final relativeDir = path.relative(
-          project,
-          from: fs.currentDirectory.path,
-        );
+    var succeeded = true;
 
-        final progress = logger.progress(
-          'Constraining ${cyan.wrap(relativeDir)}',
-        );
+    for (final pkg in pkgs) {
+      if (dartOnly ^ flutterOnly) {
+        if (dartOnly && pkg.isFlutter) {
+          logger.detail('Skipping flutter project: ${pkg.relativePath}');
+          continue;
+        } else if (flutterOnly && pkg.isDart) {
+          logger.detail('Skipping dart project: ${pkg.relativePath}');
+          continue;
+        }
+      }
 
-        final success = constrainPubspecVersions.constrain(
-          flutterOrDart.pubspecYaml,
-          includeDevDependencies: includeDevDependencies,
-          bump: versionBump,
-          dryRun: dryRun,
-          packages: packages,
-          pin: pin,
-        );
+      final progress = logger.progress(
+        'Constraining ${cyan.wrap(pkg.relativePath)}',
+      );
 
+      final success = constrainPubspecVersions.constrain(
+        pkg.pubspec,
+        includeDevDependencies: includeDevDependencies,
+        bump: versionBump,
+        dryRun: dryRun,
+        packages: packages,
+        pin: pin,
+      );
+
+      if (success) {
         progress.complete();
+      } else {
+        succeeded = false;
+        progress.fail();
+      }
 
-        logger.flush();
+      logger.flush();
+    }
 
-        return success;
-      },
-    );
-
-    return ExitCode.success;
+    return switch (succeeded) {
+      true => ExitCode.success,
+      false => ExitCode.software,
+    };
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:io' as io;
 
 import 'package:mason_logger/mason_logger.dart';
+import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/time.dart';
 import 'package:sip_cli/src/domain/script_to_run.dart';
@@ -12,6 +13,14 @@ class TestData {
   int get passing => _success.length;
   int get failing => _failure.length;
   int get skipped => _skipped.length;
+
+  ({int passing, int failing, int skipped}) get snapshot {
+    return (
+      passing: _success.length,
+      failing: _failure.length,
+      skipped: _skipped.length,
+    );
+  }
 
   bool? _isCi;
 
@@ -34,10 +43,14 @@ class TestData {
   String? _previous;
   TestOutput? _last;
 
-  /// Parses the output of a dart test
-  /// - updates the test data
-  /// - prints the test data
-  void parseDart(Runnable script, String output) {
+  bool _checkIsCi(String output) {
+    if (_isCi case final bool isCi) return isCi;
+
+    return _isCi =
+        output.contains('::group::') || output.contains('::endgroup::');
+  }
+
+  void parseCi(Runnable script, String output) {
     final data = _data[script.hashCode] ??= TestData();
 
     var message = [?data._previous, output].join('\n');
@@ -46,9 +59,6 @@ class TestData {
       data._previous = output;
       return;
     }
-
-    final isCi = _isCi ??=
-        output.contains('::group::') && output.contains('::endgroup::');
 
     // successful CI test output
     if (output.startsWith('✅')) {
@@ -67,120 +77,129 @@ class TestData {
       data
         .._previous = null
         .._last = output;
-    } else if (isCi) {
-      message = message
-          .replaceAll('::group::', '')
-          .replaceAll('::endgroup::', '');
-
-      if (!RegExp('^[✅❌]').hasMatch(message)) {
-        if (data._last case final last?) {
-          last.error = [?last.error?.trim(), message.trim()].join('\n');
-          return;
-        }
-      }
-
-      final wasSuccess = message.contains('✅');
-      final wasFailure = message.contains('❌');
-      final wasSkipped = message.contains('(skipped)');
-
-      String? error;
-      if (wasFailure) {
-        switch (message.split(RegExp(r'\(failed\)$', multiLine: true))) {
-          case [final info, final e]:
-            error = e.trim();
-            message = info.trim();
-        }
-      }
-      final [path, ...test] = message.substring(1).trim().split(' ');
-
-      if (test case ['loading', ...]) {
-        return;
-      }
-
-      final output = TestOutput(path: path, test: test.join(' '), error: error);
-
-      if (wasSkipped) {
-        _skipped.add(output);
-      } else if (wasSuccess) {
-        _success.add(output);
-      } else if (wasFailure) {
-        _failure.add(output);
-      }
-      data
-        .._previous = null
-        .._last = output;
-    } else {
-      if (!RegExp(r'^\d{2,}:\d{2,}').hasMatch(message)) {
-        if (data._last case final last?) {
-          last.error = [?last.error?.trim(), message.trim()].join('\n');
-          return;
-        }
-      }
-
-      final path = RegExp(r'(\S*\.dart)').firstMatch(message)?.group(1);
-      final description = RegExp(r'\.dart (.*)').firstMatch(message)?.group(1);
-
-      if (path == null || description == null) {
-        return;
-      }
-
-      final error = switch (message.split(description)) {
-        [_, final error] => switch (error.trim()) {
-          final String error when error.isNotEmpty => error,
-          _ => null,
-        },
-        _ => null,
-      };
-
-      final output = TestOutput(
-        path: path,
-        test: description,
-        error: error,
-        passing: RegExp(r'\+(\d+)').firstMatch(message)?.group(1),
-        failing: RegExp(r'-(\d+)').firstMatch(message)?.group(1),
-        skipped: RegExp(r'~(\d+)').firstMatch(message)?.group(1),
-        previous: data._last,
-      );
-
-      final (:failed, :passed, :skipped) = output.results;
-
-      if (!failed && !passed && !skipped) {
-        return;
-      }
-
-      if (output.matchesLast) {
-        return;
-      }
-
-      if (passed) {
-        _success.add(output);
-      } else if (failed) {
-        _failure.add(output);
-      } else if (skipped) {
-        _skipped.add(output);
-      }
-
-      // Print the previous output to allow for
-      // content aggregation (e.g. error messages) which often
-      // arrive in chunks
-      if (data._last case final last?) {
-        _print(last);
-      }
-
-      data
-        .._previous = null
-        .._last = output;
+      return;
     }
+
+    message = message
+        .replaceAll('::group::', '')
+        .replaceAll('::endgroup::', '');
+
+    if (!RegExp('^[✅❌]').hasMatch(message)) {
+      if (data._last case final last?) {
+        last.error = [?last.error?.trim(), message.trim()].join('\n');
+        return;
+      }
+    }
+
+    final wasSuccess = message.contains('✅');
+    final wasFailure = message.contains('❌');
+    final wasSkipped = message.contains('(skipped)');
+
+    String? error;
+    if (wasFailure) {
+      switch (message.split(RegExp(r'\(failed\)$', multiLine: true))) {
+        case [final info, final e]:
+          error = e.trim();
+          message = info.trim();
+      }
+    }
+    final [path, ...test] = message.substring(1).trim().split(' ');
+
+    if (path == 'loading') {
+      return;
+    }
+
+    final out = TestOutput(path: path, test: test.join(' '), error: error);
+
+    if (wasSkipped) {
+      _skipped.add(out);
+    } else if (wasSuccess) {
+      _success.add(out);
+    } else if (wasFailure) {
+      _failure.add(out);
+    }
+
+    data
+      .._previous = null
+      .._last = out;
   }
 
-  /// Parses the output of a flutter test
+  /// Parses the output of a dart test
   /// - updates the test data
   /// - prints the test data
-  void parseFlutter(Runnable script, String output) {
-    final data = _data[script.hashCode] ??= TestData();
+  void parse(Runnable script, String output) {
+    if (_checkIsCi(output)) {
+      parseCi(script, output);
+      return;
+    }
 
-    _data[script.hashCode] = data;
-    data._previous = output;
+    final data = _data[script.hashCode] ??= TestData();
+    final message = [?data._previous, output].join('\n');
+
+    if (!RegExp(r'^\d{2,}:\d{2,}').hasMatch(message)) {
+      if (data._last case final last?) {
+        last.error = [?last.error?.trim(), message.trim()].join('\n');
+        return;
+      }
+    }
+
+    final path = switch (RegExp(r'(\S*\.dart)').firstMatch(message)?.group(1)) {
+      final String path when fs.path.isRelative(path) => path,
+      final String path => fs.path.relative(path),
+      _ => null,
+    };
+    final description = RegExp(r'\.dart:? (.*)').firstMatch(message)?.group(1);
+
+    if (path == null || description == null) {
+      return;
+    }
+
+    final error = switch (message.split(description)) {
+      [_, final error] => switch (error.trim()) {
+        final String error when error.isNotEmpty => error,
+        _ => null,
+      },
+      _ => null,
+    };
+
+    final out = TestOutput(
+      path: path,
+      test: description,
+      error: error,
+      passing: RegExp(r'\+(\d+)').firstMatch(message)?.group(1),
+      failing: RegExp(r'-(\d+)').firstMatch(message)?.group(1),
+      skipped: RegExp(r'~(\d+)').firstMatch(message)?.group(1),
+      previous: data._last,
+    );
+
+    final (:failed, :passed, :skipped) = out.results;
+
+    if (!failed && !passed && !skipped) {
+      return;
+    }
+
+    if (out.matchesLast) {
+      return;
+    }
+
+    if (passed) {
+      _success.add(out);
+    } else if (failed) {
+      _failure.add(out);
+    } else if (skipped) {
+      _skipped.add(out);
+    }
+
+    // Print the previous out to allow for
+    // content aggregation (e.g. error messages) which often
+    // arrive in chunks
+    if (data._last case final last?) {
+      _print(last);
+    }
+
+    data
+      .._previous = null
+      .._last = out;
   }
 
   void _print(TestOutput output) {

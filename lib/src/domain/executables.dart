@@ -1,5 +1,11 @@
+import 'package:sip_cli/src/deps/scripts_yaml.dart';
+
 class Executables {
   const Executables({required this.dart, required this.flutter});
+
+  factory Executables.load() {
+    return Executables.fromJson(scriptsYaml.executables() ?? {});
+  }
 
   factory Executables.fromJson(Map<String, dynamic> json) {
     return Executables(

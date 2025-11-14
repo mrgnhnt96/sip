@@ -72,7 +72,7 @@ final processProvider = create<Process>(() {
       pid: process.pid,
       exitCode: process.exitCode,
       kill: () {
-        process.kill(io.ProcessSignal.sigkill);
+        process.kill(io.ProcessSignal.sigint);
         stdoutSubscription?.cancel();
         stderrSubscription?.cancel();
         stdoutController.close();

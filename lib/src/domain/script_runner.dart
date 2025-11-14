@@ -30,6 +30,7 @@ class ScriptRunner {
     bool showOutput = true,
     MessageAction? Function(Runnable, Message)? onMessage,
     bool logTime = true,
+    bool printLabels = true,
   }) async {
     final groups = <List<ScriptToRun>>[];
     final group = <ScriptToRun>[];
@@ -57,10 +58,12 @@ class ScriptRunner {
     var result = const CommandResult(exitCode: 0, output: '', error: '');
 
     for (final group in groups) {
+      logger.detail('\nRunning ${group.length} scripts');
       result = await _runScripts(
         group,
         bail: bail,
         showOutput: showOutput,
+        printLabels: printLabels,
         disableConcurrency: disableConcurrency,
         onMessage: onMessage,
       );
@@ -82,6 +85,7 @@ class ScriptRunner {
     List<ScriptToRun> scripts, {
     required bool bail,
     required bool showOutput,
+    required bool printLabels,
     required bool disableConcurrency,
     required MessageAction? Function(Runnable, Message)? onMessage,
   }) async {
@@ -112,7 +116,6 @@ class ScriptRunner {
         _ => null,
       };
 
-      logger.detail('CWD: $workingDirectory');
       final execute = [
         'cd "$workingDirectory" || exit 1',
         ?variables,
@@ -137,8 +140,8 @@ class ScriptRunner {
             showOutput: switch (showOutputOverride ?? showOutput) {
               false => false,
               true => switch (script.runInParallel) {
-                true => false,
-                null || false => false,
+                true when !disableConcurrency => false,
+                _ => true,
               },
             },
             bail: script.bail,
@@ -150,6 +153,14 @@ class ScriptRunner {
     if (disableConcurrency) {
       logger.detail('Running ${pending.length} scripts sequentially');
       for (final (part, future) in pending) {
+        if (showOutput) {
+          logger.write('\n');
+        }
+
+        if (printLabels) {
+          logger.info(part.label);
+        }
+
         final result = await future();
         final shouldBail = switch (part) {
           ScriptToRun(bail: true) => true,
@@ -158,14 +169,14 @@ class ScriptRunner {
 
         if (result.exitCodeReason != ExitCode.success && shouldBail) {
           if (part case ScriptToRun(:final label)) {
-            logger.err('Script $label failed');
+            logger.err('$label ${red.wrap('failed')}');
           }
 
           return result;
         }
       }
     } else {
-      final tasks = _group(pending);
+      final tasks = _group(pending, printLabels: printLabels);
 
       var count = 0;
 
@@ -174,10 +185,11 @@ class ScriptRunner {
         return 'Running $counter';
       }
 
-      final done = switch (scripts.length) {
-        1 => null,
-        _ => logger.progress(label()),
+      final done = switch (onMessage) {
+        null => logger.progress(label()),
+        _ => null,
       };
+
       CommandResult? result;
       await for (final (part, taskResult) in tasks) {
         done?.update(label());
@@ -193,8 +205,9 @@ class ScriptRunner {
           break;
         }
       }
-      done?.update(label());
-      done?.complete();
+      done
+        ?..update(label())
+        ..complete();
 
       return result ?? const CommandResult(exitCode: 0, output: '', error: '');
     }
@@ -206,17 +219,20 @@ class ScriptRunner {
     List<
       (ScriptToRun, Future<CommandResult> Function({bool? showOutputOverride}))
     >
-    pending,
-  ) async* {
+    pending, {
+    required bool printLabels,
+  }) async* {
     if (pending.isEmpty) {
       throw Exception('Unexpected: No scripts to run');
     }
 
     final controller = StreamController<(ScriptToRun, CommandResult)>();
 
-    for (final (part, _) in pending) {
-      if (part case ScriptToRun(:final label)) {
-        logger.info(darkGray.wrap(label));
+    if (printLabels) {
+      for (final (part, _) in pending) {
+        if (part case ScriptToRun(:final label)) {
+          logger.info(label);
+        }
       }
     }
 

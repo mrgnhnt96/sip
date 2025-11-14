@@ -1,11 +1,10 @@
 import 'package:mason_logger/mason_logger.dart';
 import 'package:sip_cli/src/deps/args.dart';
-import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
 import 'package:sip_cli/src/deps/script_runner.dart';
 import 'package:sip_cli/src/domain/script_to_run.dart';
-import 'package:sip_cli/src/utils/determine_flutter_or_dart.dart';
+import 'package:sip_cli/src/utils/package.dart';
 
 const _usage = '''
 Usage: sip clean [options]
@@ -28,8 +27,12 @@ class CleanCommand {
       return ExitCode.success;
     }
 
-    final isRecursive = args.get<bool>('recursive', defaultValue: false);
-    final isConcurrent = args.get<bool>('concurrent', defaultValue: false);
+    final isRecursive = args.get<bool>(
+      'recursive',
+      abbr: 'r',
+      defaultValue: false,
+    );
+    final isConcurrent = args.get<bool>('concurrent', defaultValue: true);
     final erasePubspecLock = args.get<bool>(
       'pubspec-lock',
       defaultValue: false,
@@ -47,7 +50,7 @@ class CleanCommand {
       return ExitCode.usage;
     }
 
-    final packages = pubspecs.map(DetermineFlutterOrDart.new);
+    final packages = pubspecs.map(Package.new);
 
     final baseRemoveCommands = [
       'rm -rf .dart_tool',
@@ -56,40 +59,39 @@ class CleanCommand {
     ];
 
     final commands = <ScriptToRun>[];
-    for (final package in packages) {
+    for (final pkg in packages) {
+      if (pkg.isPartOfWorkspace) {
+        logger.detail('Skipping workspace package: ${pkg.relativePath}');
+        continue;
+      }
+
       final removeCommands = [...baseRemoveCommands];
-      if (package.isFlutter) {
+      if (pkg.isFlutter) {
         removeCommands.add('flutter clean');
       }
 
       var label = darkGray.wrap('Cleaning (')!;
-      label += cyan.wrap(package.tool())!;
+      label += cyan.wrap(pkg.tool)!;
       label += darkGray.wrap(') in ')!;
-      label += yellow.wrap(
-        package.directory(fromDirectory: fs.currentDirectory.path),
-      )!;
+      label += yellow.wrap(pkg.relativePath)!;
 
       final command = ScriptToRun(
         removeCommands.join(' && '),
-        workingDirectory: package.directory(),
+        workingDirectory: pkg.path,
         label: label,
+        runInParallel: isConcurrent,
       );
 
       commands.add(command);
     }
 
-    if (isConcurrent) {
-      final results = await scriptRunner.run(commands.toList(), bail: false);
+    logger.detail('Running ${commands.length} commands');
+    final result = await scriptRunner.run(
+      commands.toList(),
+      bail: false,
+      disableConcurrency: !isConcurrent,
+    );
 
-      return results.exitCodeReason;
-    } else {
-      final result = await scriptRunner.run(
-        commands.toList(),
-        disableConcurrency: true,
-        bail: false,
-      );
-
-      return result.exitCodeReason;
-    }
+    return result.exitCodeReason;
   }
 }

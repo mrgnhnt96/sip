@@ -1,9 +1,9 @@
 import 'package:mason_logger/mason_logger.dart';
 import 'package:sip_cli/src/commands/test_command/tester_mixin.dart';
 import 'package:sip_cli/src/deps/args.dart';
-import 'package:sip_cli/src/deps/find_file.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
+import 'package:sip_cli/src/utils/package.dart';
 
 const _usage = '''
 Usage: sip test clean
@@ -27,28 +27,11 @@ class TestCleanCommand with TesterMixin {
       return ExitCode.unavailable;
     }
 
-    final testDirsResult = getTestDirs(
-      pubspecs,
-      isFlutterOnly: false,
-      isDartOnly: false,
-    );
+    final pkgs = pubspecs.map(Package.new);
 
-    // exit code is not null
-    if (testDirsResult case (_, final ExitCode exitCode)) {
-      return exitCode;
+    for (final pkg in pkgs) {
+      pkg.deleteOptimizedTestFile();
     }
-    final (testDirs, _) = testDirsResult.$1!;
-
-    final optimized = <String>[];
-    for (final dir in testDirs) {
-      final file = findFile.fileWithin(TesterMixin.optimizedTestBasename, dir);
-
-      if (file == null) continue;
-
-      optimized.add(file);
-    }
-
-    cleanUpOptimizedFiles(optimized);
 
     return ExitCode.success;
   }

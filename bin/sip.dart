@@ -20,8 +20,10 @@ import 'package:sip_cli/src/deps/pubspec_lock.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
 import 'package:sip_cli/src/deps/script_runner.dart';
 import 'package:sip_cli/src/deps/scripts_yaml.dart';
+import 'package:sip_cli/src/deps/time.dart';
 import 'package:sip_cli/src/deps/variables.dart';
 import 'package:sip_cli/src/domain/args.dart';
+import 'package:sip_cli/src/domain/time.dart';
 
 void main(List<String> arguments) async {
   final args = Args.parse(arguments);
@@ -34,27 +36,30 @@ void main(List<String> arguments) async {
     },
   );
 
-  await runScoped(
-    run,
-    values: {
-      argsProvider.overrideWith(() => args),
-      bindingsProvider,
-      constrainPubspecVersionsProvider,
-      findFileProvider,
-      fsProvider,
-      isUpToDateProvider,
-      keyPressListenerProvider,
-      loggerProvider.overrideWith(() => logger),
-      platformProvider,
-      processProvider,
-      pubUpdaterProvider,
-      pubspecLockProvider,
-      pubspecYamlProvider,
-      scriptsYamlProvider,
-      variablesProvider,
-      scriptRunnerProvider,
-    },
-  );
+  await overrideAnsiOutput(true, () async {
+    await runScoped(
+      run,
+      values: {
+        argsProvider.overrideWith(() => args),
+        bindingsProvider,
+        constrainPubspecVersionsProvider,
+        findFileProvider,
+        fsProvider,
+        isUpToDateProvider,
+        keyPressListenerProvider,
+        loggerProvider.overrideWith(() => logger),
+        platformProvider,
+        processProvider,
+        pubUpdaterProvider,
+        pubspecLockProvider,
+        pubspecYamlProvider,
+        scriptsYamlProvider,
+        variablesProvider,
+        scriptRunnerProvider,
+        timeProvider,
+      },
+    );
+  });
 }
 
 Future<void> run() async {
@@ -63,6 +68,9 @@ Future<void> run() async {
     stdout.write('\x1b[?25h');
     exit(1);
   }, cancelOnError: true);
+
+  // Start the stopwatch
+  time.get(TimeKey.core);
 
   final exitCode = await const SipRunner().run();
 

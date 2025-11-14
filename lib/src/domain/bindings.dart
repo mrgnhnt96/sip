@@ -41,6 +41,8 @@ class Bindings {
     final completer = Completer<CommandResult>();
     StreamSubscription<dynamic>? subscription;
 
+    SendPort? sendPort;
+
     void kill() {
       try {
         isolate.kill();
@@ -57,20 +59,16 @@ class Bindings {
 
     subscription = port.listen((event) {
       switch (event) {
-        case final SendPort sendPort:
-          sendPort.send({
-            'script': script,
-            'bail': bail,
-            'showOutput': showOutput,
-          });
+        case final SendPort port:
+          sendPort = port;
+          port.send({'script': script, 'bail': bail, 'showOutput': showOutput});
         case {'message': final String message, 'isError': final bool isError}:
           final msg = Message(message, isError: isError);
-          final action = onOutput?.call(msg);
-          switch (action) {
+          switch (onOutput?.call(msg)) {
             case null:
               break;
             case MessageAction.kill:
-              kill();
+              sendPort?.send('KILL');
           }
         case {
           'exitCode': final int code,
@@ -101,7 +99,7 @@ Future<void> _runScript(SendPort sendPort) async {
 
     sendPort.send(port.sendPort);
 
-    Future<CommandResult> run(
+    Future<(void Function() kill, Future<CommandResult>)> run(
       String script, {
       required bool bail,
       required bool showOutput,
@@ -140,26 +138,43 @@ Future<void> _runScript(SendPort sendPort) async {
         errorBuffer.write(event);
       });
 
-      final code = await details.exitCode;
+      final future = details.exitCode.then((code) {
+        details.kill();
 
-      details.kill();
+        return CommandResult(
+          exitCode: code,
+          output: outputBuffer.toString(),
+          error: errorBuffer.toString(),
+        );
+      });
 
-      return CommandResult(
-        exitCode: code,
-        output: outputBuffer.toString(),
-        error: errorBuffer.toString(),
-      );
+      return (details.kill, future);
     }
 
-    await for (final event in port) {
-      if (event case {
-        'script': final String script,
-        'bail': final bool bail,
-        'showOutput': final bool showOutput,
-      }) {
-        final result = await run(script, bail: bail, showOutput: showOutput);
+    final killers = <void Function()>[];
 
-        sendPort.send(result.toJson());
+    await for (final event in port) {
+      switch (event) {
+        case 'KILL':
+          for (final kill in killers) {
+            kill();
+          }
+          killers.clear();
+          sendPort.send('KILL_DONE');
+        case {
+          'script': final String script,
+          'bail': final bool bail,
+          'showOutput': final bool showOutput,
+        }:
+          final (kill, result) = await run(
+            script,
+            bail: bail,
+            showOutput: showOutput,
+          );
+
+          killers.add(kill);
+
+          result.then((result) => sendPort.send(result.toJson())).ignore();
       }
     }
   });

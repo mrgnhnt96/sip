@@ -1,9 +1,6 @@
 // ignore_for_file: cascade_invocations
 
-import 'dart:math';
-
 import 'package:mason_logger/mason_logger.dart';
-import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/commands/test_command/tester_mixin.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/logger.dart';
@@ -11,7 +8,8 @@ import 'package:sip_cli/src/deps/pubspec_yaml.dart';
 import 'package:sip_cli/src/domain/dart_test_args.dart';
 import 'package:sip_cli/src/domain/flutter_test_args.dart';
 import 'package:sip_cli/src/domain/script_to_run.dart';
-import 'package:sip_cli/src/utils/determine_flutter_or_dart.dart';
+import 'package:sip_cli/src/utils/list_ext.dart';
+import 'package:sip_cli/src/utils/package.dart';
 
 const _usage = '''
 Usage: sip test <...files or directories> [arguments]
@@ -47,14 +45,18 @@ class TestRunCommand with TesterMixin {
 
     final isDartOnly = args.get<bool>('dart-only', defaultValue: false);
     final isFlutterOnly = args.get<bool>('flutter-only', defaultValue: false);
-    final isBoth = isDartOnly == isFlutterOnly;
     final optimize = args.get<bool>('optimize', defaultValue: true);
-    final isRecursive = args.get<bool>('recursive', defaultValue: false);
+    final isRecursive = args.get<bool>(
+      'recursive',
+      abbr: 'r',
+      defaultValue: false,
+    );
     final cleanOptimizedFiles = args.get<bool>('clean', defaultValue: true);
     final bail = args.get<bool>('bail', defaultValue: false);
     final slice = args.getOrNull<int>('slice');
 
-    final providedTests = [...paths, ...args.rest];
+    final providedTests = [...paths, ...args.rest]
+      ..removeWhere((e) => e.isEmpty || e == '.');
 
     List<String>? testsToRun;
     if (providedTests.isNotEmpty) {
@@ -82,16 +84,6 @@ class TestRunCommand with TesterMixin {
       logger.detail('Running tests recursively');
     }
 
-    final pubspecs = await pubspecYaml.all(recursive: isRecursive);
-
-    if (pubspecs.isEmpty) {
-      logger.err('No pubspec.yaml files found');
-      return ExitCode.unavailable;
-    }
-
-    final flutterArgs = const FlutterTestArgs().arguments;
-    final dartArgs = const DartTestArgs().arguments;
-
     if (bail) {
       logger.warn('Bailing after first test failure\n');
     }
@@ -101,102 +93,59 @@ class TestRunCommand with TesterMixin {
     void Function()? cleanUp;
 
     if (testsToRun != null) {
-      final pubspec = pubspecYaml.nearest();
+      final pkg = Package.nearest();
 
-      if (pubspec == null) {
-        logger.err('No pubspec.yaml file found');
-        return ExitCode.unavailable;
-      }
-
-      final tool = DetermineFlutterOrDart(pubspec);
-
-      final groups = switch (slice) {
+      final testGroups = switch (slice) {
         null => [testsToRun],
         final int count => testsToRun.chunked(count),
       };
 
-      for (final group in groups) {
-        final command = createTestCommand(
-          projectRoot: tool.directory(),
-          relativeProjectRoot: path.relative(tool.directory()),
-          pathToProjectRoot: tool.directory(),
-          tool: tool,
-          flutterArgs: flutterArgs,
-          dartArgs: dartArgs,
-          tests: group,
-          bail: bail,
-        );
+      for (final group in testGroups) {
+        final command = createTestCommand(pkg: pkg, tests: group, bail: bail);
 
         commandsToRun.add(command);
       }
     } else {
-      final (dirs, dirExitCode) = getTestDirs(
-        pubspecs,
-        isFlutterOnly: isFlutterOnly,
-        isDartOnly: isDartOnly,
-      );
+      final pubspecs = await pubspecYaml.all(recursive: isRecursive);
 
-      // exit code is not null
-      if (dirExitCode case final ExitCode exitCode) {
-        return exitCode;
-      } else if (dirs == null) {
-        logger.err('No tests found');
+      logger.detail('Found ${pubspecs.length} pubspecs');
+      for (final pubspec in pubspecs) {
+        logger.detail(' - $pubspec');
+      }
+
+      final pkgs = [
+        for (final pkg in pubspecs.map(Package.new))
+          if (pkg.shouldInclude(
+            dartOnly: isDartOnly,
+            flutterOnly: isFlutterOnly,
+          ))
+            if (pkg.hasTests) pkg,
+      ];
+
+      logger.detail('Found ${pkgs.length} packages to test');
+      for (final pkg in pkgs) {
+        logger.detail(' - ${pkg.relativePath}');
+      }
+
+      if (pkgs.isEmpty) {
+        logger.err('No packages found to test');
         return ExitCode.success;
       }
 
-      final (testDirs, dirTools) = dirs;
-      logger.detail('Found ${testDirs.length} test directories');
-      logger.detail('  - ${testDirs.join('\n  - ')}');
+      commandsToRun.addAll([
+        for (final pkg in pkgs)
+          for (final group in pkg.testGroups)
+            createTestCommand(pkg: pkg, tests: group, bail: bail),
+      ]);
 
-      final (tests, testsExitCode) = getPackagesToTest(
-        testDirs,
-        dirTools,
-        optimize: optimize,
-      );
-
-      // exit code is not null
-      if (testsExitCode case final ExitCode exitCode) {
-        return exitCode;
-      } else if (tests == null) {
-        logger.err('No tests found');
-        return ExitCode.success;
-      }
-
-      commandsToRun.addAll(
-        getCommandsToRun(
-          tests,
-          flutterArgs: flutterArgs,
-          dartArgs: dartArgs,
-          bail: bail,
-        ),
-      );
-
-      cleanUp = () => cleanUpOptimizedFiles(tests.map((e) => e.optimizedPath));
+      cleanUp = () {
+        for (final pkg in pkgs) {
+          pkg.deleteOptimizedTestFile();
+        }
+      };
     }
 
-    logger.info('ARGS:');
-
-    if (isBoth || isDartOnly) {
-      var message = darkGray.wrap('  Dart:    ')!;
-      if (dartArgs.isEmpty) {
-        message += cyan.wrap('NONE')!;
-      } else {
-        message += cyan.wrap(dartArgs.join(', '))!;
-      }
-      logger.info(message);
-    }
-
-    if (isBoth || isFlutterOnly) {
-      var message = darkGray.wrap('  Flutter: ')!;
-      if (flutterArgs.isEmpty) {
-        message += cyan.wrap('NONE')!;
-      } else {
-        message += cyan.wrap(flutterArgs.join(', '))!;
-      }
-      logger.info(message);
-    }
-
-    logger.write('\n');
+    _printArgs();
 
     final exitCode = await runCommands(
       commandsToRun,
@@ -212,16 +161,33 @@ class TestRunCommand with TesterMixin {
 
     return exitCode;
   }
-}
 
-extension _ListT<T> on List<T> {
-  List<List<T>> chunked(int count) {
-    final chunks = <List<T>>[];
+  void _printArgs() {
+    final flutterArgs = const FlutterTestArgs().arguments;
+    final dartArgs = const DartTestArgs().arguments;
 
-    for (var i = 0; i < length; i += count) {
-      chunks.add(sublist(i, min(i + count, length)));
+    logger.detail('ARGS:');
+
+    if (dartArgs.isNotEmpty) {
+      var message = darkGray.wrap('  Dart:    ')!;
+      if (dartArgs.isEmpty) {
+        message += cyan.wrap('NONE')!;
+      } else {
+        message += cyan.wrap(dartArgs.join(', '))!;
+      }
+      logger.detail(message);
     }
 
-    return chunks;
+    if (flutterArgs.isNotEmpty) {
+      var message = darkGray.wrap('  Flutter: ')!;
+      if (flutterArgs.isEmpty) {
+        message += cyan.wrap('NONE')!;
+      } else {
+        message += cyan.wrap(flutterArgs.join(', '))!;
+      }
+      logger.detail(message);
+    }
+
+    logger.detail('\n');
   }
 }

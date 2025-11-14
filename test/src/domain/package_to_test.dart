@@ -1,6 +1,6 @@
 import 'package:mocktail/mocktail.dart';
 import 'package:sip_cli/src/domain/package_to_test.dart';
-import 'package:sip_cli/src/utils/determine_flutter_or_dart.dart';
+import 'package:sip_cli/src/utils/package.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -8,7 +8,7 @@ void main() {
     group('constructor', () {
       test('should remove test directory from package path', () {
         final packageToTest = PackageToTest(
-          tool: _MockDetermineFlutterOrDart(),
+          pkg: _MockDetermineFlutterOrDart(),
           packagePath: 'package/test',
         );
 
@@ -17,7 +17,7 @@ void main() {
 
       test('should remove lib directory from package path', () {
         final packageToTest = PackageToTest(
-          tool: _MockDetermineFlutterOrDart(),
+          pkg: _MockDetermineFlutterOrDart(),
           packagePath: 'package/lib',
         );
 
@@ -26,7 +26,7 @@ void main() {
 
       test('should not remove any directory from package path', () {
         final packageToTest = PackageToTest(
-          tool: _MockDetermineFlutterOrDart(),
+          pkg: _MockDetermineFlutterOrDart(),
           packagePath: 'package',
         );
 
@@ -36,5 +36,4 @@ void main() {
   });
 }
 
-class _MockDetermineFlutterOrDart extends Mock
-    implements DetermineFlutterOrDart {}
+class _MockDetermineFlutterOrDart extends Mock implements Package {}

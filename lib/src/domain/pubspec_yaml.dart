@@ -1,4 +1,4 @@
-import 'package:path/path.dart' as path;
+import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/domain/find_yaml.dart';
 
 class PubspecYaml extends FindYaml {
@@ -32,26 +32,25 @@ class PubspecYaml extends FindYaml {
     return children;
   }
 
-  Future<Iterable<String>> all({bool recursive = false}) async {
+  Future<List<String>> all({bool recursive = false}) async {
     final pubspecs = <String>{};
-
-    final pubspec = nearest();
-
-    if (pubspec != null) {
-      pubspecs.add(pubspec);
-    }
 
     if (recursive) {
       final children = await this.children();
-      pubspecs.addAll(children.map((e) => path.join(path.separator, e)));
+      pubspecs.addAll(children.map((e) => fs.path.join(fs.path.separator, e)));
+    } else {
+      final nearest = this.nearest();
+      if (nearest != null) {
+        pubspecs.add(nearest);
+      }
     }
 
     final sortedPubspecs = [...pubspecs]
       ..sort()
-      ..sort((a, b) => path.split(b).length - path.split(a).length);
+      ..sort((a, b) => fs.path.split(b).length - fs.path.split(a).length);
 
     return sortedPubspecs..removeWhere((e) {
-      final segments = e.split(path.separator);
+      final segments = fs.path.split(e);
 
       if (segments.contains('build')) {
         return true;

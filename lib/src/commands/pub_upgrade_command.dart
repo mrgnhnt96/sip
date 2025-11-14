@@ -54,7 +54,7 @@ ${super.usage}
   ];
 
   @override
-  Future<Iterable<String>> pubspecs({required bool recursive}) async {
+  Future<List<String>> pubspecs({required bool recursive}) async {
     final packages = {...args.rest};
     final pubspecs = await super.pubspecs(recursive: recursive);
 
@@ -72,11 +72,17 @@ ${super.usage}
         final yaml = loadYaml(content) as YamlMap;
 
         final dependencies = {
-          ...?yaml['dependencies'] as YamlMap?,
-          ...?yaml['dev_dependencies'] as YamlMap?,
+          ...?switch (yaml['dependencies']) {
+            final YamlMap dependencies => dependencies,
+            _ => null,
+          },
+          ...?switch (yaml['dev_dependencies']) {
+            final YamlMap devDependencies => devDependencies,
+            _ => null,
+          },
         };
 
-        final dependencyKeys = dependencies.keys.cast<String>().toSet();
+        final dependencyKeys = {for (final key in dependencies.keys) '$key'};
 
         if (packages.intersection(dependencyKeys).isNotEmpty) {
           yield pubspecs.elementAt(index);
@@ -84,6 +90,6 @@ ${super.usage}
       }
     }
 
-    return pubspecsWithDependencies();
+    return pubspecsWithDependencies().toList();
   }
 }
