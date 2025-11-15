@@ -276,6 +276,7 @@ class TestData {
       logger.write(out);
     } else {
       logger
+        ..detail('')
         // disable wrap around mode
         ..write('\x1b[?7l')
         ..write(out)
