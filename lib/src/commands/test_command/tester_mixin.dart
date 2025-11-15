@@ -110,7 +110,6 @@ abstract mixin class TesterMixin {
     }
 
     final data = TestData();
-    ExitCode exitCode;
 
     var killEverything = false;
     var canKill = false;
@@ -118,7 +117,7 @@ abstract mixin class TesterMixin {
     var snapshot = (passing: 0, failing: 0, skipped: 0);
 
     try {
-      final result = await scriptRunner.run(
+      await scriptRunner.run(
         commandsToRun,
         bail: bail,
         logTime: false,
@@ -171,16 +170,17 @@ abstract mixin class TesterMixin {
           return null;
         },
       );
-
-      exitCode = result.exitCodeReason;
     } catch (e) {
       data.failure = e;
-      exitCode = ExitCode.software;
     }
 
     data.printResults();
 
-    return exitCode;
+    if (data.failing > 0 || data.failure != null) {
+      return ExitCode.software;
+    }
+
+    return ExitCode.success;
   }
 
   void cleanUpOptimizedFiles(Iterable<String?> optimizedFiles) {
