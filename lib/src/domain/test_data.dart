@@ -423,6 +423,25 @@ class TestOutput {
 
   @override
   String toString() {
-    return '$path | $test';
+    Iterable<String?> items() sync* {
+      yield darkGray.wrap('$path │');
+      yield white.wrap(test);
+
+      if (error case final String error) {
+        if (args['omit-errors'] case null || false) {
+          if (error.trim() case final error when error.isNotEmpty) {
+            yield '\n';
+
+            final lines = error.split('\n');
+            for (final line in lines) {
+              yield lightRed.wrap('│');
+              yield '${darkGray.wrap(resetAll.wrap(line))}\n';
+            }
+          }
+        }
+      }
+    }
+
+    return items().join(' ');
   }
 }
