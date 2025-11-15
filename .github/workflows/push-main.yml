@@ -23,19 +23,7 @@ jobs:
         run: dart pub get
 
       - name: Install SIP
-        run: dart pub global activate --source path ./packages/sip
+        run: dart pub global activate --source path .
 
       - name: Run SIP tests
-        run: sip test --recursive
-
-  lint:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Run Lint Kit
-        uses: Lint-Kit/lint-kit-analyze@v0.0.2-pre
-        env:
-          LINT_KIT_CI_TOKEN: ${{ secrets.LINT_KIT_CI_TOKEN }}
+        run: sip test
