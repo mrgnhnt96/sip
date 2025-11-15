@@ -140,7 +140,6 @@ class ResolvedScriptPart {
   ResolvedScriptPart(
     String part, {
     required this.script,
-    this.label,
     bool isConcurrent = false,
   }) : originalPart = part,
        isConcurrent = switch (isConcurrent) {
@@ -154,7 +153,6 @@ class ResolvedScriptPart {
   final String originalPart;
   bool isConcurrent;
   String part;
-  final String? label;
   Map<String, ResolvedScript> replacees;
 
   List<Runnable> get commands {
@@ -164,6 +162,7 @@ class ResolvedScriptPart {
       ScriptToRun(
         part.trim(),
         scripts: {script},
+        label: script.script.keys.join(' '),
         variables: script.envConfig?.variables,
         runInParallel: isConcurrent,
       ),
@@ -199,6 +198,7 @@ class ResolvedScriptPart {
         return ScriptToRun(
           part.exe.replaceAll(partToReplace, replacee.exe).trim(),
           scripts: {script, replaceeScript},
+          label: replacee.label ?? replaceeScript.script.keys.join(' '),
           variables: {...part.variables, ...replacee.variables},
           runInParallel: replacee.runInParallel,
         );

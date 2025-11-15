@@ -40,14 +40,8 @@ class ScriptRunner {
         case ConcurrentBreak():
           groups.add([...group]);
           group.clear();
-        case ScriptToRun(runInParallel: true):
+        case ScriptToRun():
           group.add(command);
-        case final ScriptToRun script:
-          groups.addAll([
-            if (group.isNotEmpty) [...group],
-            [script],
-          ]);
-          group.clear();
       }
     }
 
@@ -158,7 +152,9 @@ class ScriptRunner {
         }
 
         if (printLabels) {
-          logger.info(part.label);
+          if (part case ScriptToRun(:final String label)) {
+            logger.info('${cyan.wrap(label)}');
+          }
         }
 
         final result = await future();
@@ -176,7 +172,11 @@ class ScriptRunner {
         }
       }
     } else {
-      final tasks = _group(pending, printLabels: printLabels);
+      final tasks = _group(
+        pending,
+        printLabels: printLabels,
+        showOutput: showOutput,
+      );
 
       var count = 0;
 
@@ -221,6 +221,7 @@ class ScriptRunner {
     >
     pending, {
     required bool printLabels,
+    required bool showOutput,
   }) async* {
     if (pending.isEmpty) {
       throw Exception('Unexpected: No scripts to run');
@@ -228,18 +229,53 @@ class ScriptRunner {
 
     final controller = StreamController<(ScriptToRun, CommandResult)>();
 
-    if (printLabels) {
-      for (final (part, _) in pending) {
-        if (part case ScriptToRun(:final label)) {
-          logger.info(label);
-        }
-      }
-    }
-
     Completer<void>? waitForRunning;
     final running = <ScriptToRun>[];
 
+    Progress? done;
+    ({String output, bool parallel})? last;
+    void Function()? updateDone;
+
+    void log(String output) {
+      if (showOutput) {
+        logger.info(output);
+        return;
+      }
+
+      done = logger.progress(output);
+    }
+
     for (final (index, (part, future)) in pending.indexed) {
+      if (printLabels) {
+        if (part case ScriptToRun(:final String label)) {
+          var current = (
+            output: '${cyan.wrap(label)}',
+            parallel: part.runInParallel ?? false,
+          );
+
+          if (last?.parallel case true when current.parallel) {
+            current = (
+              output: [?last?.output, current.output].join(', '),
+              parallel: part.runInParallel ?? false,
+            );
+
+            done?.update(current.output);
+          } else if (last?.parallel case true) {
+            updateDone = () {
+              done?.complete();
+              log(current.output);
+            };
+          } else if (current.parallel) {
+            done = logger.progress(current.output);
+          } else if (last != current) {
+            done?.complete();
+            log(current.output);
+          }
+
+          last = current;
+        }
+      }
+
       if (part.runInParallel case true) {
         running.add(part);
         waitForRunning ??= Completer<void>();
@@ -257,6 +293,7 @@ class ScriptRunner {
         if (waitForRunning case final completer?) {
           await completer.future;
           waitForRunning = null;
+          updateDone?.call();
         }
 
         final result = await future(showOutputOverride: false);
@@ -266,6 +303,12 @@ class ScriptRunner {
           controller.close().ignore();
         }
       }
+    }
+
+    if (waitForRunning case final completer?) {
+      completer.future.then((_) {
+        done?.complete();
+      }).ignore();
     }
 
     yield* controller.stream;
