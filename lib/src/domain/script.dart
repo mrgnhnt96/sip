@@ -99,6 +99,14 @@ class Script {
 
     final env = switch (json[Keys.env]) {
       final Map<dynamic, dynamic> env => ScriptEnv.fromJson(env),
+      final String env => ScriptEnv(files: [env]),
+      final List<dynamic> files => ScriptEnv(
+        files: [
+          for (final file in files)
+            if (file case final String file)
+              if (file.trim() case final file when file.isNotEmpty) file,
+        ],
+      ),
       _ => null,
     };
 
