@@ -116,6 +116,8 @@ class ScriptRunner {
       pending.add((
         script,
         ({bool? showOutputOverride}) {
+          logger.detail(execute);
+
           if (onMessage case final onMessage?) {
             return bindings.runScriptWithOutput(
               execute,
