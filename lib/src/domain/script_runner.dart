@@ -236,7 +236,8 @@ class ScriptRunner {
 
     void log(String output) {
       if (showOutput) {
-        logger.info('\n--- ${darkGray.wrap(output)} ---');
+        final formatted = darkGray.wrap('\n--- $output ---');
+        logger.info(formatted);
         return;
       }
 

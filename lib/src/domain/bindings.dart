@@ -124,14 +124,18 @@ Future<void> _runScript(SendPort sendPort) async {
         _ => throw UnsupportedError('Unsupported platform'),
       };
 
+      // sendOutput = true
+      var mode = ProcessStartMode.normal;
+
+      if (showOutput && !sendOutput) {
+        mode = ProcessStartMode.inheritStdio;
+      }
+
       final details = await process(
         command,
         [arg, script],
         runInShell: false,
-        mode: switch (showOutput ^ sendOutput) {
-          true => ProcessStartMode.inheritStdio,
-          false => ProcessStartMode.normal,
-        },
+        mode: mode,
       );
 
       final outputBuffer = StringBuffer();
