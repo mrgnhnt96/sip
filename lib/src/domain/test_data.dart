@@ -127,6 +127,8 @@ class TestData {
       _failure.add(out);
     }
 
+    logger.detail('$path | $test');
+
     data
       .._previous = null
       .._last = out;
