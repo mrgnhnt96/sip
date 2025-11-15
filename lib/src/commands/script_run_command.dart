@@ -3,6 +3,7 @@
 import 'dart:async';
 
 import 'package:mason_logger/mason_logger.dart';
+import 'package:sip_cli/src/deps/analytics.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/script_runner.dart';
@@ -52,6 +53,18 @@ class ScriptRunCommand with RunScriptHelper, WorkingDirectory {
 
     final disableConcurrency =
         args.getOrNull<bool>('concurrent', aliases: ['parallel']) == false;
+
+    await analytics.track(
+      'run_script',
+      props: {
+        'keys': keys.join(' '),
+        'help': help,
+        'never_quit': neverQuit,
+        'list_out': listOut,
+        'print': printOnly,
+        'disable_concurrency': disableConcurrency,
+      },
+    );
 
     if (disableConcurrency) {
       logger.warn('Disabling all concurrent runs');

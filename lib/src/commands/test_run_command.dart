@@ -2,6 +2,7 @@
 
 import 'package:mason_logger/mason_logger.dart';
 import 'package:sip_cli/src/commands/test_command/tester_mixin.dart';
+import 'package:sip_cli/src/deps/analytics.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
@@ -57,6 +58,20 @@ class TestRunCommand with TesterMixin {
 
     final providedTests = [...paths, ...args.rest]
       ..removeWhere((e) => e.isEmpty || e == '.');
+
+    await analytics.track(
+      'test_run',
+      props: {
+        'provided_paths': providedTests.isNotEmpty,
+        'is_recursive': isRecursive,
+        'clean_optimized_files': cleanOptimizedFiles,
+        'bail': bail,
+        'slice': slice,
+        'is_dart_only': isDartOnly,
+        'is_flutter_only': isFlutterOnly,
+        'optimize': optimize,
+      },
+    );
 
     List<String>? testsToRun;
     if (providedTests.isNotEmpty) {

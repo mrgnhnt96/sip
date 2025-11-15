@@ -5,9 +5,11 @@ import 'dart:io';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:scoped_deps/scoped_deps.dart';
 import 'package:sip_cli/sip_runner.dart';
+import 'package:sip_cli/src/deps/analytics.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/bindings.dart';
 import 'package:sip_cli/src/deps/constrain_pubspec_versions.dart';
+import 'package:sip_cli/src/deps/device_info.dart';
 import 'package:sip_cli/src/deps/find_file.dart';
 import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/is_up_to_date.dart';
@@ -57,6 +59,8 @@ void main(List<String> arguments) async {
         variablesProvider,
         scriptRunnerProvider,
         timeProvider,
+        deviceInfoProvider,
+        analyticsProvider,
       },
     );
   });

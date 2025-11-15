@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:mason_logger/mason_logger.dart';
+import 'package:sip_cli/src/deps/analytics.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
@@ -87,6 +88,19 @@ Options:
 
     final pkgs = await packages(recursive: recursive);
     final commands = <ScriptToRun>[];
+
+    await analytics.track(
+      'pub_$name',
+      props: {
+        'bail': bail,
+        'recursive': recursive,
+        'dart_only': dartOnly,
+        'flutter_only': flutterOnly,
+        'disable_concurrency': disableConcurrency,
+        'separated': separated,
+        'packages_count': pkgs.length,
+      },
+    );
 
     for (final pkg in pkgs) {
       if (!pkg.shouldInclude(dartOnly: dartOnly, flutterOnly: flutterOnly)) {

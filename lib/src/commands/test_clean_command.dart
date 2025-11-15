@@ -1,5 +1,6 @@
 import 'package:mason_logger/mason_logger.dart';
 import 'package:sip_cli/src/commands/test_command/tester_mixin.dart';
+import 'package:sip_cli/src/deps/analytics.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
@@ -19,6 +20,8 @@ class TestCleanCommand with TesterMixin {
       logger.write(_usage);
       return ExitCode.success;
     }
+
+    await analytics.track('test_clean');
 
     final pubspecs = await pubspecYaml.all(recursive: true);
 

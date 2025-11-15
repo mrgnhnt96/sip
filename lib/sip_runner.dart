@@ -6,6 +6,7 @@ import 'package:sip_cli/src/commands/list_command.dart';
 import 'package:sip_cli/src/commands/pub_command.dart';
 import 'package:sip_cli/src/commands/script_run_command.dart';
 import 'package:sip_cli/src/commands/test_command/test_command.dart';
+import 'package:sip_cli/src/deps/analytics.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/is_up_to_date.dart';
 import 'package:sip_cli/src/deps/logger.dart';
@@ -38,6 +39,10 @@ class SipRunner {
     ExitCode exitCode;
 
     final versionCheck = args.get<bool>('version-check', defaultValue: true);
+
+    if (args['disable-analytics'] case true) {
+      analytics.disable();
+    }
 
     try {
       logger

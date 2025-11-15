@@ -5,6 +5,7 @@ import 'dart:io' as io;
 import 'package:scoped_deps/scoped_deps.dart';
 import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/domain/process_details.dart';
+import 'package:sip_cli/src/utils/constants.dart';
 
 typedef Process =
     Future<ProcessDetails> Function(
@@ -31,7 +32,7 @@ final processProvider = create<Process>(() {
       executable,
       arguments,
       workingDirectory: workingDirectory ?? fs.currentDirectory.path,
-      environment: {...?environment, 'SIP_CLI_SCRIPT': 'true'},
+      environment: {...?environment, Env.sipCliScript.name: 'true'},
       includeParentEnvironment: includeParentEnvironment,
       runInShell: runInShell,
       mode: mode,

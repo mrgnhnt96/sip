@@ -4,9 +4,11 @@ import 'package:file/file.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:scoped_deps/scoped_deps.dart';
+import 'package:sip_cli/src/deps/analytics.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/bindings.dart';
 import 'package:sip_cli/src/deps/constrain_pubspec_versions.dart';
+import 'package:sip_cli/src/deps/device_info.dart';
 import 'package:sip_cli/src/deps/find_file.dart';
 import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/is_up_to_date.dart';
@@ -21,9 +23,11 @@ import 'package:sip_cli/src/deps/script_runner.dart';
 import 'package:sip_cli/src/deps/scripts_yaml.dart';
 import 'package:sip_cli/src/deps/time.dart';
 import 'package:sip_cli/src/deps/variables.dart';
+import 'package:sip_cli/src/domain/analytics.dart';
 import 'package:sip_cli/src/domain/args.dart';
 import 'package:sip_cli/src/domain/bindings.dart';
 import 'package:sip_cli/src/domain/constrain_pubspec_versions.dart';
+import 'package:sip_cli/src/domain/device_info.dart';
 import 'package:sip_cli/src/domain/find_file.dart';
 import 'package:sip_cli/src/domain/pubspec_lock.dart';
 import 'package:sip_cli/src/domain/pubspec_yaml.dart';
@@ -59,6 +63,8 @@ void testScoped(
       pubUpdaterProvider,
       variablesProvider,
 
+      deviceInfoProvider.overrideWith(_MockDeviceInfo.new),
+      analyticsProvider.overrideWith(_MockAnalytics.new),
       timeProvider.overrideWith(_MockTime.new),
       loggerProvider.overrideWith(() => logger?.call() ?? mockLogger),
 
@@ -126,3 +132,7 @@ class _MockLogger extends Mock implements Logger {}
 class _MockProgress extends Mock implements Progress {}
 
 class _MockTime extends Mock implements Time {}
+
+class _MockDeviceInfo extends Mock implements DeviceInfo {}
+
+class _MockAnalytics extends Mock implements Analytics {}

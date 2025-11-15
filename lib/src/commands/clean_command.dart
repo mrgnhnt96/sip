@@ -1,4 +1,5 @@
 import 'package:mason_logger/mason_logger.dart';
+import 'package:sip_cli/src/deps/analytics.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
@@ -51,6 +52,18 @@ class CleanCommand {
     }
 
     final packages = pubspecs.map(Package.new);
+
+    await analytics.track(
+      'clean',
+      props: {
+        'is_recursive': isRecursive,
+        'is_concurrent': isConcurrent,
+        'erase_pubspec_lock': erasePubspecLock,
+        'pubspecs_count': pubspecs.length,
+        'flutter_packages_count': packages.where((e) => e.isFlutter).length,
+        'dart_packages_count': packages.where((e) => e.isDart).length,
+      },
+    );
 
     final baseRemoveCommands = [
       'rm -rf .dart_tool',

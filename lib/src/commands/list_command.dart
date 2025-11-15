@@ -1,4 +1,5 @@
 import 'package:mason_logger/mason_logger.dart';
+import 'package:sip_cli/src/deps/analytics.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/domain/scripts_config.dart';
@@ -21,6 +22,8 @@ class ListCommand {
       logger.write(_usage);
       return ExitCode.success;
     }
+
+    await analytics.track('list');
 
     final query = switch (queries) {
       [] => null,

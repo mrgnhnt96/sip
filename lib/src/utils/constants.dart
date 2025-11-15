@@ -1,3 +1,5 @@
+import 'package:sip_cli/src/deps/platform.dart';
+
 /// The keys that are used in the scripts.yaml file
 class Keys {
   const Keys._();
@@ -46,4 +48,15 @@ class Identifiers {
   const Identifiers._();
 
   static const String concurrent = '(+) ';
+}
+
+class Env {
+  const Env._();
+
+  static const String _sipCliScript = 'SIP_CLI_SCRIPT';
+
+  static ({String name, bool isSet}) get sipCliScript => (
+    name: _sipCliScript,
+    isSet: platform.environment.containsKey(_sipCliScript),
+  );
 }

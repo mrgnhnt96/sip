@@ -4,6 +4,7 @@ import 'dart:isolate';
 
 import 'package:scoped_deps/scoped_deps.dart';
 import 'package:sip_cli/src/deps/fs.dart';
+import 'package:sip_cli/src/deps/platform.dart';
 import 'package:sip_cli/src/deps/process.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
 import 'package:sip_cli/src/domain/message.dart';
@@ -106,95 +107,98 @@ class Bindings {
 }
 
 Future<void> _runScript(SendPort sendPort) async {
-  await runScoped(values: {processProvider, fsProvider}, () async {
-    final port = ReceivePort();
+  await runScoped(
+    values: {processProvider, fsProvider, platformProvider},
+    () async {
+      final port = ReceivePort();
 
-    sendPort.send(port.sendPort);
+      sendPort.send(port.sendPort);
 
-    Future<(void Function() kill, Future<CommandResult>)> run(
-      String script, {
-      required bool bail,
-      required bool showOutput,
-      required bool sendOutput,
-    }) async {
-      final [command, arg] = switch (Platform.operatingSystem) {
-        'linux' => ['bash', '-c'],
-        'macos' => ['bash', '-c'],
-        'windows' => ['cmd', '/c'],
-        _ => throw UnsupportedError('Unsupported platform'),
-      };
+      Future<(void Function() kill, Future<CommandResult>)> run(
+        String script, {
+        required bool bail,
+        required bool showOutput,
+        required bool sendOutput,
+      }) async {
+        final [command, arg] = switch (Platform.operatingSystem) {
+          'linux' => ['bash', '-c'],
+          'macos' => ['bash', '-c'],
+          'windows' => ['cmd', '/c'],
+          _ => throw UnsupportedError('Unsupported platform'),
+        };
 
-      // sendOutput = true
-      var mode = ProcessStartMode.normal;
+        // sendOutput = true
+        var mode = ProcessStartMode.normal;
 
-      if (showOutput && !sendOutput) {
-        mode = ProcessStartMode.inheritStdio;
-      }
+        if (showOutput && !sendOutput) {
+          mode = ProcessStartMode.inheritStdio;
+        }
 
-      final details = await process(
-        command,
-        [arg, script],
-        runInShell: false,
-        mode: mode,
-      );
-
-      final outputBuffer = StringBuffer();
-      final errorBuffer = StringBuffer();
-
-      details.stdout.listen((event) {
-        if (event.trim().isEmpty) return;
-
-        sendPort.send(Message(event).toJson());
-        outputBuffer.write(event);
-      });
-
-      details.stderr.listen((event) {
-        if (event.trim().isEmpty) return;
-
-        sendPort.send(Message(event, isError: true).toJson());
-        errorBuffer.write(event);
-      });
-
-      final future = details.exitCode.then((code) {
-        details.kill();
-
-        return CommandResult(
-          exitCode: code,
-          output: outputBuffer.toString(),
-          error: errorBuffer.toString(),
+        final details = await process(
+          command,
+          [arg, script],
+          runInShell: false,
+          mode: mode,
         );
-      });
 
-      return (details.kill, future);
-    }
+        final outputBuffer = StringBuffer();
+        final errorBuffer = StringBuffer();
 
-    final killers = <void Function()>[];
+        details.stdout.listen((event) {
+          if (event.trim().isEmpty) return;
 
-    await for (final event in port) {
-      switch (event) {
-        case 'KILL':
-          for (final kill in killers) {
-            kill();
-          }
-          killers.clear();
-          sendPort.send('KILL_DONE');
-        case {
-          'script': final String script,
-          'bail': final bool bail,
-          'showOutput': final bool showOutput,
-          'sendOutput': final bool sendOutput,
-        }:
-          final (kill, result) = await run(
-            script,
-            bail: bail,
-            showOutput: showOutput,
-            sendOutput: sendOutput,
+          sendPort.send(Message(event).toJson());
+          outputBuffer.write(event);
+        });
+
+        details.stderr.listen((event) {
+          if (event.trim().isEmpty) return;
+
+          sendPort.send(Message(event, isError: true).toJson());
+          errorBuffer.write(event);
+        });
+
+        final future = details.exitCode.then((code) {
+          details.kill();
+
+          return CommandResult(
+            exitCode: code,
+            output: outputBuffer.toString(),
+            error: errorBuffer.toString(),
           );
+        });
 
-          killers.add(kill);
-
-          result.then((result) => sendPort.send(result.toJson())).ignore();
+        return (details.kill, future);
       }
-    }
-  });
+
+      final killers = <void Function()>[];
+
+      await for (final event in port) {
+        switch (event) {
+          case 'KILL':
+            for (final kill in killers) {
+              kill();
+            }
+            killers.clear();
+            sendPort.send('KILL_DONE');
+          case {
+            'script': final String script,
+            'bail': final bool bail,
+            'showOutput': final bool showOutput,
+            'sendOutput': final bool sendOutput,
+          }:
+            final (kill, result) = await run(
+              script,
+              bail: bail,
+              showOutput: showOutput,
+              sendOutput: sendOutput,
+            );
+
+            killers.add(kill);
+
+            result.then((result) => sendPort.send(result.toJson())).ignore();
+        }
+      }
+    },
+  );
 }
