@@ -29,6 +29,7 @@ Flags:
   --optimize                        Create optimized test files (Dart only)
                                       (default: true)
   --slice [count]                   Splits test files into chunks and runs them concurrently
+  --omit-errors                     Omit errors from the test output, only show failures
 ---
 
 Include any dart or flutter args run `dart test --help` or `flutter test --help`

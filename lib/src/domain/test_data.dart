@@ -1,6 +1,7 @@
 import 'dart:io' as io;
 
 import 'package:mason_logger/mason_logger.dart';
+import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/time.dart';
@@ -247,13 +248,15 @@ class TestData {
       }
 
       if (output case TestOutput(didFail: true, :final String error)) {
-        if (error.trim() case final error when error.isNotEmpty) {
-          yield '\n';
+        if (args['omit-errors'] case null || false) {
+          if (error.trim() case final error when error.isNotEmpty) {
+            yield '\n';
 
-          final lines = error.split('\n');
-          for (final line in lines) {
-            yield lightRed.wrap('│');
-            yield '${darkGray.wrap(resetAll.wrap(line))}\n';
+            final lines = error.split('\n');
+            for (final line in lines) {
+              yield lightRed.wrap('│');
+              yield '${darkGray.wrap(resetAll.wrap(line))}\n';
+            }
           }
         }
 
