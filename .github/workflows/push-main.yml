@@ -19,7 +19,6 @@ jobs:
           sdk: "stable"
 
       - name: Install dependencies
-        working-directory: packages/sip
         run: dart pub get
 
       - name: Install SIP
