@@ -14,9 +14,6 @@ import 'package:sip_cli/src/domain/message_action.dart';
 import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:sip_cli/src/domain/time.dart';
 
-// TODO: print out bailing message
-// TODO: bail on concurrent commands
-
 typedef _RunFunction =
     Future<CommandResult> Function({bool? showOutputOverride});
 
