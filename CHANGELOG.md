@@ -1,3 +1,10 @@
+# 0.18.1-pre | 11.14.2025
+
+## Fixes
+
+- Formatting output for tests
+- Add more detailed logs when running with `--loud` flag
+
 # 0.18.0-pre | 11.14.2025
 
 ## Breaking Changes

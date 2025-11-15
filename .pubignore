@@ -1,2 +1,7 @@
 scripts.yaml
 test
+sip_lint_kit
+hooks
+failed_tests.txt
+build.yaml
+build
