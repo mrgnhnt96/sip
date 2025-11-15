@@ -1,3 +1,27 @@
+# 0.18.0-pre | 11.14.2025
+
+## Breaking Changes
+
+- Remove `test watch` command
+- Deprecate `{$path:...}` and `{--flag}` syntax for referencing scripts
+  - This will be removed in the next major version
+  - Prefer to use `${{ path.script_name }}` and `${{ --flag }}` syntax instead
+
+## Features
+
+- Support `--bail` for flutter tests
+- Add `--slice` flag for flutter tests
+  - Separates test directories into chuncks to run them concurrently, useful for large test suites and decreasing the time to run tests
+- Add analytics [lukehog](https://lukehog.com)
+- Pass `--help` flag within `sip run <path>` to print the usage information for the script
+- Reformat test output on CI
+
+## Enhancements
+
+- Update dependencies
+- Improve test output formatting
+- Improve script output formatting
+
 # 0.17.16 | 6.6.2025
 
 ## Fixes

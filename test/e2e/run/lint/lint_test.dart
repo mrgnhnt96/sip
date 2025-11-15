@@ -32,9 +32,9 @@ void main() {
       logger = _MockLogger();
 
       when(
-        () => bindings.runScriptWithOutput(
+        () => bindings.runScript(
           any(),
-          onOutput: any(named: 'onOutput'),
+          showOutput: any(named: 'showOutput'),
           bail: any(named: 'bail'),
         ),
       ).thenAnswer(
@@ -96,12 +96,13 @@ void main() {
       });
 
       test('command: lint --package application', () async {
-        await command.run(['lint', '--package', 'application']);
+        args['package'] = 'application';
+        await command.run(['lint']);
 
         final [script] = verify(
-          () => bindings.runScriptWithOutput(
+          () => bindings.runScript(
             captureAny(),
-            onOutput: any(named: 'onOutput'),
+            showOutput: any(named: 'showOutput'),
             bail: any(named: 'bail'),
           ),
         ).captured;
@@ -123,9 +124,8 @@ fi'''
       });
 
       test('command: lint --package application --print', () async {
-        args.values['print'] = true;
-
-        args.path = ['run', 'lint', '--package', 'application'];
+        args['package'] = 'application';
+        args.path = ['run', 'lint'];
         args['print'] = true;
 
         await runner.run();

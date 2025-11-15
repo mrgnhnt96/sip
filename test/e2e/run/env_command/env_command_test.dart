@@ -100,17 +100,10 @@ BAR=baz
 
         await command.run(['server', 'pocketbase', 'migrate']);
 
-        final [env] = verify(
+        final [env, one, two] = verify(
           () => bindings.runScript(
             captureAny(),
             showOutput: any(named: 'showOutput'),
-            bail: any(named: 'bail'),
-          ),
-        ).captured;
-        final [one, two] = verify(
-          () => bindings.runScriptWithOutput(
-            captureAny(),
-            onOutput: any(named: 'onOutput'),
             bail: any(named: 'bail'),
           ),
         ).captured;

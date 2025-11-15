@@ -30,10 +30,10 @@ void main() {
       bindings = _MockBindings();
 
       when(
-        () => bindings.runScriptWithOutput(
+        () => bindings.runScript(
           any(),
+          showOutput: any(named: 'showOutput'),
           bail: any(named: 'bail'),
-          onOutput: any(named: 'onOutput'),
         ),
       ).thenAnswer(
         (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
@@ -83,9 +83,9 @@ void main() {
 
       await command.run(['test-suite']);
       final commands = verify(
-        () => bindings.runScriptWithOutput(
+        () => bindings.runScript(
           captureAny(),
-          onOutput: any(named: 'onOutput'),
+          showOutput: any(named: 'showOutput'),
         ),
       ).captured;
 

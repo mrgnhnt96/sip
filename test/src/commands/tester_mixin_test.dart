@@ -145,7 +145,7 @@ void main() {
             onOutput: any(named: 'onOutput'),
             bail: any(named: 'bail'),
           ),
-        ).called(1);
+        ).called(2);
       });
 
       group('should run all commands', () {

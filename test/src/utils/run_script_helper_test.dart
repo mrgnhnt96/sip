@@ -26,6 +26,10 @@ void main() {
       scriptsYaml = _MockScriptsYaml();
       pubspecYaml = _MockPubspecYaml();
 
+      when(
+        () => pubspecYaml.nearest(),
+      ).thenReturn(fs.path.join('pubspec.yaml'));
+
       fs.file(fs.path.join('some', 'path', 'to', 'test', '.env'))
         ..createSync(recursive: true)
         ..writeAsStringSync('TEST_VAR=test');

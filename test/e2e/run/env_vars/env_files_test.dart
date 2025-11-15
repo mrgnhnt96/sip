@@ -24,9 +24,9 @@ void main() {
       fs = MemoryFileSystem.test();
 
       when(
-        () => bindings.runScriptWithOutput(
+        () => bindings.runScript(
           any(),
-          onOutput: any(named: 'onOutput'),
+          showOutput: any(named: 'showOutput'),
           bail: any(named: 'bail'),
         ),
       ).thenAnswer(
@@ -76,9 +76,9 @@ void main() {
         await command.run(['publish']);
 
         final [script, ...] = verify(
-          () => bindings.runScriptWithOutput(
+          () => bindings.runScript(
             captureAny(),
-            onOutput: any(named: 'onOutput'),
+            showOutput: any(named: 'showOutput'),
             bail: any(named: 'bail'),
           ),
         ).captured;

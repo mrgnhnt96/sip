@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
 import 'package:meta/meta.dart';
+import 'package:sip_cli/src/domain/pubspec_yaml.dart';
 import 'package:sip_cli/src/domain/script.dart';
 import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:sip_cli/src/domain/scripts_yaml.dart';
@@ -24,6 +25,13 @@ void main() {
     }
 
     test('should resolve variables', () {
+      fs.file(PubspecYaml.fileName)
+        ..createSync(recursive: true)
+        ..writeAsStringSync('''
+name: test
+version: 1.0.0
+''');
+
       fs.file(ScriptsYaml.fileName)
         ..createSync(recursive: true)
         ..writeAsStringSync(r'''

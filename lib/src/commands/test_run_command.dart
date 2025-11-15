@@ -71,6 +71,7 @@ class TestRunCommand with TesterMixin {
         'is_dart_only': isDartOnly,
         'is_flutter_only': isFlutterOnly,
         'optimize': optimize,
+        'omit_errors': args.get<bool>('omit-errors', defaultValue: false),
       },
     );
 

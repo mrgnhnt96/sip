@@ -12,21 +12,24 @@ import 'package:sip_cli/src/domain/pubspec_yaml.dart';
 import 'package:sip_cli/src/domain/scripts_yaml.dart';
 import 'package:test/test.dart';
 
+import '../../../utils/fake_args.dart';
 import '../../../utils/test_scoped.dart';
 
 void main() {
   group('env files e2e', () {
     late FileSystem fs;
     late Bindings bindings;
+    late FakeArgs args;
 
     setUp(() {
       bindings = _MockBindings();
       fs = MemoryFileSystem.test();
+      args = FakeArgs();
 
       when(
-        () => bindings.runScriptWithOutput(
+        () => bindings.runScript(
           any(),
-          onOutput: any(named: 'onOutput'),
+          showOutput: any(named: 'showOutput'),
           bail: any(named: 'bail'),
         ),
       ).thenAnswer(
@@ -45,6 +48,7 @@ void main() {
         fn,
         fileSystem: () => fs,
         bindings: () => bindings,
+        args: () => args,
       );
     }
 
@@ -76,9 +80,9 @@ void main() {
         await command.run(['test']);
 
         final [script] = verify(
-          () => bindings.runScriptWithOutput(
+          () => bindings.runScript(
             captureAny(),
-            onOutput: any(named: 'onOutput'),
+            showOutput: any(named: 'showOutput'),
             bail: any(named: 'bail'),
           ),
         ).captured;
@@ -94,12 +98,13 @@ dart test'''
       });
 
       test('command: test --coverage', () async {
-        await command.run(['test', '--coverage']);
+        args['coverage'] = true;
+        await command.run(['test']);
 
         final [script] = verify(
-          () => bindings.runScriptWithOutput(
+          () => bindings.runScript(
             captureAny(),
-            onOutput: any(named: 'onOutput'),
+            showOutput: any(named: 'showOutput'),
             bail: any(named: 'bail'),
           ),
         ).captured;
@@ -115,12 +120,13 @@ dart test --coverage'''
       });
 
       test('command: test --coverage=banana', () async {
-        await command.run(['test', '--coverage=banana']);
+        args['coverage'] = 'banana';
+        await command.run(['test']);
 
         final [script] = verify(
-          () => bindings.runScriptWithOutput(
+          () => bindings.runScript(
             captureAny(),
-            onOutput: any(named: 'onOutput'),
+            showOutput: any(named: 'showOutput'),
             bail: any(named: 'bail'),
           ),
         ).captured;
@@ -136,12 +142,13 @@ dart test --coverage banana'''
       });
 
       test('command: test --coverage monkey', () async {
-        await command.run(['test', '--coverage', 'monkey']);
+        args['coverage'] = 'monkey';
+        await command.run(['test']);
 
         final [script] = verify(
-          () => bindings.runScriptWithOutput(
+          () => bindings.runScript(
             captureAny(),
-            onOutput: any(named: 'onOutput'),
+            showOutput: any(named: 'showOutput'),
             bail: any(named: 'bail'),
           ),
         ).captured;

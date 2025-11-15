@@ -29,8 +29,19 @@ class Package {
   String get pubspec => _pubspecYaml;
 
   String? _tool;
-  bool get isFlutter => tool == 'flutter';
-  bool get isDart => tool == 'dart';
+  bool? _isFlutter;
+  bool get isFlutter {
+    if (_isFlutter case final bool isFlutter) {
+      return isFlutter;
+    }
+
+    final nestedLock = pubspecLock.findIn(path);
+    final contents = findFile.retrieveContent(nestedLock ?? _pubspecYaml);
+
+    return _isFlutter = contents?.contains('flutter') ?? false;
+  }
+
+  bool get isDart => !isFlutter;
 
   String? _name;
   String get name {
@@ -65,13 +76,11 @@ class Package {
       return tool;
     }
 
-    final nestedLock = pubspecLock.findIn(path);
     final executables = Executables.load();
-    final contents = findFile.retrieveContent(nestedLock ?? _pubspecYaml);
 
-    return _tool = switch (contents?.contains('flutter')) {
+    return _tool = switch (isFlutter) {
       true => executables.flutter ?? 'flutter',
-      null || false => executables.dart ?? 'dart',
+      false => executables.dart ?? 'dart',
     };
   }
 
@@ -154,7 +163,7 @@ class Package {
   List<List<String>> get testGroups {
     if (optimizedTestFile case final file?) {
       return [
-        [file],
+        [fs.path.relative(file, from: path)],
       ];
     }
 

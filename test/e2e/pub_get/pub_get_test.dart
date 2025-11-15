@@ -83,7 +83,7 @@ void main() {
 
       expect(result.code, ExitCode.success.code);
       final [commands] = verify(
-        () => scriptRunner.run(captureAny(), bail: false, showOutput: false),
+        () => scriptRunner.run(captureAny(), bail: false),
       ).captured;
 
       final [a, b, c, d] = commands as List<ScriptToRun>;

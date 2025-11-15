@@ -285,7 +285,10 @@ class ScriptRunner {
 
           if (running.isEmpty) {
             waitForRunning?.complete();
-            controller.close().ignore();
+
+            if (index == pending.length - 1) {
+              controller.close().ignore();
+            }
           }
         }).ignore();
       } else {

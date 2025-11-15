@@ -50,10 +50,24 @@ void testScoped(
   ScriptRunner Function()? scriptRunner,
   Args Function()? args,
 }) {
+  setUpAll(() {
+    registerFallbackValue(TimeKey.core);
+  });
+
   test(description, () async {
     final mockLogger = _MockLogger();
     when(() => mockLogger.level).thenReturn(Level.quiet);
     when(() => mockLogger.progress(any())).thenReturn(_MockProgress());
+
+    final mockAnalytics = _MockAnalytics();
+    when(
+      () => mockAnalytics.track(any(), props: any(named: 'props')),
+    ).thenAnswer((_) async {
+      // ignore
+    });
+
+    final mockTime = _MockTime();
+    when(() => mockTime.snapshot(any())).thenReturn('00:00');
 
     final testProviders = {
       isUpToDateProvider,
@@ -64,8 +78,8 @@ void testScoped(
       variablesProvider,
 
       deviceInfoProvider.overrideWith(_MockDeviceInfo.new),
-      analyticsProvider.overrideWith(_MockAnalytics.new),
-      timeProvider.overrideWith(_MockTime.new),
+      analyticsProvider.overrideWith(() => mockAnalytics),
+      timeProvider.overrideWith(() => mockTime),
       loggerProvider.overrideWith(() => logger?.call() ?? mockLogger),
 
       if (scriptRunner?.call() case final scriptRunner?)
