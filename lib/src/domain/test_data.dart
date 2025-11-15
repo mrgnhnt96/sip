@@ -326,7 +326,7 @@ class TestData {
         buf.write('\x1B[0G');
       }
 
-      buf.write('Results: ✅ $passing ❌ $failing ⚠️ $skipped');
+      buf.write('Results: ✅ $passing ❌ $failing ⚠️  $skipped');
       if (hasTerminal) {
         // clear the rest of the line
         buf.write('\x1B[K');
