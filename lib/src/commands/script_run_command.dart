@@ -62,7 +62,7 @@ class ScriptRunCommand with RunScriptHelper, WorkingDirectory {
     }
 
     final config = ScriptsConfig.load();
-    final userArgs = Args.parse(keys);
+    final userArgs = Args(path: keys, args: args.values);
 
     final script = config.find(userArgs.path);
     if (script == null) {
