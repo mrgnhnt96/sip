@@ -28,373 +28,23 @@ dart pub global activate sip_cli
 sip --help
 ```
 
-## Run Scripts
+## Quick Start
 
-Regardless of your current working directory, the script will always be executed from the same directory as the `scripts.yaml` file.
-
-The `sip run` command will run a script defined within the `scripts.yaml` file.
-
-To view the flags that can be passed to `sip run`, you can run `sip run --help`.
-
-```yaml
-build_runner:
-  build: dart run build_runner build --delete-conflicting-outputs
-```
-
-```bash
-$ sip run build_runner build
-
-- dart run build_runner build --delete-conflicting-outputs
-...
-```
-
-For more information on the `scripts.yaml` file, see the [scripts.yaml configuration](#scriptsyaml-configuration) section.
-
-### Environment configuration
-
-A script can accept a file path to a file that contains environment variables. This is useful when you need to access environment variables across multiple scripts.
-
-Since each script (in a list) is run in a separate process, the environment variables are not shared between scripts. By passing a file path to a script, the environment variables will be loaded into the script.
+Create a `scripts.yaml` file in the root of your project, and add your first script:
 
 ```yaml
 # scripts.yaml
 
-build:
-  (command): flutter build apk
-  (env): .env
+hello:
+  world: echo "Hello, World!"
 ```
 
-If there is a script required to run to generate the environment variables, you can pass the script to the `(env)` key.
-
-```yaml
-# scripts.yaml
-
-build:
-  (command): flutter build apk
-  (env):
-    file: .env
-    command: dart run generate_env.dart
-```
-
-This command will only run once, right before the `(command)` is run.
-
-If you would like to set certain the environment variables, you can add `vars` to the `(env)` key.
-
-```yaml
-# scripts.yaml
-
-build:
-  (command): flutter build apk
-  (env):
-    vars:
-      FLUTTER_BUILD_MODE: release
-```
-
-This will set the `FLUTTER_BUILD_MODE` environment variable to `release` before running the `(command)`.
-
-> [!WARNING]
-> The `vars` will come **after** the `(env).file` is sourced, meaning that `(env).vars` will override the environment variables set in the `(env).file`.
->
-> When referencing a script, the top most `(env)` variables will be prioritized.
->
-> ```yaml
-> # scripts.yaml
->
-> build:
->   (env):
->     vars:
->       FLUTTER_BUILD_MODE: release
->
->   debug:
->     (env):
->       vars:
->         FLUTTER_BUILD_MODE: debug
->     (command): "{$build}"
-> ```
->
-> Running the script `debug` will set the `FLUTTER_BUILD_MODE` environment variable to `debug`, while running the script `build` will set the `FLUTTER_BUILD_MODE` environment variable to `release`.
-
-### Continuous Commands
-
-Sometimes, you may want to run a command continuously, even if the command fails.
-
-For example: The `build_runner` package will always stop running whenever the project's dependencies change. To prevent this, you can use the `--never-exit` flag.
+Now run your script:
 
 ```bash
-sip run build_runner watch --never-exit
-```
+$ sip run hello world
 
-This should be used with caution, as this will cause the script to run indefinitely. You can stop the script by pressing `Ctrl + C`.
-
-There is a 1 second delay between each run of the command, to prevent any runaway scripts.
-
-## Pub Commands
-
-### PUB GET
-
-`sip pub get` runs `pub get` in the closest parent directory containing a `pubspec.yaml` file.
-
-There are flags that can be passed to `sip pub get` that will be passed to `pub get`. The following flags are supported:
-
-- offline
-- dry-run
-- enforce-lockfile
-- precompile
-
-_You can read more about these flags [here](https://dart.dev/tools/pub/cmd/pub-get#options)._
-
-```bash
-# Current working directory: packages/core/lib
-$ sip pub get
-
-- Running pub get
-
-- (dart)    ./..
-```
-
-Sip can determine if flutter is being used within the project, so it will run `flutter pub get` instead of `dart pub get`.
-
-```bash
-# Current working directory: packages/ui/lib
-$ sip pub get
-
-- Running pub get
-
-- (flutter) ./..
-```
-
-### PUB GET (Recursive)
-
-`sip pub get --recursive` runs `pub get` in all children directories containing a `pubspec.yaml` file, **_concurrently_**.
-
-**_Note:_** A pubspec.yaml file does not need to be present in the current working directory.
-
-```bash
-# Current working directory: packages
-$ sip pub get --recursive
-
-- Running pub get
-
-- (dart)    ./core
-- (dart)    ./data
-- (flutter) ./ui
-- (flutter) ./.
-```
-
-### PUB UPGRADE
-
-`sip pub upgrade` runs `pub upgrade`. It performs and functions the same as `sip pub get` but will upgrade all dependencies to the latest version.
-
-There are flags that can be passed to `sip pub upgrade` that will be passed to `pub upgrade`. The following flags are supported:
-
-- offline
-- dry-run
-- precompile
-- tighten
-- major-versions
-- unlock-transitive
-
-_You can read more about these flags [here](https://dart.dev/tools/pub/cmd/pub-upgrade#options)._
-
-> [!TIP]
-> If you would like to upgrade only certain dependencies, you can pass the package's names as arguments.
->
-> ```bash
-> sip pub upgrade provider shared_preferences
-> ```
->
-> This will only upgrade the `provider` and `shared_preferences` packages.
->
-> Running recursively, if these dependencies don't exist in the pubspec.yaml file, the pubspec.yaml file will be ignored
-
-### PUB DOWNGRADE
-
-`sip pub downgrade` runs `pub downgrade`. It performs and functions the same as `sip pub get` but will downgrade all dependencies to the latest version.
-
-There are flags that can be passed to `sip pub downgrade` that will be passed to `pub downgrade`. The following flags are supported:
-
-- offline
-- dry-run
-- tighten
-
-_You can read more about these flags [here](https://dart.dev/tools/pub/cmd/pub-downgrade#options)._
-
-### PUB DEPS
-
-`sip pub deps` runs `pub deps` in the closest parent directory containing a `pubspec.yaml` file.
-
-There are flags that can be passed to `sip pub deps` that will be passed to `pub deps`. The following flags are supported:
-
-- style
-- dev
-- executables
-- json
-
-_You can read more about these flags [here](https://dart.dev/tools/pub/cmd/pub-deps#options)._
-
-### PUB CONSTRAIN
-
-`sip pub constrain` will modify the `pubspec.yaml` file to constrain the version of each dependency to the version that is currently being used.
-
-```yaml
-# pubspec.yaml (BEFORE)
-name: package
-
-dependencies:
-  provider: ^5.0.0
-  shared_preferences: 2.0.0
-  http: ^0.13.3
-  dio: ">=4.0.0 <5.0.0"
-```
-
-```bash
-sip pub constrain
-```
-
-```yaml
-# pubspec.yaml (AFTER)
-name: package
-
-dependencies:
-  provider: ">=5.0.0 <6.0.0"
-  shared_preferences: ">=2.0.0 <3.0.0"
-  http: ">=0.13.3 <0.14.0"
-  dio: ">=4.0.0 <5.0.0"
-```
-
-If you would like to constrain only certain dependencies, you can pass the package's names as arguments, and (optionally) the version to constrain to.
-
-```bash
-sip pub constrain provider shared_preferences:2.3.0
-```
-
-```yaml
-# pubspec.yaml (AFTER)
-name: package
-
-dependencies:
-  provider: ">=5.0.0 <6.0.0"
-  shared_preferences: ">=2.3.0 <3.0.0"
-  ...
-```
-
-If you would like to pin the version of the dependency, you can pass the `--pin` flag.
-
-```bash
-sip pub constrain provider shared_preferences --pin
-```
-
-```yaml
-# pubspec.yaml (AFTER)
-name: package
-
-dependencies:
-  provider: 5.0.0
-  shared_preferences: 2.0.0
-  ...
-```
-
-Or you can unpin the version of the dependency by passing the `--no-pin` flag.
-
-```bash
-sip pub constrain provider shared_preferences --no-pin
-```
-
-```yaml
-# pubspec.yaml (AFTER)
-name: package
-
-dependencies:
-  provider: ^5.0.0
-  shared_preferences: ^2.0.0
-```
-
-Flags:
-
-- **recursive**: Constrain all dependencies in all children directories containing a `pubspec.yaml` file.
-- **dev_dependencies**: Constrain the dev_dependencies in the `pubspec.yaml` file.
-- **bump**: Choose which version to bump to. The options are `breaking`, `major`, `minor`, and `patch`.
-- **dry-run**: Print the changes that will be made without actually making the changes.
-- **dart-only**: Only constrain dart dependencies.
-- **flutter-only**: Only constrain flutter dependencies.
-- **pin**: Pin the version of the dependency.
-- **no-pin**: Unpin the version of the dependency.
-
-## Running Tests
-
-Sip can run dart/flutter tests, and pass most all dart/flutter test flags. To view all the flags that can be passed to `sip test`, you can run `sip test --help`.
-
-```bash
-# Run all tests
-$ sip test --recursive --concurrent
-```
-
-## Running only dart or flutter tests
-
-By default, sip will run all tests, regardless of whether the project is a dart or flutter project. If you would like to run only dart tests, you can run:
-
-```bash
-sip test --dart-only
-```
-
-If you would like to run only flutter tests, you can run:
-
-```bash
-sip test --flutter-only
-```
-
-## Watch Mode
-
-Sip can watch for changes in the project and run the tests whenever a file changes. To run tests in watch mode, you can run:
-
-```bash
-sip test watch
-```
-
-### Ways to run tests
-
-Sip can run tests in a few different ways:
-
-#### Run all tests
-
-```bash
-sip test watch --run all
-```
-
-When a file changes in the project, all tests will be run. This is helpful if you want to ensure that the changes you made did not break any tests.
-
-#### Run package tests
-
-```bash
-sip test watch --run package
-```
-
-When a file changes in the project, only the tests in the package will be run. This is helpful if you want to ensure that the changes you made did not break any tests in the package.
-
-#### Run file tests
-
-```bash
-sip test watch --run file
-```
-
-When a file changes in the project, only the tests in the file will be run. This is helpful if you want to ensure that the changes you made did not break any tests for that file. This is also a great way for [TDD](https://en.wikipedia.org/wiki/Test-driven_development)!
-
-### Toggle run states
-
-Toggling these states during watch mode is possible by pressing the `t` key in the terminal.
-
-![toggle_states](assets/toggle_states.png)
-
-In addition to toggling the run states, you can also toggle the `--concurrent` flag by pressing the `c` key in the terminal.
-
-### --bail
-
-Bailing on tests means that the moment a test fails, the script will stop running, even if there are other tests to run.
-
-By passing the `--bail` flag, the script will stop running after the a test fails. For dart tests, the `--bail` flag will enable the `--fail-fast` flag.
-
-```bash
-sip test --bail
+Hello, World!
 ```
 
 ## `Scripts.yaml` configuration
@@ -785,3 +435,330 @@ format:
   data: cd packages/data && {$format:_command}
   application: cd application && {$format:_command}
 ```
+
+## Run Scripts
+
+Regardless of your current working directory, the script will always be executed from the same directory as the `scripts.yaml` file.
+
+The `sip run` command will run a script defined within the `scripts.yaml` file.
+
+To view the flags that can be passed to `sip run`, you can run `sip run --help`.
+
+```yaml
+build_runner:
+  build: dart run build_runner build
+```
+
+```bash
+$ sip run build_runner build
+
+- dart run build_runner build
+...
+```
+
+For more information on the `scripts.yaml` file, see the [scripts.yaml configuration](#scriptsyaml-configuration) section.
+
+### Environment configuration
+
+A script can accept a file path to a file that contains environment variables. This is useful when you need to access environment variables across multiple scripts.
+
+Since each script (in a list) is run in a separate process, the environment variables are not shared between scripts. By passing a file path to a script, the environment variables will be loaded into the script.
+
+```yaml
+# scripts.yaml
+
+build:
+  (command): flutter build apk
+  (env): .env
+```
+
+If there is a script required to run to generate the environment variables, you can pass the script to the `(env)` key.
+
+```yaml
+# scripts.yaml
+
+build:
+  (command): flutter build apk
+  (env):
+    file: .env
+    command: dart run generate_env.dart
+```
+
+This command will only run once, right before the `(command)` is run.
+
+If you would like to set certain the environment variables, you can add `vars` to the `(env)` key.
+
+```yaml
+# scripts.yaml
+
+build:
+  (command): flutter build apk
+  (env):
+    vars:
+      FLUTTER_BUILD_MODE: release
+```
+
+This will set the `FLUTTER_BUILD_MODE` environment variable to `release` before running the `(command)`.
+
+> [!WARNING]
+> The `vars` will come **after** the `(env).file` is sourced, meaning that `(env).vars` will override the environment variables set in the `(env).file`.
+>
+> When referencing a script, the top most `(env)` variables will be prioritized.
+>
+> ```yaml
+> # scripts.yaml
+>
+> build:
+>   (env):
+>     vars:
+>       FLUTTER_BUILD_MODE: release
+>
+>   debug:
+>     (env):
+>       vars:
+>         FLUTTER_BUILD_MODE: debug
+>     (command): "${{ build }}"
+> ```
+>
+> Running the script `debug` will set the `FLUTTER_BUILD_MODE` environment variable to `debug`, while running the script `build` will set the `FLUTTER_BUILD_MODE` environment variable to `release`.
+
+### Continuous Commands
+
+Sometimes, you may want to run a command continuously, even if the command fails.
+
+For example: The `build_runner` package will always stop running whenever the project's dependencies change. To prevent this, you can use the `--never-exit` flag.
+
+```bash
+sip run build_runner watch --never-exit
+```
+
+This should be used with caution, as this will cause the script to run indefinitely. You can stop the script by pressing `Ctrl + C`.
+
+There is a 1 second delay between each run of the command, to prevent any runaway scripts.
+
+## Running Tests
+
+Sip can run dart/flutter tests, and pass most all dart/flutter test flags. To view all the flags that can be passed to `sip test`, you can run `sip test --help`.
+
+```bash
+# Run all tests
+$ sip test --recursive
+```
+
+## Running only dart or flutter tests
+
+By default, sip will run all tests, regardless of whether the project is a dart or flutter project. If you would like to run only dart tests, you can run:
+
+```bash
+sip test --dart-only
+```
+
+If you would like to run only flutter tests, you can run:
+
+```bash
+sip test --flutter-only
+```
+
+### --bail
+
+Bailing on tests means that the moment a test fails, the script will stop running, even if there are other tests to run.
+
+By passing the `--bail` flag, the script will stop running after the a test fails. For dart tests, the `--bail` flag will enable the `--fail-fast` flag.
+
+```bash
+sip test --bail
+```
+
+Even though flutter doesn't support the `--fail-fast` flag, sip will stop running tests after the first test fails.
+
+## Pub Commands
+
+### PUB GET
+
+`sip pub get` runs `pub get` in the closest parent directory containing a `pubspec.yaml` file.
+
+There are flags that can be passed to `sip pub get` that will be passed to `pub get`. The following flags are supported:
+
+- offline
+- dry-run
+- enforce-lockfile
+- precompile
+
+_You can read more about these flags [here](https://dart.dev/tools/pub/cmd/pub-get#options)._
+
+```bash
+# Current working directory: packages/core/lib
+$ sip pub get
+
+- Running pub get
+
+- (dart)    ./..
+```
+
+Sip can determine if flutter is being used within the project, so it will run `flutter pub get` instead of `dart pub get`.
+
+```bash
+# Current working directory: packages/ui/lib
+$ sip pub get
+
+- Running pub get
+
+- (flutter) ./..
+```
+
+### PUB GET (Recursive)
+
+`sip pub get --recursive` runs `pub get` in all children directories containing a `pubspec.yaml` file, **_concurrently_**.
+
+**_Note:_** A pubspec.yaml file does not need to be present in the current working directory.
+
+```bash
+# Current working directory: packages
+$ sip pub get --recursive
+
+- Running pub get
+
+- (dart)    ./packages/core
+- (dart)    ./packages/data
+- (flutter) ./packages/ui
+- (flutter) ./.
+```
+
+### PUB UPGRADE
+
+`sip pub upgrade` runs `pub upgrade`. It performs and functions the same as `sip pub get` but will upgrade all dependencies to the latest version.
+
+There are flags that can be passed to `sip pub upgrade` that will be passed to `pub upgrade`. The following flags are supported:
+
+- offline
+- dry-run
+- precompile
+- tighten
+- major-versions
+- unlock-transitive
+
+_You can read more about these flags [here](https://dart.dev/tools/pub/cmd/pub-upgrade#options)._
+
+> [!TIP]
+> If you would like to upgrade only certain dependencies, you can pass the package's names as arguments.
+>
+> ```bash
+> sip pub upgrade provider shared_preferences
+> ```
+>
+> This will only upgrade the `provider` and `shared_preferences` packages.
+>
+> Running recursively, if these dependencies don't exist in the pubspec.yaml file, the pubspec.yaml file will be ignored
+
+### PUB DOWNGRADE
+
+`sip pub downgrade` runs `pub downgrade`. It performs and functions the same as `sip pub get` but will downgrade all dependencies to the latest version.
+
+There are flags that can be passed to `sip pub downgrade` that will be passed to `pub downgrade`. The following flags are supported:
+
+- offline
+- dry-run
+- tighten
+
+_You can read more about these flags [here](https://dart.dev/tools/pub/cmd/pub-downgrade#options)._
+
+### PUB DEPS
+
+`sip pub deps` runs `pub deps` in the closest parent directory containing a `pubspec.yaml` file.
+
+There are flags that can be passed to `sip pub deps` that will be passed to `pub deps`. The following flags are supported:
+
+- style
+- dev
+- executables
+- json
+
+_You can read more about these flags [here](https://dart.dev/tools/pub/cmd/pub-deps#options)._
+
+### PUB CONSTRAIN
+
+`sip pub constrain` will modify the `pubspec.yaml` file to constrain the version of each dependency to the version that is currently being used.
+
+```yaml
+# pubspec.yaml (BEFORE)
+name: package
+
+dependencies:
+  provider: ^5.0.0
+  shared_preferences: 2.0.0
+  http: ^0.13.3
+  dio: ">=4.0.0 <5.0.0"
+```
+
+```bash
+sip pub constrain
+```
+
+```yaml
+# pubspec.yaml (AFTER)
+name: package
+
+dependencies:
+  provider: ">=5.0.0 <6.0.0"
+  shared_preferences: ">=2.0.0 <3.0.0"
+  http: ">=0.13.3 <0.14.0"
+  dio: ">=4.0.0 <5.0.0"
+```
+
+If you would like to constrain only certain dependencies, you can pass the package's names as arguments, and (optionally) the version to constrain to.
+
+```bash
+sip pub constrain provider shared_preferences:2.3.0
+```
+
+```yaml
+# pubspec.yaml (AFTER)
+name: package
+
+dependencies:
+  provider: ">=5.0.0 <6.0.0"
+  shared_preferences: ">=2.3.0 <3.0.0"
+  ...
+```
+
+If you would like to pin the version of the dependency, you can pass the `--pin` flag.
+
+```bash
+sip pub constrain provider shared_preferences --pin
+```
+
+```yaml
+# pubspec.yaml (AFTER)
+name: package
+
+dependencies:
+  provider: 5.0.0
+  shared_preferences: 2.0.0
+  ...
+```
+
+Or you can unpin the version of the dependency by passing the `--no-pin` flag.
+
+```bash
+sip pub constrain provider shared_preferences --no-pin
+```
+
+```yaml
+# pubspec.yaml (AFTER)
+name: package
+
+dependencies:
+  provider: ^5.0.0
+  shared_preferences: ^2.0.0
+```
+
+Flags:
+
+- **recursive**: Constrain all dependencies in all children directories containing a `pubspec.yaml` file.
+- **dev_dependencies**: Constrain the dev_dependencies in the `pubspec.yaml` file.
+- **bump**: Choose which version to bump to. The options are `breaking`, `major`, `minor`, and `patch`.
+- **dry-run**: Print the changes that will be made without actually making the changes.
+- **dart-only**: Only constrain dart dependencies.
+- **flutter-only**: Only constrain flutter dependencies.
+- **pin**: Pin the version of the dependency.
+- **no-pin**: Unpin the version of the dependency.
