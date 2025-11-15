@@ -3,7 +3,9 @@ import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
 import 'package:sip_cli/src/deps/scripts_yaml.dart';
+import 'package:sip_cli/src/domain/executables.dart';
 import 'package:sip_cli/src/utils/constants.dart';
+import 'package:sip_cli/src/utils/package.dart';
 import 'package:sip_cli/src/utils/working_directory.dart';
 
 /// The variables that can be used in the scripts
@@ -23,19 +25,17 @@ class Variables with WorkingDirectory {
         ? null
         : path.dirname(scriptsRoot);
 
-    final executables = scriptsYaml.executables();
+    final executables = Executables.load();
+    variables[Vars.dart] = executables.dart;
+    variables[Vars.flutter] = executables.flutter;
+
+    variables[Vars.dartOrFlutter] = switch (Package.nearest()) {
+      Package(isFlutter: true) => executables.flutter ?? 'flutter',
+      Package(isDart: false) => executables.dart ?? 'dart',
+      _ => null,
+    };
 
     variables[Vars.cwd] = fs.currentDirectory.path;
-    for (final MapEntry(:key, :value) in (executables ?? {}).entries) {
-      if (value case final String value) {
-        variables[key] = value;
-      } else {
-        logger.warn(
-          'Executable $key is must be a string, '
-          'got ${value.runtimeType} ($value)',
-        );
-      }
-    }
 
     final definedVariables = scriptsYaml.variables();
     for (final MapEntry(:key, :value) in (definedVariables ?? {}).entries) {

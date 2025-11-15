@@ -28,8 +28,18 @@ class Vars {
   static const String projectRoot = 'projectRoot';
   static const String scriptsRoot = 'scriptsRoot';
   static const String cwd = 'cwd';
+  static const String dartOrFlutter = 'dartOrFlutter';
+  static const String dart = 'dart';
+  static const String flutter = 'flutter';
 
-  static const Set<String> values = {projectRoot, scriptsRoot, cwd};
+  static const Set<String> values = {
+    projectRoot,
+    scriptsRoot,
+    cwd,
+    dartOrFlutter,
+    dart,
+    flutter,
+  };
 }
 
 class Identifiers {
