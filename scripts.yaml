@@ -20,17 +20,17 @@ build_runner:
     - br
   _: dart run build_runner
   clean:
-    (command): ${{ build_runner:_  }} clean
+    (command): ${{ build_runner:_ }} clean
     (aliases):
       - c
       - cl
 
   build:
-    (command): ${{ build_runner:_  }} build --delete-conflicting-outputs
+    (command): ${{ build_runner:_ }} build --delete-conflicting-outputs
     (aliases):
       - b
   watch:
-    (command): ${{ build_runner:_  }} watch --delete-conflicting-outputs
+    (command): ${{ build_runner:_ }} watch --delete-conflicting-outputs
     (aliases):
       - w
       - wa
@@ -41,12 +41,12 @@ build: (+) dart run build_runner build --delete-conflicting-outputs
 
 prep:
   (command):
-    - (+) ${{ format  }} --set-exit-if-changed
-    - (+) ${{ analyze  }} --fatal-infos --fatal-warnings
-    - (+) ${{ prep:pubspecs  }}
-    - (+) ${{ prep:version  }}
-    - (+) ${{ prep:readme  }}
-    - sip pub get -r
+    - (+) ${{ format }} --set-exit-if-changed
+    - (+) ${{ analyze }} --fatal-infos --fatal-warnings
+    - (+) ${{ prep.pubspecs }}
+    - (+) ${{ prep.version }}
+    - (+) ${{ prep.readme }}
+    - sip pub get
   version: |
     # make sure that the changelog version is the same as lib/src/version.dart
     version=$(grep -m 1 "const packageVersion" lib/src/version.dart | awk -F "'" '{print $2}')
@@ -78,11 +78,11 @@ publish:
   (bail):
   (command):
     - sip test --bail --recursive --concurrent
-    - ${{ prep  }}
+    - ${{ prep }}
     - "dart pub publish"
-    - ${{ publish:commit  }}
-    - ${{ publish:tag  }}
-    - ${{ publish:_push  }}
+    - ${{ publish.commit }}
+    - ${{ publish.tag }}
+    - ${{ publish._push }}
   commit: |
     # get version from changelog
     version=$(grep -m 1 "# " CHANGELOG.md | awk '{print $2}')
