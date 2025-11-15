@@ -2,6 +2,7 @@ import 'package:lukehog_client/lukehog_client.dart';
 import 'package:sip_cli/src/deps/device_info.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/utils/constants.dart';
+import 'package:sip_cli/src/utils/is_ci.dart';
 
 class Analytics {
   Analytics() {
@@ -38,7 +39,11 @@ class Analytics {
     try {
       await _client.capture(
         event,
-        properties: {...props, 'is_sip_cli_script_set': Env.sipCliScript.isSet},
+        properties: {
+          ...props,
+          'is_sip_cli_script_set': Env.sipCliScript.isSet,
+          'is_ci': isCi(),
+        },
         timestamp: DateTime.now(),
       );
     } catch (_) {
