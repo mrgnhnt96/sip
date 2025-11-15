@@ -49,12 +49,13 @@ void testScoped(
   PubspecYaml Function()? pubspecYaml,
   ScriptRunner Function()? scriptRunner,
   Args Function()? args,
+  Object? skip,
 }) {
   setUpAll(() {
     registerFallbackValue(TimeKey.core);
   });
 
-  test(description, () async {
+  test(description, skip: skip, () async {
     final mockLogger = _MockLogger();
     when(() => mockLogger.level).thenReturn(Level.quiet);
     when(() => mockLogger.progress(any())).thenReturn(_MockProgress());

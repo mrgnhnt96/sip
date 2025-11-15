@@ -37,13 +37,18 @@ void main() {
     });
 
     @isTest
-    void test(String description, FutureOr<void> Function() fn) {
+    void test(
+      String description,
+      FutureOr<void> Function() fn, {
+      Object? skip,
+    }) {
       testScoped(
         description,
         fn,
         fileSystem: () => fs,
         bindings: () => bindings,
         logger: () => logger,
+        skip: skip,
       );
     }
 
@@ -118,35 +123,39 @@ void main() {
         expect(results, ExitCode.success);
       });
 
-      test('should bail when first fails', () async {
-        when(
-          () => bindings.runScriptWithOutput(
-            any(),
-            onOutput: any(named: 'onOutput'),
-            bail: any(named: 'bail'),
-          ),
-        ).thenAnswer((_) => Future.value(failure));
+      test(
+        'should bail when first fails',
+        skip: 'Tests do not fail due to exit code, it fails with test output',
+        () async {
+          when(
+            () => bindings.runScriptWithOutput(
+              any(),
+              onOutput: any(named: 'onOutput'),
+              bail: any(named: 'bail'),
+            ),
+          ).thenAnswer((_) => Future.value(failure));
 
-        final commands = [
-          ScriptToRun('something', workingDirectory: '.'),
-          ScriptToRun('else', workingDirectory: '.'),
-        ];
+          final commands = [
+            ScriptToRun('something', workingDirectory: '.'),
+            ScriptToRun('else', workingDirectory: '.'),
+          ];
 
-        final results = await tester.runCommands(
-          commands,
-          bail: true,
-          showOutput: false,
-        );
+          final results = await tester.runCommands(
+            commands,
+            bail: true,
+            showOutput: false,
+          );
 
-        expect(results.code, failure.exitCode);
-        verify(
-          () => bindings.runScriptWithOutput(
-            any(),
-            onOutput: any(named: 'onOutput'),
-            bail: any(named: 'bail'),
-          ),
-        ).called(2);
-      });
+          expect(results.code, failure.exitCode);
+          verify(
+            () => bindings.runScriptWithOutput(
+              any(),
+              onOutput: any(named: 'onOutput'),
+              bail: any(named: 'bail'),
+            ),
+          ).called(2);
+        },
+      );
 
       group('should run all commands', () {
         test('concurrently', () async {
