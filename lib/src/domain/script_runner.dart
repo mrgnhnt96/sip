@@ -150,7 +150,8 @@ class ScriptRunner {
 
         if (printLabels) {
           if (part case ScriptToRun(:final String label)) {
-            logger.info('${cyan.wrap(label)}');
+            final formatted = darkGray.wrap('--- $label ---');
+            logger.info('$formatted');
           }
         }
 
@@ -235,24 +236,24 @@ class ScriptRunner {
 
     void log(String output) {
       if (showOutput) {
-        logger.info(output);
+        logger.info('\n--- ${darkGray.wrap(output)} ---');
         return;
       }
 
-      done = logger.progress(output);
+      done = logger.progress('${cyan.wrap(output)}');
     }
 
     for (final (index, (part, future)) in pending.indexed) {
       if (printLabels) {
         if (part case ScriptToRun(:final String label)) {
-          var current = (
-            output: '${cyan.wrap(label)}',
-            parallel: part.runInParallel ?? false,
-          );
+          var current = (output: label, parallel: part.runInParallel ?? false);
 
           if (last?.parallel case true when current.parallel) {
             current = (
-              output: [?last?.output, current.output].join(', '),
+              output: [
+                ?cyan.wrap(last?.output),
+                ?cyan.wrap(current.output),
+              ].join(', '),
               parallel: part.runInParallel ?? false,
             );
 
