@@ -205,10 +205,6 @@ class ScriptRunCommand with RunScriptHelper, WorkingDirectory {
       script.commands,
       disableConcurrency: disableConcurrency,
       bail: bail,
-      onMessage: (_, message) {
-        logger.write(message.message);
-        return null;
-      },
     );
 
     if (result.exitCodeReason != ExitCode.success) {

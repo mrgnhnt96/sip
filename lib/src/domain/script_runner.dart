@@ -185,9 +185,9 @@ class ScriptRunner {
         return 'Running $counter';
       }
 
-      final done = switch (onMessage) {
-        null => logger.progress(label()),
-        _ => null,
+      final done = switch (onMessage != null || showOutput) {
+        true => null,
+        false => logger.progress(label()),
       };
 
       CommandResult? result;
@@ -296,7 +296,7 @@ class ScriptRunner {
           updateDone?.call();
         }
 
-        final result = await future(showOutputOverride: false);
+        final result = await future();
         controller.add((part, result));
 
         if (index == pending.length - 1) {

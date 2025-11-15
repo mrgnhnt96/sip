@@ -17,7 +17,7 @@ class Bindings {
     required bool showOutput,
     bool bail = false,
   }) {
-    return _run(script, bail: bail, showOutput: showOutput);
+    return _run(script, bail: bail, showOutput: showOutput, sendOutput: false);
   }
 
   Future<CommandResult> runScriptWithOutput(
@@ -25,13 +25,20 @@ class Bindings {
     required MessageAction? Function(Message) onOutput,
     bool bail = false,
   }) {
-    return _run(script, bail: bail, showOutput: false, onOutput: onOutput);
+    return _run(
+      script,
+      bail: bail,
+      showOutput: false,
+      onOutput: onOutput,
+      sendOutput: true,
+    );
   }
 
   Future<CommandResult> _run(
     String script, {
     required bool bail,
     required bool showOutput,
+    required bool sendOutput,
     MessageAction? Function(Message)? onOutput,
   }) async {
     final port = ReceivePort();
@@ -61,7 +68,12 @@ class Bindings {
       switch (event) {
         case final SendPort port:
           sendPort = port;
-          port.send({'script': script, 'bail': bail, 'showOutput': showOutput});
+          port.send({
+            'script': script,
+            'bail': bail,
+            'showOutput': showOutput,
+            'sendOutput': sendOutput,
+          });
         case {'message': final String message, 'isError': final bool isError}:
           final msg = Message(message, isError: isError);
           switch (onOutput?.call(msg)) {
@@ -103,6 +115,7 @@ Future<void> _runScript(SendPort sendPort) async {
       String script, {
       required bool bail,
       required bool showOutput,
+      required bool sendOutput,
     }) async {
       final [command, arg] = switch (Platform.operatingSystem) {
         'linux' => ['bash', '-c'],
@@ -115,7 +128,7 @@ Future<void> _runScript(SendPort sendPort) async {
         command,
         [arg, script],
         runInShell: false,
-        mode: switch (showOutput) {
+        mode: switch (showOutput ^ sendOutput) {
           true => ProcessStartMode.inheritStdio,
           false => ProcessStartMode.normal,
         },
@@ -165,11 +178,13 @@ Future<void> _runScript(SendPort sendPort) async {
           'script': final String script,
           'bail': final bool bail,
           'showOutput': final bool showOutput,
+          'sendOutput': final bool sendOutput,
         }:
           final (kill, result) = await run(
             script,
             bail: bail,
             showOutput: showOutput,
+            sendOutput: sendOutput,
           );
 
           killers.add(kill);
