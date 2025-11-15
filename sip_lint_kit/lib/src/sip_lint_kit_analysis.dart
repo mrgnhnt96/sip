@@ -12,10 +12,7 @@ class SipLintKitAnalysis implements LintKitAnalyzer {
   @override
   List<LintKitAnalyzer> get plugins => [];
 
-  List<Linter> get _linters => [
-        const DontImport(),
-        const BadObject(),
-      ];
+  List<Linter> get _linters => [const DontImport(), const BadObject()];
 
   @override
   Future<List<Message>> analyze(
