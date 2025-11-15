@@ -3,6 +3,7 @@ import 'dart:io' as io;
 import 'package:mason_logger/mason_logger.dart';
 import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/logger.dart';
+import 'package:sip_cli/src/deps/platform.dart';
 import 'package:sip_cli/src/deps/time.dart';
 import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:sip_cli/src/domain/time.dart';
@@ -33,11 +34,17 @@ class TestData {
   final _skipped = <TestOutput>[];
 
   bool get hasTerminal {
+    if (platform.environment.containsKey('SIP_CLI_SCRIPT')) {
+      return true;
+    }
+
     try {
       return io.stdout.hasTerminal;
     } catch (e) {
-      return false;
+      // do nothing
     }
+
+    return false;
   }
 
   String? _previous;

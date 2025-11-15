@@ -31,7 +31,7 @@ final processProvider = create<Process>(() {
       executable,
       arguments,
       workingDirectory: workingDirectory ?? fs.currentDirectory.path,
-      environment: environment,
+      environment: {...?environment, 'SIP_CLI_SCRIPT': 'true'},
       includeParentEnvironment: includeParentEnvironment,
       runInShell: runInShell,
       mode: mode,
