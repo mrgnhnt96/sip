@@ -54,8 +54,27 @@ class TestData {
   bool _checkIsCi(String output) {
     if (_isCi case final bool isCi) return isCi;
 
-    return _isCi =
-        output.contains('::group::') || output.contains('::endgroup::');
+    bool check() {
+      if (output.contains('::group::') || output.contains('::endgroup::')) {
+        return true;
+      }
+
+      if (output.startsWith('✅')) {
+        return true;
+      }
+
+      if (output.startsWith('❌')) {
+        return true;
+      }
+
+      if (output.contains('(skipped)')) {
+        return true;
+      }
+
+      return false;
+    }
+
+    return _isCi = check();
   }
 
   void parseCi(Runnable script, String output) {
@@ -68,13 +87,22 @@ class TestData {
       return;
     }
 
+    message = message
+        .replaceAll('::group::', '')
+        .replaceAll('::endgroup::', '');
+
     // successful CI test output
     if (output.startsWith('✅')) {
       final wasSuccess = message.contains('✅');
       final wasSkipped = message.contains('(skipped)');
 
       message = message.substring(1).trim();
-      final [path, ...test] = message.split(' ');
+      final [rawPath, ...test] = message.split(' ');
+      final path = switch (rawPath) {
+        final String path when fs.path.isRelative(path) => path,
+        final String path => fs.path.relative(path),
+      };
+
       final output = TestOutput(path: path, test: test.join(' '), error: null);
       if (wasSkipped) {
         _skipped.add(output);
@@ -88,13 +116,10 @@ class TestData {
       return;
     }
 
-    message = message
-        .replaceAll('::group::', '')
-        .replaceAll('::endgroup::', '');
-
     if (!RegExp('^[✅❌]').hasMatch(message)) {
       if (data._last case final last?) {
         last.error = [?last.error?.trim(), message.trim()].join('\n');
+        data._previous = null;
         return;
       }
     }
@@ -114,6 +139,7 @@ class TestData {
     final [path, ...test] = message.substring(1).trim().split(' ');
 
     if (path == 'loading') {
+      data._previous = null;
       return;
     }
 
