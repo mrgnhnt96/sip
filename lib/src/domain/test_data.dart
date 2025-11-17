@@ -74,7 +74,12 @@ class TestData {
       return false;
     }
 
-    return _isCi = check();
+    if (check()) {
+      _isCi = true;
+      return true;
+    }
+
+    return false;
   }
 
   void parseCi(Runnable script, String output) {
@@ -215,6 +220,8 @@ class TestData {
     if (!failed && !passed && !skipped) {
       return;
     }
+
+    _isCi ??= false;
 
     if (out.matchesLast) {
       return;
