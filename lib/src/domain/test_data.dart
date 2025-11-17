@@ -87,14 +87,14 @@ class TestData {
 
     var message = [?data._previous, output].join('\n');
 
+    message = message
+        .replaceAll('::group::', '')
+        .replaceAll('::endgroup::', '');
+
     if (output.contains('::group::') && !output.contains('::endgroup::')) {
       data._previous = output;
       return;
     }
-
-    message = message
-        .replaceAll('::group::', '')
-        .replaceAll('::endgroup::', '');
 
     // successful CI test output
     if (output.startsWith('✅')) {
@@ -177,7 +177,11 @@ class TestData {
     }
 
     final data = _data[script.hashCode] ??= TestData();
-    final message = [?data._previous, output].join('\n');
+    var message = [?data._previous, output].join('\n');
+
+    message = message
+        .replaceAll('::group::', '')
+        .replaceAll('::endgroup::', '');
 
     if (!RegExp(r'^\d{2,}:\d{2,}').hasMatch(message)) {
       if (data._last case final last?) {
@@ -335,7 +339,7 @@ class TestData {
           ..writeln('::endgroup::');
       }
 
-      buf.writeln('Tests Summary ✅ $passing ❌ $failing ⚠️ $skipped');
+      buf.writeln('Results: ✅ $passing ❌ $failing ⚠️ $skipped');
       if (_success.isNotEmpty) {
         buf.writeln('::group::✅ Passing: $passing');
         for (final success in _success) {
