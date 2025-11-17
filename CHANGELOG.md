@@ -1,3 +1,11 @@
+# 0.18.6-pre | 11.14.2025
+
+## Fixes
+
+- Adds check & exit for when dart compiler exits unexpectedly
+- Adds listener & register for when the process is interrupted
+  - Handles cleaning up resources
+
 # 0.18.5-pre | 11.14.2025
 
 ## Fixes
