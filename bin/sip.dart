@@ -15,6 +15,7 @@ import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/is_up_to_date.dart';
 import 'package:sip_cli/src/deps/key_press_listener.dart';
 import 'package:sip_cli/src/deps/logger.dart';
+import 'package:sip_cli/src/deps/on_death.dart';
 import 'package:sip_cli/src/deps/platform.dart';
 import 'package:sip_cli/src/deps/process.dart';
 import 'package:sip_cli/src/deps/pub_updater.dart';
@@ -61,17 +62,17 @@ void main(List<String> arguments) async {
         timeProvider,
         deviceInfoProvider,
         analyticsProvider,
+        onDeathProvider,
       },
     );
   });
 }
 
 Future<void> run() async {
-  ProcessSignal.sigint.watch().listen((signal) {
+  onDeath
     // always make sure that the cursor is visible
-    stdout.write('\x1b[?25h');
-    exit(1);
-  }, cancelOnError: true);
+    ..register(() => stdout.write('\x1b[?25h'))
+    ..listen();
 
   // Start the stopwatch
   time.get(TimeKey.core);

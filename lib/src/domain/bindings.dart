@@ -4,6 +4,7 @@ import 'dart:isolate';
 
 import 'package:scoped_deps/scoped_deps.dart';
 import 'package:sip_cli/src/deps/fs.dart';
+import 'package:sip_cli/src/deps/on_death.dart';
 import 'package:sip_cli/src/deps/platform.dart';
 import 'package:sip_cli/src/deps/process.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
@@ -53,17 +54,21 @@ class Bindings {
 
     void kill() {
       try {
-        isolate.kill();
+        isolate.kill(priority: Isolate.immediate);
+      } catch (_) {}
+
+      try {
         subscription?.cancel();
-        if (!completer.isCompleted) {
-          completer.complete(
-            const CommandResult(exitCode: 1, output: '', error: ''),
-          );
-        }
-      } catch (_) {
-        // ignore
+      } catch (_) {}
+
+      if (!completer.isCompleted) {
+        completer.complete(
+          const CommandResult(exitCode: 1, output: '', error: ''),
+        );
       }
     }
+
+    onDeath.register(kill);
 
     subscription = port.listen((event) {
       switch (event) {

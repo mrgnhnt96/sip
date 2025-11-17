@@ -14,6 +14,7 @@ import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/is_up_to_date.dart';
 import 'package:sip_cli/src/deps/key_press_listener.dart';
 import 'package:sip_cli/src/deps/logger.dart';
+import 'package:sip_cli/src/deps/on_death.dart';
 import 'package:sip_cli/src/deps/platform.dart';
 import 'package:sip_cli/src/deps/process.dart';
 import 'package:sip_cli/src/deps/pub_updater.dart';
@@ -77,6 +78,7 @@ void testScoped(
       processProvider,
       pubUpdaterProvider,
       variablesProvider,
+      onDeathProvider,
 
       deviceInfoProvider.overrideWith(_MockDeviceInfo.new),
       analyticsProvider.overrideWith(() => mockAnalytics),
