@@ -193,7 +193,13 @@ class TestData {
   /// - updates the test data
   /// - prints the test data
   void parse(Runnable script, String output) {
-    logger.detail(output.trim());
+    if (time.get(TimeKey.test) case final stopwatch) {
+      final minutes = stopwatch.elapsed.inMinutes;
+      final seconds = stopwatch.elapsed.inSeconds % 60;
+      final min = '$minutes'.padLeft(2, '0');
+      final sec = '$seconds'.padLeft(2, '0');
+      logger.detail('$min:$sec ${output.trim()}');
+    }
 
     if (_checkIsCi(output)) {
       parseCi(script, output);
