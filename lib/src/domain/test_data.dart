@@ -59,8 +59,6 @@ class TestData {
   }
 
   void parseCi(Runnable script, String output) {
-    logger.detail(output);
-
     final data = _data[script.hashCode] ??= TestData();
 
     var message = [?data._previous, output].join('\n');
@@ -140,6 +138,8 @@ class TestData {
   /// - updates the test data
   /// - prints the test data
   void parse(Runnable script, String output) {
+    logger.detail(output.trim());
+
     if (_checkIsCi(output)) {
       parseCi(script, output);
       return;
