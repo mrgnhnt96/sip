@@ -129,6 +129,9 @@ abstract mixin class TesterMixin {
             logger
               ..err('The Dart compiler exited unexpectedly')
               ..write(message.message);
+
+            data.addError(runnable, 'The Dart compiler exited unexpectedly');
+
             return MessageAction.kill;
           }
 
@@ -180,12 +183,12 @@ abstract mixin class TesterMixin {
         },
       );
     } catch (e) {
-      data.failure = e;
+      data.addError(null, e);
     }
 
     data.printResults();
 
-    if (data.failing > 0 || data.failure != null) {
+    if (data.failing > 0 || data.allFailures.isNotEmpty) {
       return ExitCode.software;
     }
 

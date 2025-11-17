@@ -26,7 +26,31 @@ class TestData {
 
   bool? _isCi;
 
-  Object? failure;
+  Object? _error;
+
+  void addError(Runnable? script, Object error) {
+    if (script != null) {
+      _data[script.hashCode]?._error = error;
+    } else {
+      _error = error;
+    }
+  }
+
+  List<Object> get allFailures {
+    Iterable<Object> items(TestData data) sync* {
+      if (data._error case final Object e) {
+        yield e;
+      }
+
+      for (final data in data._data.values) {
+        if (data._error case final Object e) {
+          yield e;
+        }
+      }
+    }
+
+    return items(this).toList();
+  }
 
   final _data = <int, TestData>{};
 
@@ -332,11 +356,12 @@ class TestData {
     if (_isCi case true) {
       buf.writeln();
 
-      if (failure case final Object e) {
-        buf
-          ..writeln('::group::❌ Failed to finish')
-          ..writeln(e)
-          ..writeln('::endgroup::');
+      if (allFailures case final errors when errors.isNotEmpty) {
+        buf.writeln('::group::❌ Failed to finish');
+        for (final error in errors) {
+          buf.writeln(error);
+        }
+        buf.writeln('::endgroup::');
       }
 
       buf.writeln('Results: ✅ $passing ❌ $failing ⚠️ $skipped');
@@ -379,7 +404,7 @@ class TestData {
         buf.writeln();
       }
 
-      if (failure case final Object e) {
+      if (_error case final Object e) {
         buf
           ..writeln('❌ Failed to finish')
           ..writeln('$e'.trim())
