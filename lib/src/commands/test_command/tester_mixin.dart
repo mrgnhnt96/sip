@@ -123,6 +123,15 @@ abstract mixin class TesterMixin {
         logTime: false,
         printLabels: false,
         onMessage: (runnable, message) {
+          if (message.message.contains(
+            'The Dart compiler exited unexpectedly',
+          )) {
+            logger
+              ..err('The Dart compiler exited unexpectedly')
+              ..write(message.message);
+            return MessageAction.kill;
+          }
+
           final lines = const LineSplitter().convert(message.message.trim());
           final tests = <String>[];
           final buf = StringBuffer();
