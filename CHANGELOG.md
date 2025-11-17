@@ -1,3 +1,10 @@
+# 0.18.7-pre | 11.14.2025
+
+## Features
+
+- Add error output for when the dart compiler exits unexpectedly
+  - This will now fail tests
+
 # 0.18.6-pre | 11.14.2025
 
 ## Fixes
