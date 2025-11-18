@@ -3,6 +3,7 @@ import 'package:sip_cli/src/deps/device_info.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/utils/constants.dart';
 import 'package:sip_cli/src/utils/is_ci.dart';
+import 'package:sip_cli/src/version.dart';
 
 class Analytics {
   Analytics() {
@@ -43,6 +44,7 @@ class Analytics {
           ...props,
           'is_sip_cli_script_set': Env.sipCliScript.isSet,
           'is_ci': isCi(),
+          'package_version': packageVersion,
         },
         timestamp: DateTime.now(),
       );
