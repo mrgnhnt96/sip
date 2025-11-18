@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:mason_logger/mason_logger.dart';
 import 'package:pub_semver/pub_semver.dart';
+import 'package:sip_cli/src/deps/analytics.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/pub_updater.dart';
@@ -59,6 +60,8 @@ class UpdateCommand {
       logger.write(_usage);
       return ExitCode.success;
     }
+
+    await analytics.track('update');
 
     final packageName = lightGreen.wrap(pkg.packageName)!;
 
