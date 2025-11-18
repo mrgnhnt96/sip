@@ -1,26 +1,4 @@
-# 0.18.7-pre | 11.14.2025
-
-## Features
-
-- Add error output for when the dart compiler exits unexpectedly
-  - This will now fail tests
-
-# 0.18.6-pre | 11.14.2025
-
-## Fixes
-
-- Adds check & exit for when dart compiler exits unexpectedly
-- Adds listener & register for when the process is interrupted
-  - Handles cleaning up resources
-
-# 0.18.5-pre | 11.14.2025
-
-## Fixes
-
-- Formatting output for tests
-- Add more detailed logs when running with `--loud` flag
-
-# 0.18.0-pre | 11.14.2025
+# 0.18.0 | 11.14.2025
 
 ## Breaking Changes
 
@@ -28,6 +6,20 @@
 - Deprecate `{$path:...}` and `{--flag}` syntax for referencing scripts
   - This will be removed in the next major version
   - Prefer to use `${{ path.script_name }}` and `${{ --flag }}` syntax instead
+
+## Fixes
+
+- Adds check & exit for when dart compiler exits unexpectedly
+- Adds listener & register for when the process is interrupted
+  - Handles cleaning up resources
+
+## Enhancements
+
+- Formatting output for tests
+- Add more detailed logs when running with `--loud` flag
+- Update dependencies
+- Improve test output formatting
+- Improve script output formatting
 
 ## Features
 
@@ -37,12 +29,6 @@
 - Add analytics [lukehog](https://lukehog.com)
 - Pass `--help` flag within `sip run <path>` to print the usage information for the script
 - Reformat test output on CI
-
-## Enhancements
-
-- Update dependencies
-- Improve test output formatting
-- Improve script output formatting
 
 # 0.17.16 | 6.6.2025
 
