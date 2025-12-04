@@ -221,7 +221,25 @@ class ScriptRunCommand with RunScriptHelper, WorkingDirectory {
     );
 
     if (result.exitCodeReason != ExitCode.success) {
-      logger.err('Failed to run commands');
+      logger.err('\nCommands failed');
+
+      final output = result.output.trim();
+      final error = result.error.trim();
+      if (output.isNotEmpty || error.isNotEmpty) {
+        logger.info('---');
+
+        if (output.isNotEmpty) {
+          logger.info('Output:');
+          logger.info(output);
+        }
+
+        if (error.isNotEmpty) {
+          logger.info('Error:');
+          logger.info(error);
+        }
+      } else {
+        logger.info(darkGray.wrap('No output or error to show'));
+      }
       return result.exitCodeReason;
     }
 

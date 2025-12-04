@@ -143,8 +143,11 @@ class ScriptRunner {
       ));
     }
 
+    final results = <CommandResult>[];
+
     if (disableConcurrency) {
       logger.detail('Running ${pending.length} scripts sequentially');
+
       for (final (part, future) in pending) {
         if (showOutput) {
           logger.write('\n');
@@ -158,6 +161,8 @@ class ScriptRunner {
         }
 
         final result = await future();
+        results.add(result);
+
         final shouldBail = switch (part) {
           ScriptToRun(bail: true) => true,
           _ => bail,
@@ -190,11 +195,10 @@ class ScriptRunner {
         false => logger.progress(label()),
       };
 
-      CommandResult? result;
       await for (final (part, taskResult) in tasks) {
         done?.update(label());
         count++;
-        result = taskResult;
+        results.add(taskResult);
 
         if (taskResult.exitCodeReason != ExitCode.success && bail) {
           final label = part.label;
@@ -208,8 +212,27 @@ class ScriptRunner {
       done
         ?..update(label())
         ..complete();
+    }
 
-      return result ?? const CommandResult(exitCode: 0, output: '', error: '');
+    final output = StringBuffer();
+    final error = StringBuffer();
+
+    var hasFailure = false;
+
+    for (final result in results) {
+      if (result.exitCodeReason != ExitCode.success) {
+        hasFailure = true;
+        output.write(result.output);
+        error.write(result.error);
+      }
+    }
+
+    if (hasFailure) {
+      return CommandResult(
+        exitCode: 1,
+        output: output.toString(),
+        error: error.toString(),
+      );
     }
 
     return const CommandResult(exitCode: 0, output: '', error: '');
