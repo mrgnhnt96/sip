@@ -1,3 +1,9 @@
+# 0.18.1 | 12.4.2025
+
+## Fixes
+
+- Issue where exit code was not set when a non-last command failed
+
 # 0.18.0 | 11.14.2025
 
 ## Breaking Changes
