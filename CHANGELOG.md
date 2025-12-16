@@ -1,3 +1,9 @@
+# 0.18.2 | 12.16.2025
+
+## Fixes
+
+- Issue where exception was thrown when no pubspec.yaml file was found while trying to resolve variables
+
 # 0.18.1 | 12.4.2025
 
 ## Fixes

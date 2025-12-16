@@ -52,7 +52,7 @@ prep:
     version=$(grep -m 1 "const packageVersion" lib/src/version.dart | awk -F "'" '{print $2}')
     changelogVersion=$(grep -m 1 "# " CHANGELOG.md | awk '{print $2}')
 
-    if [ $version" != $changelogVersion" ]; the
+    if [ $version" != $changelogVersion" ]; then
       echo "Version in lib/src/version.dart ($version) does not match the version in CHANGELOG.md ($changelogVersion)"
       echo "Please run sip run build to update the version in CHANGELOG.md and lib/src/version.dart"
       exit 1
@@ -75,7 +75,7 @@ prep:
     sed -i '' "s|const packageVersion = '.*';|const packageVersion = '$version';|g" lib/src/version.dart
 
 publish:
-  (bail):
+  (bail): true
   (command):
     - sip test --bail --recursive --concurrent
     - ${{ prep }}

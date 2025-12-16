@@ -380,7 +380,7 @@ type 'Null' is not a subtype of type 'Future<HttpClientRequest>'
 00:09 +96 ~2: test/lib/screens/home/home_screen_trip_test.dart: Home Screen Trip shows when user has a trip
 ''';
 
-class _TestIOOverrides extends IOOverrides {
+final class _TestIOOverrides extends IOOverrides {
   _TestIOOverrides(this.root);
 
   final String root;
