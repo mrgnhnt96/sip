@@ -29,7 +29,13 @@ class Variables with WorkingDirectory {
     variables[Vars.dart] = executables.dart;
     variables[Vars.flutter] = executables.flutter;
 
-    variables[Vars.dartOrFlutter] = switch (Package.nearest()) {
+    Package? pkg;
+
+    try {
+      pkg = Package.nearest();
+    } catch (_) {}
+
+    variables[Vars.dartOrFlutter] = switch (pkg) {
       Package(isFlutter: true) => executables.flutter ?? 'flutter',
       Package(isDart: false) => executables.dart ?? 'dart',
       _ => null,

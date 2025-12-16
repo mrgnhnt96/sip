@@ -53,7 +53,11 @@ ${super.usage}
       return resolved;
     }
 
-    return [Package.nearest()];
+    try {
+      return [Package.nearest()];
+    } catch (_) {
+      return [];
+    }
   }
 
   @override
