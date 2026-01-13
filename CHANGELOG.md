@@ -1,3 +1,9 @@
+# 0.18.3 | 12.16.2025
+
+## Fixes
+
+- Issue where `sip update` command was not working
+
 # 0.18.2 | 12.16.2025
 
 ## Fixes

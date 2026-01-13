@@ -6,6 +6,7 @@ import 'package:sip_cli/src/commands/list_command.dart';
 import 'package:sip_cli/src/commands/pub_command.dart';
 import 'package:sip_cli/src/commands/script_run_command.dart';
 import 'package:sip_cli/src/commands/test_command/test_command.dart';
+import 'package:sip_cli/src/commands/update_command.dart';
 import 'package:sip_cli/src/deps/analytics.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/is_up_to_date.dart';
@@ -97,6 +98,8 @@ class SipRunner {
         return await const ListCommand().run(query);
       case ['test', ...final path]:
         return await const TestCommand().run(path);
+      case ['update']:
+        return await const UpdateCommand().run();
     }
 
     logger.write(_usage);
