@@ -10,6 +10,12 @@ import 'package:sip_cli/src/domain/time.dart';
 import 'package:sip_cli/src/utils/constants.dart';
 import 'package:sip_cli/src/utils/is_ci.dart';
 
+// Record type for text with wrapping function
+typedef TextItem = ({
+  String text,
+  String? Function(String?, {bool forScript}) wrap,
+});
+
 class TestData {
   TestData();
 
@@ -96,7 +102,13 @@ class TestData {
         final String path => fs.path.relative(path),
       };
 
-      final output = TestOutput(path: path, test: test.join(' '), error: null);
+      final output = TestOutput(
+        path: path,
+        test: test.join(' '),
+        error: null,
+        passing: wasSuccess && !wasSkipped ? '1' : null,
+        skipped: wasSkipped ? '1' : null,
+      );
       if (wasSkipped) {
         _skipped.add(output);
       } else if (wasSuccess) {
@@ -138,7 +150,14 @@ class TestData {
       return;
     }
 
-    final out = TestOutput(path: path, test: test.join(' '), error: error);
+    final out = TestOutput(
+      path: path,
+      test: test.join(' '),
+      error: error,
+      passing: wasSuccess && !wasSkipped ? '1' : null,
+      failing: wasFailure ? '1' : null,
+      skipped: wasSkipped ? '1' : null,
+    );
 
     if (wasSkipped) {
       _skipped.add(out);
@@ -171,69 +190,173 @@ class TestData {
     parseCi(script, output);
   }
 
+  String? _errorOutput(TestOutput output) {
+    if (args['omit-errors'] case true) {
+      return null;
+    }
+
+    if (output case TestOutput(didFail: false)) {
+      return null;
+    }
+
+    final error = output.error?.trim();
+
+    if (error == null || error.isEmpty) {
+      return null;
+    }
+
+    final buf = StringBuffer()..writeln();
+
+    final lines = error.split('\n');
+    for (final line in lines) {
+      buf
+        ..write(lightRed.wrap('│'))
+        ..writeln(darkGray.wrap(resetAll.wrap(line)));
+    }
+
+    buf.writeln();
+
+    return buf.toString();
+  }
+
   void _print(TestOutput output) {
     if (isCi()) return;
 
-    Iterable<String?> items() sync* {
-      if (hasTerminal) {
-        // move the cursor to the start of the line
-        yield '\x1B[2K\x1B[0G';
-      }
-
-      if (time.get(TimeKey.test) case final stopwatch) {
-        final minutes = stopwatch.elapsed.inMinutes;
-        final seconds = stopwatch.elapsed.inSeconds % 60;
-        final min = '$minutes'.padLeft(2, '0');
-        final sec = '$seconds'.padLeft(2, '0');
-        yield cyan.wrap('$min:$sec');
-      }
-
-      if (passing > 0) {
-        yield green.wrap('+$passing');
-      }
-
-      if (failing > 0) {
-        yield red.wrap('-$failing');
-      }
-
-      if (skipped > 0) {
-        yield yellow.wrap('~$skipped');
-      }
-
-      if (output case TestOutput(:final path, :final test)) {
-        yield darkGray.wrap('$path │');
-        yield white.wrap(test);
-      }
-
-      if (hasTerminal) {
-        // clear the rest of the line
-        yield '\x1B[K';
-      }
-
-      if (output case TestOutput(didFail: true, :final String error)) {
-        if (args['omit-errors'] case null || false) {
-          if (error.trim() case final error when error.isNotEmpty) {
-            yield '\n';
-
-            final lines = error.split('\n');
-            for (final line in lines) {
-              yield lightRed.wrap('│');
-              yield '${darkGray.wrap(resetAll.wrap(line))}\n';
-            }
-          }
-        }
-
-        if (hasTerminal) {
-          yield '\n';
-        }
-      }
-
-      if (!hasTerminal) {
-        yield '\n';
+    // Get terminal width for truncation
+    var terminalColumns = 120; // default fallback
+    if (hasTerminal) {
+      try {
+        terminalColumns = io.stdout.terminalColumns;
+      } catch (e) {
+        // fallback to default
       }
     }
 
-    final out = items().join(' ');
+    // Build prefix parts with their wrap functions
+    final prefixItems = <TextItem>[];
+
+    if (time.get(TimeKey.test) case final stopwatch) {
+      final minutes = stopwatch.elapsed.inMinutes;
+      final seconds = stopwatch.elapsed.inSeconds % 60;
+      final min = '$minutes'.padLeft(2, '0');
+      final sec = '$seconds'.padLeft(2, '0');
+      final timeStr = '$min:$sec';
+      prefixItems.add((text: timeStr, wrap: cyan.wrap));
+    }
+
+    if (passing > 0) {
+      final passingStr = '+$passing';
+      prefixItems.add((text: passingStr, wrap: green.wrap));
+    }
+
+    if (failing > 0) {
+      final failingStr = '-$failing';
+      prefixItems.add((text: failingStr, wrap: red.wrap));
+    }
+
+    if (skipped > 0) {
+      final skippedStr = '~$skipped';
+      prefixItems.add((text: skippedStr, wrap: yellow.wrap));
+    }
+
+    // Build path and test items
+    final pathAndTestItems = <TextItem>[];
+    if (output case TestOutput(:final path, :final test)) {
+      // Use relative path
+      final displayPath = fs.path.isRelative(path)
+          ? path
+          : fs.path.relative(path);
+
+      // Calculate available space using raw text lengths (no ANSI codes)
+      final prefixLength = prefixItems.isEmpty
+          ? 0
+          : prefixItems.map((item) => item.text).join(' ').length;
+      // Spaces between items: N-1 spaces for N items
+      final spacesBetweenItems = prefixItems.isNotEmpty
+          ? prefixItems.length - 1
+          : 0;
+      const separatorLength = 3; // " │ "
+      const spaceAfterSeparator = 1; // space between separator and test
+      final availableForPathAndTest =
+          (terminalColumns -
+                  prefixLength -
+                  spacesBetweenItems -
+                  separatorLength -
+                  spaceAfterSeparator -
+                  2)
+              .clamp(50, terminalColumns); // 2 chars safety buffer, min 50
+
+      // Allocate space: 40% for path, 60% for test (with minimums)
+      const minPathLength = 20;
+      const minTestLength = 30;
+      final pathAllocation = (availableForPathAndTest * 0.4).round().clamp(
+        minPathLength,
+        availableForPathAndTest - minTestLength,
+      );
+      final testAllocation = availableForPathAndTest - pathAllocation;
+
+      // Truncate path if needed
+      String truncatedPath;
+      if (displayPath.length > pathAllocation && pathAllocation > 7) {
+        final filename = fs.path.basename(displayPath);
+        final dir = fs.path.dirname(displayPath);
+        if (filename.length <= pathAllocation - 4) {
+          final availableForDir = pathAllocation - filename.length - 4;
+          if (availableForDir > 0 && dir.length > availableForDir) {
+            final startIndex = (dir.length - (availableForDir - 3)).clamp(
+              0,
+              dir.length,
+            );
+            final dirPart = '...${dir.substring(startIndex)}';
+            truncatedPath = '$dirPart/$filename';
+          } else {
+            truncatedPath = dir.isEmpty ? filename : '$dir/$filename';
+          }
+        } else {
+          final availableForFilename = pathAllocation - 3;
+          if (availableForFilename > 0) {
+            final startIndex = (filename.length - availableForFilename).clamp(
+              0,
+              filename.length,
+            );
+            truncatedPath = '...${filename.substring(startIndex)}';
+          } else {
+            truncatedPath = '...';
+          }
+        }
+      } else {
+        truncatedPath = displayPath;
+      }
+
+      // Truncate test description to fit available space
+      final truncatedTest = switch (testAllocation > 3 &&
+          test.length > testAllocation) {
+        true =>
+          // ignore: prefer_interpolation_to_compose_strings
+          test.substring(0, (testAllocation - 3).clamp(0, test.length)) + '...',
+        false => test,
+      };
+
+      pathAndTestItems
+        ..add((text: '$truncatedPath │', wrap: darkGray.wrap))
+        ..add((text: truncatedTest, wrap: white.wrap));
+    }
+
+    // Build the formatted output string
+    final allTextItems = [...prefixItems, ...pathAndTestItems];
+    final wrappedTexts = allTextItems.map((item) => item.wrap(item.text));
+    final textOutput = wrappedTexts.join(' ');
+
+    final formattedErrorOutput = _errorOutput(output);
+    final errorOutput = StringBuffer(formattedErrorOutput ?? '');
+
+    // Combine all parts
+    final out = [
+      if (hasTerminal) '\x1B[2K\x1B[0G', // cursor positioning
+      textOutput,
+      if (hasTerminal) '\x1B[K', // clear rest of line
+      errorOutput.toString(),
+    ].join();
 
     if (out.split('\n').length > 1 || !hasTerminal) {
       logger.write(out);
@@ -403,17 +526,17 @@ class TestOutput {
       yield darkGray.wrap('$path │');
       yield white.wrap(test);
 
-      if (error case final String error) {
-        if (args['omit-errors'] case null || false) {
-          if (error.trim() case final error when error.isNotEmpty) {
-            yield '\n';
+      if (args['omit-errors'] case true) {
+        return;
+      }
 
-            final lines = error.split('\n');
-            for (final line in lines) {
-              yield lightRed.wrap('│');
-              yield '${darkGray.wrap(resetAll.wrap(line))}\n';
-            }
-          }
+      if (error?.trim() case final String error when error.isNotEmpty) {
+        yield '\n';
+
+        final lines = error.split('\n');
+        for (final line in lines) {
+          yield lightRed.wrap('│');
+          yield '${darkGray.wrap(resetAll.wrap(line))}\n';
         }
       }
     }
