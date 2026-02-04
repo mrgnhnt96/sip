@@ -1,3 +1,15 @@
+# 0.18.4 | 2.3.2026
+
+## Fixes
+
+- Fix display path in test output to show the correct path when running `sip test <path>` instead of always showing `./.`
+- Fix display path to show `.` when running `sip test` with no arguments or with `.` argument
+- Fix test output to wrap text correctly when the terminal width is smaller than the text length
+
+## Enhancements
+
+- When `.`, `test`, or no path argument is provided to `sip test`, run the test command without forwarding all test directories (e.g., `flutter test` instead of `flutter test test/utils test/other`)
+
 # 0.18.3 | 12.16.2025
 
 ## Fixes
