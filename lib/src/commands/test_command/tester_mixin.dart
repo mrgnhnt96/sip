@@ -235,6 +235,8 @@ abstract mixin class TesterMixin {
       logger.info(label);
     }
 
+    logger.write(darkGray.wrap('loading...'));
+
     final data = TestData();
 
     var killEverything = false;
