@@ -340,9 +340,13 @@ abstract mixin class TesterMixin {
     final glob = Glob('**/*_test.dart', recursive: true);
 
     for (final path in providedTests) {
+      // Resolve relative paths to absolute paths
       final fileOrDir = switch (path) {
         '.' => fs.currentDirectory.path,
-        _ => path,
+        _ =>
+          fs.path.isAbsolute(path)
+              ? path
+              : fs.path.join(fs.currentDirectory.path, path),
       };
 
       if (fs.isFileSync(fileOrDir)) {
@@ -350,12 +354,24 @@ abstract mixin class TesterMixin {
           testsToRun.add(fileOrDir);
         }
       } else if (fs.isDirectorySync(fileOrDir)) {
+        // Use glob to find test files in subdirectories
         final results = glob.listFileSystemSync(
           fs,
           followLinks: false,
           root: fileOrDir,
         );
-        final files = results.whereType<File>();
+        final files = results.whereType<File>().toList();
+
+        // Also check for test files directly in the provided directory
+        // (the glob pattern **/*_test.dart matches files in subdirectories,
+        // but not files directly in the root)
+        final dir = fs.directory(fileOrDir);
+        final directFiles = dir.listSync()
+          ..retainWhere(
+            (entity) =>
+                entity is File && entity.basename.endsWith('_test.dart'),
+          );
+        files.addAll(directFiles.whereType<File>());
 
         final directories = {for (final file in files) file.parent.path};
 
