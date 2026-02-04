@@ -96,15 +96,27 @@ class TestData {
       final wasSkipped = message.contains('(skipped)');
 
       message = message.substring(1).trim();
-      final [rawPath, ...test] = message.split(' ');
-      final path = switch (rawPath) {
-        final String path when fs.path.isRelative(path) => path,
-        final String path => fs.path.relative(path),
-      };
+      final parts = message.split(' ');
+      final rawPath = parts.first;
+
+      // Check if the first part is actually a path
+      String? path;
+      String test;
+      if (TestOutput._isValidPath(rawPath)) {
+        path = switch (rawPath) {
+          final String p when fs.path.isRelative(p) => p,
+          final String p => fs.path.relative(p),
+        };
+        test = parts.skip(1).join(' ');
+      } else {
+        // First part is not a path, it's part of the test name
+        path = null;
+        test = message;
+      }
 
       final output = TestOutput(
         path: path,
-        test: test.join(' '),
+        test: test,
         error: null,
         passing: wasSuccess && !wasSkipped ? '1' : null,
         skipped: wasSkipped ? '1' : null,
@@ -143,16 +155,34 @@ class TestData {
           message = info.trim();
       }
     }
-    final [path, ...test] = message.substring(1).trim().split(' ');
 
-    if (path == 'loading') {
+    final trimmedMessage = message.substring(1).trim();
+    final parts = trimmedMessage.split(' ');
+    final rawPath = parts.first;
+
+    // Check if the first part is actually a path
+    String? path;
+    String test;
+    if (rawPath == 'loading') {
       data._previous = null;
       return;
     }
 
+    if (TestOutput._isValidPath(rawPath)) {
+      path = switch (rawPath) {
+        final String p when fs.path.isRelative(p) => p,
+        final String p => fs.path.relative(p),
+      };
+      test = parts.skip(1).join(' ');
+    } else {
+      // First part is not a path, it's part of the test name
+      path = null;
+      test = trimmedMessage;
+    }
+
     final out = TestOutput(
       path: path,
-      test: test.join(' '),
+      test: test,
       error: error,
       passing: wasSuccess && !wasSkipped ? '1' : null,
       failing: wasFailure ? '1' : null,
@@ -167,7 +197,11 @@ class TestData {
       _failure.add(out);
     }
 
-    logger.detail('$path | $test');
+    if (path != null) {
+      logger.detail('$path | $test');
+    } else {
+      logger.detail(test);
+    }
     _print(out);
 
     data
@@ -262,11 +296,6 @@ class TestData {
     // Build path and test items
     final pathAndTestItems = <TextItem>[];
     if (output case TestOutput(:final path, :final test)) {
-      // Use relative path
-      final displayPath = fs.path.isRelative(path)
-          ? path
-          : fs.path.relative(path);
-
       // Calculate available space using raw text lengths (no ANSI codes)
       final prefixLength = prefixItems.isEmpty
           ? 0
@@ -275,8 +304,10 @@ class TestData {
       final spacesBetweenItems = prefixItems.isNotEmpty
           ? prefixItems.length - 1
           : 0;
-      const separatorLength = 3; // " │ "
-      const spaceAfterSeparator = 1; // space between separator and test
+      final separatorLength = path != null ? 3 : 0; // " │ " only if path exists
+      final spaceAfterSeparator = path != null
+          ? 1
+          : 0; // space between separator and test
       final availableForPathAndTest =
           (terminalColumns -
                   prefixLength -
@@ -286,60 +317,83 @@ class TestData {
                   2)
               .clamp(50, terminalColumns); // 2 chars safety buffer, min 50
 
-      // Allocate space: 40% for path, 60% for test (with minimums)
-      const minPathLength = 20;
-      const minTestLength = 30;
-      final pathAllocation = (availableForPathAndTest * 0.4).round().clamp(
-        minPathLength,
-        availableForPathAndTest - minTestLength,
-      );
-      final testAllocation = availableForPathAndTest - pathAllocation;
+      if (path != null) {
+        // Use relative path
+        final displayPath = fs.path.isRelative(path)
+            ? path
+            : fs.path.relative(path);
 
-      // Truncate path if needed
-      String truncatedPath;
-      if (displayPath.length > pathAllocation && pathAllocation > 7) {
-        final filename = fs.path.basename(displayPath);
-        final dir = fs.path.dirname(displayPath);
-        if (filename.length <= pathAllocation - 4) {
-          final availableForDir = pathAllocation - filename.length - 4;
-          if (availableForDir > 0 && dir.length > availableForDir) {
-            final startIndex = (dir.length - (availableForDir - 3)).clamp(
-              0,
-              dir.length,
-            );
-            final dirPart = '...${dir.substring(startIndex)}';
-            truncatedPath = '$dirPart/$filename';
+        // Allocate space: 40% for path, 60% for test (with minimums)
+        const minPathLength = 20;
+        const minTestLength = 30;
+        final pathAllocation = (availableForPathAndTest * 0.4).round().clamp(
+          minPathLength,
+          availableForPathAndTest - minTestLength,
+        );
+        final testAllocation = availableForPathAndTest - pathAllocation;
+
+        // Truncate path if needed
+        String truncatedPath;
+        if (displayPath.length > pathAllocation && pathAllocation > 7) {
+          final filename = fs.path.basename(displayPath);
+          final dir = fs.path.dirname(displayPath);
+          if (filename.length <= pathAllocation - 4) {
+            final availableForDir = pathAllocation - filename.length - 4;
+            if (availableForDir > 0 && dir.length > availableForDir) {
+              final startIndex = (dir.length - (availableForDir - 3)).clamp(
+                0,
+                dir.length,
+              );
+              final dirPart = '...${dir.substring(startIndex)}';
+              truncatedPath = '$dirPart/$filename';
+            } else {
+              truncatedPath = dir.isEmpty ? filename : '$dir/$filename';
+            }
           } else {
-            truncatedPath = dir.isEmpty ? filename : '$dir/$filename';
+            final availableForFilename = pathAllocation - 3;
+            if (availableForFilename > 0) {
+              final startIndex = (filename.length - availableForFilename).clamp(
+                0,
+                filename.length,
+              );
+              truncatedPath = '...${filename.substring(startIndex)}';
+            } else {
+              truncatedPath = '...';
+            }
           }
         } else {
-          final availableForFilename = pathAllocation - 3;
-          if (availableForFilename > 0) {
-            final startIndex = (filename.length - availableForFilename).clamp(
-              0,
-              filename.length,
-            );
-            truncatedPath = '...${filename.substring(startIndex)}';
-          } else {
-            truncatedPath = '...';
-          }
+          truncatedPath = displayPath;
         }
+
+        // Truncate test description to fit available space
+        final truncatedTest = switch (testAllocation > 3 &&
+            test.length > testAllocation) {
+          true =>
+            // ignore: prefer_interpolation_to_compose_strings
+            test.substring(0, (testAllocation - 3).clamp(0, test.length)) +
+                '...',
+          false => test,
+        };
+
+        pathAndTestItems
+          ..add((text: '$truncatedPath │', wrap: darkGray.wrap))
+          ..add((text: truncatedTest, wrap: white.wrap));
       } else {
-        truncatedPath = displayPath;
+        // No path, just show the test name
+        final truncatedTest = switch (availableForPathAndTest > 3 &&
+            test.length > availableForPathAndTest) {
+          true =>
+            // ignore: prefer_interpolation_to_compose_strings
+            test.substring(
+                  0,
+                  (availableForPathAndTest - 3).clamp(0, test.length),
+                ) +
+                '...',
+          false => test,
+        };
+
+        pathAndTestItems.add((text: truncatedTest, wrap: white.wrap));
       }
-
-      // Truncate test description to fit available space
-      final truncatedTest = switch (testAllocation > 3 &&
-          test.length > testAllocation) {
-        true =>
-          // ignore: prefer_interpolation_to_compose_strings
-          test.substring(0, (testAllocation - 3).clamp(0, test.length)) + '...',
-        false => test,
-      };
-
-      pathAndTestItems
-        ..add((text: '$truncatedPath │', wrap: darkGray.wrap))
-        ..add((text: truncatedTest, wrap: white.wrap));
     }
 
     // Build the formatted output string
@@ -439,9 +493,9 @@ class TestData {
 
 class TestOutput {
   TestOutput({
-    required this.path,
     required String test,
     required this.error,
+    this.path,
     this.previous,
     String? passing,
     String? failing,
@@ -451,7 +505,7 @@ class TestOutput {
        failing = int.tryParse(failing ?? ''),
        skipped = int.tryParse(skipped ?? '');
 
-  final String path;
+  final String? path;
   final String test;
   String? error;
 
@@ -520,10 +574,21 @@ class TestOutput {
     return true;
   }
 
+  /// Checks if a string looks like a file path
+  static bool _isValidPath(String candidate) {
+    // A valid path should contain a path separator or end with .dart
+    return candidate.contains('/') ||
+        candidate.contains(r'\') ||
+        candidate.endsWith('.dart') ||
+        (candidate.contains('.') && candidate.length > 4);
+  }
+
   @override
   String toString() {
     Iterable<String?> items() sync* {
-      yield darkGray.wrap('$path │');
+      if (path != null) {
+        yield darkGray.wrap('$path │');
+      }
       yield white.wrap(test);
 
       if (args['omit-errors'] case true) {
