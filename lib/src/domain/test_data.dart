@@ -8,6 +8,7 @@ import 'package:sip_cli/src/deps/time.dart';
 import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:sip_cli/src/domain/time.dart';
 import 'package:sip_cli/src/utils/constants.dart';
+import 'package:sip_cli/src/utils/is_ci.dart';
 
 class TestData {
   TestData();
@@ -17,14 +18,8 @@ class TestData {
   int get skipped => _skipped.length;
 
   ({int passing, int failing, int skipped}) get snapshot {
-    return (
-      passing: _success.length,
-      failing: _failure.length,
-      skipped: _skipped.length,
-    );
+    return (passing: passing, failing: failing, skipped: skipped);
   }
-
-  bool? _isCi;
 
   Object? _error;
 
@@ -75,37 +70,6 @@ class TestData {
   String? _previous;
   TestOutput? _last;
 
-  bool _checkIsCi(String output) {
-    if (_isCi case final bool isCi) return isCi;
-
-    bool check() {
-      if (output.contains('::group::') || output.contains('::endgroup::')) {
-        return true;
-      }
-
-      if (output.startsWith('✅')) {
-        return true;
-      }
-
-      if (output.startsWith('❌')) {
-        return true;
-      }
-
-      if (output.contains('(skipped)')) {
-        return true;
-      }
-
-      return false;
-    }
-
-    if (check()) {
-      _isCi = true;
-      return true;
-    }
-
-    return false;
-  }
-
   void parseCi(Runnable script, String output) {
     final data = _data[script.hashCode] ??= TestData();
 
@@ -138,6 +102,8 @@ class TestData {
       } else if (wasSuccess) {
         _success.add(output);
       }
+
+      _print(output);
 
       data
         .._previous = null
@@ -183,13 +149,14 @@ class TestData {
     }
 
     logger.detail('$path | $test');
+    _print(out);
 
     data
       .._previous = null
       .._last = out;
   }
 
-  /// Parses the output of a dart test
+  /// Parses the output of a dart test (always CI format)
   /// - updates the test data
   /// - prints the test data
   void parse(Runnable script, String output) {
@@ -201,87 +168,12 @@ class TestData {
       logger.detail('$min:$sec ${output.trim()}');
     }
 
-    if (_checkIsCi(output)) {
-      parseCi(script, output);
-      return;
-    }
-
-    final data = _data[script.hashCode] ??= TestData();
-    var message = [?data._previous, output].join('\n');
-
-    message = message
-        .replaceAll('::group::', '')
-        .replaceAll('::endgroup::', '');
-
-    if (!RegExp(r'^\d{2,}:\d{2,}').hasMatch(message)) {
-      if (data._last case final last?) {
-        last.error = [?last.error?.trim(), message.trim()].join('\n');
-        return;
-      }
-    }
-
-    final path = switch (RegExp(r'(\S*\.dart)').firstMatch(message)?.group(1)) {
-      final String path when fs.path.isRelative(path) => path,
-      final String path => fs.path.relative(path),
-      _ => null,
-    };
-    final description = RegExp(r'\.dart:? (.*)').firstMatch(message)?.group(1);
-
-    if (path == null || description == null) {
-      return;
-    }
-
-    final error = switch (message.split(description)) {
-      [_, final error] => switch (error.trim()) {
-        final String error when error.isNotEmpty => error,
-        _ => null,
-      },
-      _ => null,
-    };
-
-    final out = TestOutput(
-      path: path,
-      test: description,
-      error: error,
-      passing: RegExp(r'\+(\d+)').firstMatch(message)?.group(1),
-      failing: RegExp(r'-(\d+)').firstMatch(message)?.group(1),
-      skipped: RegExp(r'~(\d+)').firstMatch(message)?.group(1),
-      previous: data._last,
-    );
-
-    final (:failed, :passed, :skipped) = out.results;
-
-    if (!failed && !passed && !skipped) {
-      return;
-    }
-
-    _isCi ??= false;
-
-    if (out.matchesLast) {
-      return;
-    }
-
-    if (passed) {
-      _success.add(out);
-    } else if (failed) {
-      _failure.add(out);
-    } else if (skipped) {
-      _skipped.add(out);
-    }
-
-    // Print the previous out to allow for
-    // content aggregation (e.g. error messages) which often
-    // arrive in chunks
-    if (data._last case final last?) {
-      _print(last);
-    }
-
-    data
-      .._previous = null
-      .._last = out;
+    parseCi(script, output);
   }
 
   void _print(TestOutput output) {
+    if (isCi()) return;
+
     Iterable<String?> items() sync* {
       if (hasTerminal) {
         // move the cursor to the start of the line
@@ -359,7 +251,7 @@ class TestData {
   void printResults() {
     final buf = StringBuffer();
 
-    if (_isCi case true) {
+    if (isCi()) {
       buf.writeln();
 
       if (allFailures case final errors when errors.isNotEmpty) {
@@ -464,9 +356,25 @@ class TestOutput {
       );
     }
 
-    final passed = passing != null && previous?.passing != passing;
-    final failed = failing != null && previous?.failing != failing;
-    final skip = skipped != null && previous?.skipped != skipped;
+    // Only mark as changed if the count actually increased (not just changed)
+    // This prevents false positives when counts go from null to 0, or when
+    // they stay the same but we're comparing different objects
+    final prevPassing = previous?.passing ?? 0;
+    final prevFailing = previous?.failing ?? 0;
+    final prevSkipped = previous?.skipped ?? 0;
+
+    final passed = switch (passing) {
+      null || == 0 => false,
+      final passing => passing > prevPassing,
+    };
+    final failed = switch (failing) {
+      null || == 0 => false,
+      final failing => failing > prevFailing,
+    };
+    final skip = switch (skipped) {
+      null || == 0 => false,
+      final skipped => skipped > prevSkipped,
+    };
 
     return (passed: passed, failed: failed, skipped: skip);
   }

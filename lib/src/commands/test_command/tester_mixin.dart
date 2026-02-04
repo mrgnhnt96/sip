@@ -106,6 +106,7 @@ abstract mixin class TesterMixin {
       bail: bail,
       runInParallel: true,
       data: pkg,
+      variables: {'GITHUB_ACTIONS': 'true'},
     );
   }
 
@@ -258,9 +259,19 @@ abstract mixin class TesterMixin {
           final tests = <String>[];
           final buf = StringBuffer();
           final timePattern = RegExp(r'^\d{2,}:\d{2,}');
+          final ciPattern = RegExp('^[✅❌⚠️]');
 
           for (final line in lines) {
-            if (timePattern.hasMatch(line)) {
+            // In CI format, each emoji-prefixed line is a separate test
+            if (ciPattern.hasMatch(line)) {
+              if (buf.isNotEmpty) {
+                tests.add(buf.toString());
+                buf.clear();
+              }
+              // Add the CI format line as its own test
+              tests.add(line);
+              continue;
+            } else if (timePattern.hasMatch(line)) {
               if (buf.isNotEmpty) {
                 tests.add(buf.toString());
                 buf.clear();
