@@ -99,9 +99,13 @@ void main() {
           '''
 cd "/packages/sip/test_dir" || exit 1
 
+export GITHUB_ACTIONS=true
+
 dart test test/.test_optimizer.dart''',
           '''
 cd "/packages/sip/test_dir2" || exit 1
+
+export GITHUB_ACTIONS=true
 
 dart test test/.test_optimizer.dart''',
         ];

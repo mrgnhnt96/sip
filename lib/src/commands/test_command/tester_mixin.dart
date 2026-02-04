@@ -72,8 +72,14 @@ abstract mixin class TesterMixin {
 
     // If original paths were '.', 'test', or empty, don't pass test directories
     // Just run the test command without path arguments
+    // However, always include optimized test files when present
     final shouldSkipPaths = shouldSkipTestPaths(providedPaths);
-    final testsToPass = shouldSkipPaths ? <String>[] : tests;
+    final hasOptimizedTestFile = tests.any(
+      (test) => test.contains('.test_optimizer.dart'),
+    );
+    final testsToPass = (shouldSkipPaths && !hasOptimizedTestFile)
+        ? <String>[]
+        : tests;
 
     final script = [
       '$command test',
