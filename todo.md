@@ -43,10 +43,6 @@ Exception: Circular reference detected: ${{_drops}}
 
 But this is false
 
-### Test count
-
-- When running tests (not on CI), the test count is not accurate, sometimes the number increments more than 1 at a time.
-
 ### Internal `sip pub get` command stalls out
 
 Add a `sip pub get -r` command within the `script.yaml` file and run it. The command stalls out and never finishes.
