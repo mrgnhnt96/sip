@@ -60,6 +60,7 @@ abstract mixin class TesterMixin {
     required Package pkg,
     required List<String> tests,
     required bool bail,
+    List<String>? providedPaths,
   }) {
     final toolArgs = switch (pkg) {
       Package(isFlutter: true) => const FlutterTestArgs().arguments,
@@ -69,17 +70,33 @@ abstract mixin class TesterMixin {
 
     final command = pkg.tool;
 
-    final script = ['$command test', ...toolArgs, ...tests].join(' ').trim();
+    // If original paths were '.', 'test', or empty, don't pass test directories
+    // Just run the test command without path arguments
+    final shouldSkipPaths = shouldSkipTestPaths(providedPaths);
+    final testsToPass = shouldSkipPaths ? <String>[] : tests;
+
+    final script = [
+      '$command test',
+      ...toolArgs,
+      ...testsToPass,
+    ].join(' ').trim();
 
     logger.detail('\nTest command: $script');
+
+    // Determine the display path: use provided paths
+    // if available (for directories),
+    // otherwise use test paths, otherwise use package path
+    final displayPath = _getDisplayPath(
+      tests,
+      pkg,
+      providedPaths: providedPaths,
+    );
 
     final label = [
       ?darkGray.wrap('Running ('),
       ?cyan.wrap(command),
       ?darkGray.wrap(') tests in '),
-      ?darkGray.wrap(fs.path.relative(pkg.path)),
-      ?darkGray.wrap(fs.path.separator),
-      ?yellow.wrap(pkg.relativePath),
+      ?yellow.wrap(displayPath),
     ].join();
 
     return ScriptToRun(
@@ -90,6 +107,108 @@ abstract mixin class TesterMixin {
       runInParallel: true,
       data: pkg,
     );
+  }
+
+  bool shouldSkipTestPaths(List<String>? providedPaths) {
+    if (providedPaths == null) return false;
+    if (providedPaths.isEmpty) return true; // No paths provided
+
+    // Check if all provided paths are '.' or 'test'
+    return providedPaths.every((path) {
+      final normalized = path.trim();
+      return normalized == '.' || normalized == 'test';
+    });
+  }
+
+  String _getDisplayPath(
+    List<String> tests,
+    Package pkg, {
+    List<String>? providedPaths,
+  }) {
+    // If original provided paths are available, use those for display
+    // (this handles the case where directories were provided and we want
+    // to show the directory, not the subdirectories
+    //  where test files were found)
+    if (providedPaths != null && providedPaths.isNotEmpty) {
+      final displayPaths = providedPaths.map((providedPath) {
+        // Handle both absolute and relative paths
+        final absolutePath = switch (providedPath) {
+          '.' => fs.currentDirectory.path,
+          _ =>
+            fs.path.isAbsolute(providedPath)
+                ? providedPath
+                : fs.path.join(fs.currentDirectory.path, providedPath),
+        };
+
+        // Convert to relative path from current directory for display
+        final relativePath = fs.path.relative(
+          absolutePath,
+          from: fs.currentDirectory.path,
+        );
+
+        // Normalize '.' to '.' (not './')
+        return relativePath.isEmpty || relativePath == '.' ? '.' : relativePath;
+      }).toList();
+
+      // If all paths are the same, show just one
+      final uniquePaths = displayPaths.toSet();
+      if (uniquePaths.length == 1) {
+        return uniquePaths.first;
+      }
+
+      // If multiple different paths, show the first path
+      return displayPaths.first;
+    }
+
+    // If no paths were provided at all (sip test with no arguments),
+    // show '.' (current directory) instead of resolved test paths
+    if (providedPaths != null && providedPaths.isEmpty) {
+      return '.';
+    }
+
+    // If tests are provided but no original paths, show the
+    // relative path(s) of the tests
+    if (tests.isNotEmpty) {
+      // Get the relative paths from current directory for display
+      final testPaths = tests.map((test) {
+        // Handle both absolute and relative paths
+        final absolutePath = fs.path.isAbsolute(test)
+            ? test
+            : fs.path.join(pkg.path, test);
+
+        // If it's a file, use its directory; if it's a directory,
+        // use it directly
+        final pathToShow = fs.isFileSync(absolutePath)
+            ? fs.path.dirname(absolutePath)
+            : absolutePath;
+
+        // Convert to relative path from current directory for display
+        final relativePath = fs.path.relative(
+          pathToShow,
+          from: fs.currentDirectory.path,
+        );
+
+        // Normalize '.' to '.' (not './')
+        return relativePath.isEmpty || relativePath == '.' ? '.' : relativePath;
+      }).toList();
+
+      // If all paths are the same, show just one
+      final uniquePaths = testPaths.toSet();
+      if (uniquePaths.length == 1) {
+        return uniquePaths.first;
+      }
+
+      // If multiple different paths, show the first path
+      // (showing all would be too verbose)
+      return testPaths.first;
+    }
+
+    // Fallback to package relative path when no specific tests provided
+    // Normalize empty or '.' to '.' for root directory
+    final pkgRelativePath = pkg.relativePath;
+    return pkgRelativePath.isEmpty || pkgRelativePath == '.'
+        ? '.'
+        : pkgRelativePath;
   }
 
   Future<ExitCode> runCommands(

@@ -57,6 +57,10 @@ class TestRunCommand with TesterMixin {
     final bail = args.get<bool>('bail', defaultValue: false);
     final slice = args.getOrNull<int>('slice');
 
+    // Preserve original provided paths for display (before filtering)
+    final originalProvidedPaths = [...paths, ...args.rest]
+      ..removeWhere((e) => e.isEmpty);
+
     final providedTests = [...paths, ...args.rest]
       ..removeWhere((e) => e.isEmpty || e == '.');
 
@@ -112,13 +116,24 @@ class TestRunCommand with TesterMixin {
     if (testsToRun != null) {
       final pkg = Package.nearest();
 
+      // If original paths were '.', 'test', or empty,
+      // don't pass test directories
+      // to the command - just run tests without path arguments
+      final shouldSkipPaths = shouldSkipTestPaths(originalProvidedPaths);
+      final testsForCommand = shouldSkipPaths ? <String>[] : testsToRun;
+
       final testGroups = switch (slice) {
-        null => [testsToRun],
-        final int count => testsToRun.chunked(count),
+        null => [testsForCommand],
+        final int count => testsForCommand.chunked(count),
       };
 
       for (final group in testGroups) {
-        final command = createTestCommand(pkg: pkg, tests: group, bail: bail);
+        final command = createTestCommand(
+          pkg: pkg,
+          tests: group,
+          bail: bail,
+          providedPaths: originalProvidedPaths,
+        );
 
         commandsToRun.add(command);
       }
@@ -152,7 +167,14 @@ class TestRunCommand with TesterMixin {
       commandsToRun.addAll([
         for (final pkg in pkgs)
           for (final group in pkg.testGroups)
-            createTestCommand(pkg: pkg, tests: group, bail: bail),
+            createTestCommand(
+              pkg: pkg,
+              tests: group,
+              bail: bail,
+              // Pass empty list if no paths provided (to distinguish from null)
+              // This allows us to show '.' when no paths were provided
+              providedPaths: originalProvidedPaths,
+            ),
       ]);
 
       cleanUp = () {
