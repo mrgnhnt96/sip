@@ -1,3 +1,10 @@
+# 0.18.5 | 2.6.2026
+
+## Enhancements
+
+- Improve test output formatting when using `--omit-errors` flag to show formatted path and test description with colors
+- Use same simple path | test format (without truncation) for failing tests when `--omit-errors` is not enabled, while still showing error output
+
 # 0.18.4 | 2.3.2026
 
 ## Fixes
