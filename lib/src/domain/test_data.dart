@@ -224,11 +224,23 @@ class TestData {
     parseCi(script, output);
   }
 
+  String _formatPathAndTest(TestOutput output) {
+    // Format path | test description without truncation
+    final buf = StringBuffer();
+    if (output case TestOutput(:final path, :final test)) {
+      if (path != null) {
+        buf.write('${darkGray.wrap('$path │ ')}');
+      }
+      buf.write(white.wrap(test));
+    }
+    return buf.toString();
+  }
+
   String? _errorOutput(TestOutput output) {
     if (args['omit-errors'] case true) {
       // When omit-errors is true, show just the path | test description
       // without any truncation or wrapping, formatted with colors
-      if (output case TestOutput(didFail: true, :final path, :final test)) {
+      if (output case TestOutput(didFail: true)) {
         final buf = StringBuffer();
 
         if (hasTerminal) {
@@ -239,11 +251,9 @@ class TestData {
           buf.write('❌ ${red.wrap('-$failing')} ');
         }
 
-        if (path != null) {
-          buf.write('${darkGray.wrap('$path │ ')}');
-        }
-
-        buf.write('${white.wrap(test)}\n');
+        buf
+          ..write(_formatPathAndTest(output))
+          ..write('\n');
 
         return buf.toString();
       }
@@ -315,113 +325,131 @@ class TestData {
       prefixItems.add((text: skippedStr, wrap: yellow.wrap));
     }
 
-    // Build path and test items
-    final pathAndTestItems = <TextItem>[];
-    if (output case TestOutput(:final path, :final test)) {
-      // Calculate available space using raw text lengths (no ANSI codes)
-      final prefixLength = prefixItems.isEmpty
-          ? 0
-          : prefixItems.map((item) => item.text).join(' ').length;
-      // Spaces between items: N-1 spaces for N items
-      final spacesBetweenItems = prefixItems.isNotEmpty
-          ? prefixItems.length - 1
-          : 0;
-      final separatorLength = path != null ? 3 : 0; // " │ " only if path exists
-      final spaceAfterSeparator = path != null
-          ? 1
-          : 0; // space between separator and test
-      final availableForPathAndTest =
-          (terminalColumns -
-                  prefixLength -
-                  spacesBetweenItems -
-                  separatorLength -
-                  spaceAfterSeparator -
-                  2)
-              .clamp(50, terminalColumns); // 2 chars safety buffer, min 50
+    // Use simple format for failures when omit-errors is not enabled
+    // Otherwise use truncation format for passing tests
+    final omitErrors = args['omit-errors'];
+    final useSimpleFormat =
+        output.didFail && (omitErrors == false || omitErrors == null);
 
-      if (path != null) {
-        // Use relative path
-        final displayPath = fs.path.isRelative(path)
-            ? path
-            : fs.path.relative(path);
+    String textOutput;
+    if (useSimpleFormat) {
+      // Use simple format without truncation for failures
+      final pathAndTestFormatted = _formatPathAndTest(output);
+      final prefixText = prefixItems.isEmpty
+          ? ''
+          : prefixItems.map((item) => item.wrap(item.text)).join(' ');
+      textOutput = prefixText.isEmpty
+          ? pathAndTestFormatted
+          : '$prefixText $pathAndTestFormatted';
+    } else {
+      // Use truncation format for passing tests
+      final pathAndTestItems = <TextItem>[];
+      if (output case TestOutput(:final path, :final test)) {
+        // Calculate available space using raw text lengths (no ANSI codes)
+        final prefixLength = prefixItems.isEmpty
+            ? 0
+            : prefixItems.map((item) => item.text).join(' ').length;
+        // Spaces between items: N-1 spaces for N items
+        final spacesBetweenItems = prefixItems.isNotEmpty
+            ? prefixItems.length - 1
+            : 0;
+        final separatorLength = path != null
+            ? 3
+            : 0; // " │ " only if path exists
+        final spaceAfterSeparator = path != null
+            ? 1
+            : 0; // space between separator and test
+        final availableForPathAndTest =
+            (terminalColumns -
+                    prefixLength -
+                    spacesBetweenItems -
+                    separatorLength -
+                    spaceAfterSeparator -
+                    2)
+                .clamp(50, terminalColumns); // 2 chars safety buffer, min 50
 
-        // Allocate space: 40% for path, 60% for test (with minimums)
-        const minPathLength = 20;
-        const minTestLength = 30;
-        final pathAllocation = (availableForPathAndTest * 0.4).round().clamp(
-          minPathLength,
-          availableForPathAndTest - minTestLength,
-        );
-        final testAllocation = availableForPathAndTest - pathAllocation;
+        if (path != null) {
+          // Use relative path
+          final displayPath = fs.path.isRelative(path)
+              ? path
+              : fs.path.relative(path);
 
-        // Truncate path if needed
-        String truncatedPath;
-        if (displayPath.length > pathAllocation && pathAllocation > 7) {
-          final filename = fs.path.basename(displayPath);
-          final dir = fs.path.dirname(displayPath);
-          if (filename.length <= pathAllocation - 4) {
-            final availableForDir = pathAllocation - filename.length - 4;
-            if (availableForDir > 0 && dir.length > availableForDir) {
-              final startIndex = (dir.length - (availableForDir - 3)).clamp(
-                0,
-                dir.length,
-              );
-              final dirPart = '...${dir.substring(startIndex)}';
-              truncatedPath = '$dirPart/$filename';
+          // Allocate space: 40% for path, 60% for test (with minimums)
+          const minPathLength = 20;
+          const minTestLength = 30;
+          final pathAllocation = (availableForPathAndTest * 0.4).round().clamp(
+            minPathLength,
+            availableForPathAndTest - minTestLength,
+          );
+          final testAllocation = availableForPathAndTest - pathAllocation;
+
+          // Truncate path if needed
+          String truncatedPath;
+          if (displayPath.length > pathAllocation && pathAllocation > 7) {
+            final filename = fs.path.basename(displayPath);
+            final dir = fs.path.dirname(displayPath);
+            if (filename.length <= pathAllocation - 4) {
+              final availableForDir = pathAllocation - filename.length - 4;
+              if (availableForDir > 0 && dir.length > availableForDir) {
+                final startIndex = (dir.length - (availableForDir - 3)).clamp(
+                  0,
+                  dir.length,
+                );
+                final dirPart = '...${dir.substring(startIndex)}';
+                truncatedPath = '$dirPart/$filename';
+              } else {
+                truncatedPath = dir.isEmpty ? filename : '$dir/$filename';
+              }
             } else {
-              truncatedPath = dir.isEmpty ? filename : '$dir/$filename';
+              final availableForFilename = pathAllocation - 3;
+              if (availableForFilename > 0) {
+                final startIndex = (filename.length - availableForFilename)
+                    .clamp(0, filename.length);
+                truncatedPath = '...${filename.substring(startIndex)}';
+              } else {
+                truncatedPath = '...';
+              }
             }
           } else {
-            final availableForFilename = pathAllocation - 3;
-            if (availableForFilename > 0) {
-              final startIndex = (filename.length - availableForFilename).clamp(
-                0,
-                filename.length,
-              );
-              truncatedPath = '...${filename.substring(startIndex)}';
-            } else {
-              truncatedPath = '...';
-            }
+            truncatedPath = displayPath;
           }
+
+          // Truncate test description to fit available space
+          final truncatedTest = switch (testAllocation > 3 &&
+              test.length > testAllocation) {
+            true =>
+              // ignore: prefer_interpolation_to_compose_strings
+              test.substring(0, (testAllocation - 3).clamp(0, test.length)) +
+                  '...',
+            false => test,
+          };
+
+          pathAndTestItems
+            ..add((text: '$truncatedPath │', wrap: darkGray.wrap))
+            ..add((text: truncatedTest, wrap: white.wrap));
         } else {
-          truncatedPath = displayPath;
+          // No path, just show the test name
+          final truncatedTest = switch (availableForPathAndTest > 3 &&
+              test.length > availableForPathAndTest) {
+            true =>
+              // ignore: prefer_interpolation_to_compose_strings
+              test.substring(
+                    0,
+                    (availableForPathAndTest - 3).clamp(0, test.length),
+                  ) +
+                  '...',
+            false => test,
+          };
+
+          pathAndTestItems.add((text: truncatedTest, wrap: white.wrap));
         }
-
-        // Truncate test description to fit available space
-        final truncatedTest = switch (testAllocation > 3 &&
-            test.length > testAllocation) {
-          true =>
-            // ignore: prefer_interpolation_to_compose_strings
-            test.substring(0, (testAllocation - 3).clamp(0, test.length)) +
-                '...',
-          false => test,
-        };
-
-        pathAndTestItems
-          ..add((text: '$truncatedPath │', wrap: darkGray.wrap))
-          ..add((text: truncatedTest, wrap: white.wrap));
-      } else {
-        // No path, just show the test name
-        final truncatedTest = switch (availableForPathAndTest > 3 &&
-            test.length > availableForPathAndTest) {
-          true =>
-            // ignore: prefer_interpolation_to_compose_strings
-            test.substring(
-                  0,
-                  (availableForPathAndTest - 3).clamp(0, test.length),
-                ) +
-                '...',
-          false => test,
-        };
-
-        pathAndTestItems.add((text: truncatedTest, wrap: white.wrap));
       }
-    }
 
-    // Build the formatted output string
-    final allTextItems = [...prefixItems, ...pathAndTestItems];
-    final wrappedTexts = allTextItems.map((item) => item.wrap(item.text));
-    final textOutput = wrappedTexts.join(' ');
+      // Build the formatted output string
+      final allTextItems = [...prefixItems, ...pathAndTestItems];
+      final wrappedTexts = allTextItems.map((item) => item.wrap(item.text));
+      textOutput = wrappedTexts.join(' ');
+    }
 
     final formattedErrorOutput = _errorOutput(output);
     final errorOutput = StringBuffer(formattedErrorOutput ?? '');
@@ -517,12 +545,13 @@ class TestOutput {
   TestOutput({
     required String test,
     required this.error,
-    this.path,
+    String? path,
     this.previous,
     String? passing,
     String? failing,
     String? skipped,
   }) : test = test.trim(),
+       path = path?.trim().replaceAll(RegExp(r':$'), ''),
        passing = int.tryParse(passing ?? ''),
        failing = int.tryParse(failing ?? ''),
        skipped = int.tryParse(skipped ?? '');
