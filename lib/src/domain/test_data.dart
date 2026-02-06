@@ -226,6 +226,28 @@ class TestData {
 
   String? _errorOutput(TestOutput output) {
     if (args['omit-errors'] case true) {
+      // When omit-errors is true, show just the path | test description
+      // without any truncation or wrapping, formatted with colors
+      if (output case TestOutput(didFail: true, :final path, :final test)) {
+        final buf = StringBuffer();
+
+        if (hasTerminal) {
+          buf.write('\x1B[2K\x1B[0G');
+        }
+
+        if (failing > 0) {
+          buf.write('❌ ${red.wrap('-$failing')} ');
+        }
+
+        if (path != null) {
+          buf.write('${darkGray.wrap('$path │ ')}');
+        }
+
+        buf.write('${white.wrap(test)}\n');
+
+        return buf.toString();
+      }
+
       return null;
     }
 
