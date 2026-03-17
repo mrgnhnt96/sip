@@ -1,3 +1,9 @@
+# 0.18.6 | 2.6.2026
+
+## Fixes
+
+- Fix issue where analytics would hang indefinitely
+
 # 0.18.5 | 2.6.2026
 
 ## Enhancements
@@ -422,12 +428,10 @@
 ## Features
 
 - Support running specific tests by providing a test file or directory
-
   - `sip test ./test/my_test.dart`
   - `sip test ./test`
 
 - Create new `clean` command
-
   - Removes all `.dart_tool` and `build` directories in dart & flutter packages
   - Run `flutter clean` in flutter packages
 

@@ -38,16 +38,18 @@ class Analytics {
     );
 
     try {
-      await _client.capture(
-        event,
-        properties: {
-          ...props,
-          'is_sip_cli_script_set': Env.sipCliScript.isSet,
-          'is_ci': isCi(),
-          'package_version': packageVersion,
-        },
-        timestamp: DateTime.now(),
-      );
+      await _client
+          .capture(
+            event,
+            properties: {
+              ...props,
+              'is_sip_cli_script_set': Env.sipCliScript.isSet,
+              'is_ci': isCi(),
+              'package_version': packageVersion,
+            },
+            timestamp: DateTime.now(),
+          )
+          .timeout(const Duration(seconds: 1));
     } catch (_) {
       // ignore
     }
