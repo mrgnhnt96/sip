@@ -2,9 +2,9 @@ name: sip_cli
 version: 0.18.6
 description: Manage mono-repos with `sip`, run scripts and get dependencies concurrently.
 homepage: https://github.com/mrgnhnt96/sip
-repository: https://github.com/mrgnhnt96/sip/tree/main/packages/sip
+repository: https://github.com/mrgnhnt96/sip
 issue_tracker: https://github.com/mrgnhnt96/sip/issues
-documentation: https://github.com/mrgnhnt96/sip/tree/master/packages/sip#readme
+documentation: https://github.com/mrgnhnt96/sip/blob/main/README.md
 topics: [cli, executable, dependencies, mono-repo]
 funding:
   - https://github.com/sponsors/mrgnhnt96
