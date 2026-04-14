@@ -1,3 +1,10 @@
+# 0.18.7 | 4.14.2026
+
+## Fixes
+
+- Fix issue where running multiple concurrent commands would hang indefinitely
+  - Thanks for your contribution @[supposedlysam](https://github.com/supposedlysam)
+
 # 0.18.6 | 2.6.2026
 
 ## Fixes
