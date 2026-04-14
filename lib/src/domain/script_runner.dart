@@ -269,6 +269,12 @@ class ScriptRunner {
       done = logger.progress('${cyan.wrap(output)}');
     }
 
+    // Tracks whether the for-loop has finished launching all tasks.
+    // Parallel `.then()` callbacks are microtasks — they cannot fire until
+    // the synchronous loop body completes, so reading this flag inside a
+    // callback is safe.
+    var allLaunched = false;
+
     for (final (index, (part, future)) in pending.indexed) {
       if (printLabels) {
         if (part case ScriptToRun(:final String label)) {
@@ -311,7 +317,7 @@ class ScriptRunner {
           if (running.isEmpty) {
             waitForRunning?.complete();
 
-            if (index == pending.length - 1) {
+            if (allLaunched) {
               controller.close().ignore();
             }
           }
@@ -330,6 +336,15 @@ class ScriptRunner {
           controller.close().ignore();
         }
       }
+    }
+
+    allLaunched = true;
+
+    // If all tasks were parallel and all completed during an earlier `await`
+    // (e.g. mixed parallel + sequential groups), the controller may still be
+    // open. Close it now.
+    if (running.isEmpty && !controller.isClosed) {
+      controller.close().ignore();
     }
 
     if (waitForRunning case final completer?) {
