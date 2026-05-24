@@ -134,7 +134,7 @@ Future<void> _runScript(SendPort sendPort) async {
                 isWindows: true,
                 msystem: Platform.environment['MSYSTEM'],
               ) =>
-            ['bash', '-c'],
+            [posixShellOnWindows(), '-c'],
           'windows' => [
             Platform.environment['COMSPEC'] ?? r'C:\Windows\System32\cmd.exe',
             '/c',

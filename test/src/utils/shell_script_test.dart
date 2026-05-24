@@ -22,6 +22,57 @@ void main() {
       );
     }
 
+    group('usesCmdShell', () {
+      test('unix never uses cmd', () {
+        expect(usesCmdShell(isWindows: false), isFalse);
+        expect(usesCmdShell(isWindows: false, msystem: 'MINGW64'), isFalse);
+      });
+
+      test('native windows uses cmd', () {
+        expect(usesCmdShell(isWindows: true), isTrue);
+        expect(usesCmdShell(isWindows: true, msystem: ''), isTrue);
+      });
+
+      test('windows Git Bash uses posix shell', () {
+        expect(usesCmdShell(isWindows: true, msystem: 'MINGW64'), isFalse);
+      });
+    });
+
+    group('resolvePosixShellOnWindows', () {
+      test('prefers EXEPATH bash.exe', () {
+        final seen = <String>[];
+
+        final resolved = resolvePosixShellOnWindows(
+          exepath: r'C:\Program Files\Git\bin',
+          exists: (path) {
+            seen.add(path);
+            return path == r'C:\Program Files\Git\bin\bash.exe';
+          },
+        );
+
+        expect(resolved, r'C:\Program Files\Git\bin\bash.exe');
+        expect(seen.first, r'C:\Program Files\Git\bin\bash.exe');
+      });
+
+      test('falls back to usr/bin/bash.exe under EXEPATH', () {
+        final resolved = resolvePosixShellOnWindows(
+          exepath: r'C:\Program Files\Git\bin',
+          exists: (path) => path == r'C:\Program Files\Git\usr\bin\bash.exe',
+        );
+
+        expect(resolved, r'C:\Program Files\Git\usr\bin\bash.exe');
+      });
+
+      test('falls back to ProgramFiles Git install', () {
+        final resolved = resolvePosixShellOnWindows(
+          programFiles: r'C:\Program Files',
+          exists: (path) => path == r'C:\Program Files\Git\usr\bin\bash.exe',
+        );
+
+        expect(resolved, r'C:\Program Files\Git\usr\bin\bash.exe');
+      });
+    });
+
     group('on unix', () {
       setUp(() {
         when(() => mockPlatform.isWindows).thenReturn(false);

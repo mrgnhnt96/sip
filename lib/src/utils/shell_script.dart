@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
 import 'package:sip_cli/src/deps/platform.dart';
 
 /// Whether script commands should use cmd.exe syntax on Windows.
@@ -10,6 +11,51 @@ bool usesCmdShell({required bool isWindows, String? msystem}) {
   if (!isWindows) return false;
   if (msystem != null && msystem.isNotEmpty) return false;
   return true;
+}
+
+/// Resolves Git Bash on Windows for native process spawning.
+///
+/// Plain `bash` resolves to WSL's stub (`System32\bash.exe`) when Dart starts
+/// a native process, so Git for Windows must be located explicitly.
+String? resolvePosixShellOnWindows({
+  String? exepath,
+  String? programFiles,
+  String? programFilesX86,
+  bool Function(String path)? exists,
+}) {
+  final windows = p.Context(style: p.Style.windows);
+  bool check(String path) => exists?.call(path) ?? File(path).existsSync();
+
+  final candidates = <String>[
+    if (exepath != null) ...[
+      windows.join(exepath, 'bash.exe'),
+      windows.normalize(windows.join(exepath, '..', 'usr', 'bin', 'bash.exe')),
+    ],
+    if (programFiles != null) ...[
+      windows.join(programFiles, 'Git', 'bin', 'bash.exe'),
+      windows.join(programFiles, 'Git', 'usr', 'bin', 'bash.exe'),
+    ],
+    if (programFilesX86 != null) ...[
+      windows.join(programFilesX86, 'Git', 'bin', 'bash.exe'),
+      windows.join(programFilesX86, 'Git', 'usr', 'bin', 'bash.exe'),
+    ],
+  ];
+
+  for (final candidate in candidates) {
+    if (check(candidate)) return candidate;
+  }
+
+  return null;
+}
+
+/// Git Bash executable for the current process environment.
+String posixShellOnWindows() {
+  return resolvePosixShellOnWindows(
+        exepath: Platform.environment['EXEPATH'],
+        programFiles: Platform.environment['ProgramFiles'],
+        programFilesX86: Platform.environment['ProgramFiles(x86)'],
+      ) ??
+      r'C:\Program Files\Git\bin\bash.exe';
 }
 
 /// Builds shell commands that work on the current platform.
