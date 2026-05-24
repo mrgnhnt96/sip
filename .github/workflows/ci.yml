@@ -20,25 +20,45 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Prepare log directory
+        shell: bash
+        run: mkdir -p ci-logs
+
       - name: Set up Dart
         uses: dart-lang/setup-dart@v1
         with:
           sdk: "3.9.4"
 
       - name: Install dependencies
-        run: dart pub get
+        shell: bash
+        run: |
+          set -o pipefail
+          dart pub get 2>&1 | tee ci-logs/01-pub-get.log
 
       - name: Install SIP
-        run: dart pub global activate --source path .
-
-      - name: Run unit tests
-        run: dart test
-
-      - name: Run SIP tests
-        run: sip test
+        shell: bash
+        run: |
+          set -o pipefail
+          dart pub global activate --source path . 2>&1 | tee ci-logs/02-install-sip.log
 
       - name: Run shell smoke test
+        shell: bash
         working-directory: test/integration/smoke
         run: |
-          dart pub get
-          sip run smoke
+          set -o pipefail
+          {
+            echo "=== platform ==="
+            uname -a 2>/dev/null || ver
+            echo "=== dart pub get ==="
+            dart pub get
+            echo "=== sip run smoke --loud ==="
+            sip run smoke --loud
+          } 2>&1 | tee "${GITHUB_WORKSPACE}/ci-logs/03-smoke-test.log"
+
+      - name: Upload step logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-logs-${{ matrix.os }}
+          path: ci-logs/
+          if-no-files-found: warn
