@@ -1,0 +1,140 @@
+import 'package:mocktail/mocktail.dart';
+import 'package:platform/platform.dart';
+import 'package:scoped_deps/scoped_deps.dart';
+import 'package:sip_cli/src/deps/platform.dart';
+import 'package:sip_cli/src/utils/shell_script.dart';
+import 'package:test/test.dart';
+
+class _MockPlatform extends Mock implements Platform {}
+
+void main() {
+  group('ShellScript', () {
+    late _MockPlatform mockPlatform;
+
+    setUp(() {
+      mockPlatform = _MockPlatform();
+    });
+
+    Future<void> withPlatform(void Function() fn) async {
+      await runScoped(
+        values: {platformProvider.overrideWith(() => mockPlatform)},
+        () async => fn(),
+      );
+    }
+
+    group('on unix', () {
+      setUp(() {
+        when(() => mockPlatform.isWindows).thenReturn(false);
+      });
+
+      test('changeDirectory uses bash cd', () async {
+        await withPlatform(() {
+          expect(
+            ShellScript.changeDirectory('/project/packages/foo'),
+            'cd "/project/packages/foo" || exit 1',
+          );
+        });
+      });
+
+      test('setVariable uses export', () async {
+        await withPlatform(() {
+          expect(
+            ShellScript.setVariable('GITHUB_ACTIONS', 'true'),
+            'export GITHUB_ACTIONS=true',
+          );
+        });
+      });
+
+      test('variableSeparator joins exports with newlines', () async {
+        await withPlatform(() {
+          expect(ShellScript.variableSeparator, '\n');
+          expect(
+            [
+              ShellScript.setVariable('FOO', 'bar'),
+              ShellScript.setVariable('BAZ', 'qux'),
+            ].join(ShellScript.variableSeparator),
+            'export FOO=bar\nexport BAZ=qux',
+          );
+        });
+      });
+
+      test('joinCommands uses blank lines', () async {
+        await withPlatform(() {
+          expect(
+            ShellScript.joinCommands([
+              'cd "/project" || exit 1',
+              'export FOO=bar',
+              'dart pub get',
+            ]),
+            'cd "/project" || exit 1\n\nexport FOO=bar\n\ndart pub get',
+          );
+        });
+      });
+    });
+
+    group('on windows', () {
+      setUp(() {
+        when(() => mockPlatform.isWindows).thenReturn(true);
+      });
+
+      test('changeDirectory uses cmd cd /d', () async {
+        await withPlatform(() {
+          expect(
+            ShellScript.changeDirectory(r'C:\project\packages\foo'),
+            r'cd /d "C:\project\packages\foo" || exit /b 1',
+          );
+        });
+      });
+
+      test('setVariable uses set', () async {
+        await withPlatform(() {
+          expect(
+            ShellScript.setVariable('GITHUB_ACTIONS', 'true'),
+            'set "GITHUB_ACTIONS=true"',
+          );
+        });
+      });
+
+      test('variableSeparator joins set commands with &&', () async {
+        await withPlatform(() {
+          expect(ShellScript.variableSeparator, ' && ');
+          expect(
+            [
+              ShellScript.setVariable('FOO', 'bar'),
+              ShellScript.setVariable('BAZ', 'qux'),
+            ].join(ShellScript.variableSeparator),
+            'set "FOO=bar" && set "BAZ=qux"',
+          );
+        });
+      });
+
+      test('joinCommands chains with &&', () async {
+        await withPlatform(() {
+          expect(
+            ShellScript.joinCommands([
+              r'cd /d "C:\project" || exit /b 1',
+              'set "FOO=bar"',
+              'dart pub get',
+            ]),
+            r'cd /d "C:\project" || exit /b 1 && set "FOO=bar" && dart pub get',
+          );
+        });
+      });
+
+      test('joinCommands flattens multiline commands', () async {
+        await withPlatform(() {
+          expect(
+            ShellScript.joinCommands([
+              r'cd /d "C:\project" || exit /b 1',
+              // ignore: no_adjacent_strings_in_list
+              r'cd packages\foo'
+                  '\n'
+                  'dart pub get',
+            ]),
+            r'cd /d "C:\project" || exit /b 1 && cd packages\foo && dart pub get',
+          );
+        });
+      });
+    });
+  });
+}

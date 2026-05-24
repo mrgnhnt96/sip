@@ -13,6 +13,7 @@ import 'package:sip_cli/src/domain/message.dart';
 import 'package:sip_cli/src/domain/message_action.dart';
 import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:sip_cli/src/domain/time.dart';
+import 'package:sip_cli/src/utils/shell_script.dart';
 
 typedef _RunFunction =
     Future<CommandResult> Function({bool? showOutputOverride});
@@ -99,19 +100,19 @@ class ScriptRunner {
         );
       }
 
-      final variables = switch (script.variables) {
+      final variableBlock = switch (script.variables) {
         final map when map.isNotEmpty => [
           for (final MapEntry(:key, :value) in map.entries)
-            'export $key=$value',
-        ].join('\n'),
+            ShellScript.setVariable(key, value),
+        ].join(ShellScript.variableSeparator),
         _ => null,
       };
 
-      final execute = [
-        'cd "$workingDirectory" || exit 1',
-        ?variables,
+      final execute = ShellScript.joinCommands([
+        ShellScript.changeDirectory(workingDirectory),
+        ?variableBlock,
         script.exe,
-      ].join('\n\n');
+      ]);
 
       pending.add((
         script,

@@ -125,7 +125,7 @@ Future<void> _runScript(SendPort sendPort) async {
         required bool showOutput,
         required bool sendOutput,
       }) async {
-        final [command, arg] = switch (Platform.operatingSystem) {
+        final [command, arg] = switch (platform.operatingSystem) {
           'linux' => ['bash', '-c'],
           'macos' => ['bash', '-c'],
           'windows' => ['cmd', '/c'],

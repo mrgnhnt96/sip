@@ -36,10 +36,11 @@ ioreg -rd1 -c IOPlatformExpertDevice | awk -F'"' '/IOPlatformUUID/{print $4}'\n
         details = await process(
           'powershell',
           [
-            '-c',
-            r'$reg = "HKLM:\SOFTWARE\Microsoft\Cryptography"; (Get-ItemProperty -Path $reg).MachineGuid',
+            '-NoProfile',
+            '-Command',
+            r'(Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Cryptography").MachineGuid',
           ],
-          runInShell: true,
+          runInShell: false,
           mode: ProcessStartMode.normal,
         );
 
