@@ -22,7 +22,7 @@ jobs:
 
       - name: Prepare log directory
         shell: bash
-        run: mkdir -p ci-logs
+        run: mkdir -p ci_logs
 
       - name: Set up Dart
         uses: dart-lang/setup-dart@v1
@@ -33,13 +33,13 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          dart pub get 2>&1 | tee ci-logs/01-pub-get.log
+          dart pub get 2>&1 | tee ci_logs/01-pub-get.log
 
       - name: Install SIP
         shell: bash
         run: |
           set -o pipefail
-          dart pub global activate --source path . 2>&1 | tee ci-logs/02-install-sip.log
+          dart pub global activate --source path . 2>&1 | tee ci_logs/02-install-sip.log
 
       - name: Run shell smoke test
         shell: bash
@@ -49,16 +49,18 @@ jobs:
           {
             echo "=== platform ==="
             uname -a 2>/dev/null || ver
+            echo "=== PATH ==="
+            echo "$PATH"
             echo "=== dart pub get ==="
             dart pub get
             echo "=== sip run smoke --loud ==="
-            sip run smoke --loud
-          } 2>&1 | tee "${GITHUB_WORKSPACE}/ci-logs/03-smoke-test.log"
+            dart pub global run sip_cli:sip run smoke --loud
+          } 2>&1 | tee "${GITHUB_WORKSPACE}/ci_logs/03-smoke-test.log"
 
       - name: Upload step logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ci-logs-${{ matrix.os }}
-          path: ci-logs/
+          name: ci_logs-${{ matrix.os }}
+          path: ci_logs/
           if-no-files-found: warn
