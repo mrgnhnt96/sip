@@ -128,7 +128,10 @@ Future<void> _runScript(SendPort sendPort) async {
         final [command, arg] = switch (platform.operatingSystem) {
           'linux' => ['bash', '-c'],
           'macos' => ['bash', '-c'],
-          'windows' => ['cmd', '/c'],
+          'windows' => [
+            Platform.environment['COMSPEC'] ?? r'C:\Windows\System32\cmd.exe',
+            '/c',
+          ],
           _ => throw UnsupportedError('Unsupported platform'),
         };
 

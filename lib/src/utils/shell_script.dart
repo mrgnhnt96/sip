@@ -2,12 +2,25 @@ import 'package:sip_cli/src/deps/platform.dart';
 
 /// Builds shell commands that work on the current platform.
 abstract final class ShellScript {
-  static String changeDirectory(String directory) {
+  /// Windows paths embedded in shell strings use forward slashes so
+  /// backslash sequences (e.g. `\t` in `\test`) are not mangled by
+  /// Git Bash / MSYS wrappers around cmd.exe.
+  static String _shellPath(String directory) {
     if (platform.isWindows) {
-      return 'cd /d "$directory" || exit /b 1';
+      return directory.replaceAll(r'\', '/');
     }
 
-    return 'cd "$directory" || exit 1';
+    return directory;
+  }
+
+  static String changeDirectory(String directory) {
+    final path = _shellPath(directory);
+
+    if (platform.isWindows) {
+      return 'cd /d "$path" || exit /b 1';
+    }
+
+    return 'cd "$path" || exit 1';
   }
 
   static String setVariable(String key, String value) {

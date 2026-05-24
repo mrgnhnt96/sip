@@ -81,10 +81,24 @@ void main() {
         await withPlatform(() {
           expect(
             ShellScript.changeDirectory(r'C:\project\packages\foo'),
-            r'cd /d "C:\project\packages\foo" || exit /b 1',
+            'cd /d "C:/project/packages/foo" || exit /b 1',
           );
         });
       });
+
+      test(
+        'changeDirectory avoids backslash escape sequences in paths',
+        () async {
+          await withPlatform(() {
+            expect(
+              ShellScript.changeDirectory(
+                r'D:\a\sip\sip\test\integration\smoke',
+              ),
+              'cd /d "D:/a/sip/sip/test/integration/smoke" || exit /b 1',
+            );
+          });
+        },
+      );
 
       test('setVariable uses set', () async {
         await withPlatform(() {
@@ -112,11 +126,11 @@ void main() {
         await withPlatform(() {
           expect(
             ShellScript.joinCommands([
-              r'cd /d "C:\project" || exit /b 1',
+              'cd /d "C:/project" || exit /b 1',
               'set "FOO=bar"',
               'dart pub get',
             ]),
-            r'cd /d "C:\project" || exit /b 1 && set "FOO=bar" && dart pub get',
+            'cd /d "C:/project" || exit /b 1 && set "FOO=bar" && dart pub get',
           );
         });
       });
@@ -125,13 +139,13 @@ void main() {
         await withPlatform(() {
           expect(
             ShellScript.joinCommands([
-              r'cd /d "C:\project" || exit /b 1',
+              'cd /d "C:/project" || exit /b 1',
               // ignore: no_adjacent_strings_in_list
               r'cd packages\foo'
                   '\n'
                   'dart pub get',
             ]),
-            r'cd /d "C:\project" || exit /b 1 && cd packages\foo && dart pub get',
+            r'cd /d "C:/project" || exit /b 1 && cd packages\foo && dart pub get',
           );
         });
       });
