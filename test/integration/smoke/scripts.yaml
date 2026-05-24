@@ -1,0 +1,23 @@
+smoke:
+  (bail): true
+  (command):
+    - dart --version
+    - "{$smoke:cd}"
+    - "{$smoke:env}"
+    - "{$smoke:multiline}"
+
+  cd:
+    (command): |
+      cd subdir
+      dart run ../bin/print_cwd.dart
+
+  env:
+    (env):
+      vars:
+        SIP_SMOKE: ok
+    (command): dart run bin/check_env.dart
+
+  multiline:
+    (command): |
+      dart run bin/print_msg.dart line1
+      dart run bin/print_msg.dart line2

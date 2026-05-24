@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: "3.9.4"
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Install SIP
+        run: dart pub global activate --source path .
+
+      - name: Run unit tests
+        run: dart test
+
+      - name: Run SIP tests
+        run: sip test
+
+      - name: Run shell smoke test
+        working-directory: test/integration/smoke
+        run: |
+          dart pub get
+          sip run smoke
