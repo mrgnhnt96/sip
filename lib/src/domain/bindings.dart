@@ -10,6 +10,7 @@ import 'package:sip_cli/src/deps/process.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
 import 'package:sip_cli/src/domain/message.dart';
 import 'package:sip_cli/src/domain/message_action.dart';
+import 'package:sip_cli/src/utils/shell_script.dart';
 
 class Bindings {
   const Bindings();
@@ -128,6 +129,12 @@ Future<void> _runScript(SendPort sendPort) async {
         final [command, arg] = switch (platform.operatingSystem) {
           'linux' => ['bash', '-c'],
           'macos' => ['bash', '-c'],
+          'windows'
+              when !usesCmdShell(
+                isWindows: true,
+                msystem: Platform.environment['MSYSTEM'],
+              ) =>
+            ['bash', '-c'],
           'windows' => [
             Platform.environment['COMSPEC'] ?? r'C:\Windows\System32\cmd.exe',
             '/c',
