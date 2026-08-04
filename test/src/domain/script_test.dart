@@ -81,6 +81,29 @@ something:
       }
     });
 
+    test('keys and path follow scripts.yaml nesting order', () {
+      final internalDbArtifacts = Script(
+        name: 'internal-db-artifacts',
+        commands: ['echo internal'],
+      );
+      Script(
+        name: 'schema',
+        scripts: {
+          'gen': Script(
+            name: 'gen',
+            scripts: {internalDbArtifacts.name: internalDbArtifacts},
+          ),
+        },
+      );
+
+      expect(internalDbArtifacts.keys, [
+        'schema',
+        'gen',
+        'internal-db-artifacts',
+      ]);
+      expect(internalDbArtifacts.path, 'schema.gen');
+    });
+
     test('should throw when circular reference is detected', () {
       fs.file(ScriptsYaml.fileName)
         ..createSync(recursive: true)

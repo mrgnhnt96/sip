@@ -144,8 +144,8 @@ class Script {
 
   bool get isPrivate => name.startsWith('_');
   bool get isPublic => !isPrivate;
-  Iterable<String> get keys => [...parents.map((e) => e.name), name];
-  String get path => parents.map((e) => e.name).join('.');
+  Iterable<String> get keys => [...parents.reversed.map((e) => e.name), name];
+  String get path => parents.reversed.map((e) => e.name).join('.');
 
   Script? _parent;
   Script? get parent => _parent;
@@ -374,7 +374,7 @@ class Script {
         if (reference == null) {
           final location = keys.join(' ');
 
-          logger.err('Script $variable not found. (Referened by $location)');
+          logger.err('Script $variable not found. (Referenced by $location)');
           return (null, ExitCode.config);
         }
 
