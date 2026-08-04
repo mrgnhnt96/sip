@@ -105,6 +105,32 @@ class ScriptRunCommand with RunScriptHelper, WorkingDirectory {
       return ExitCode.success;
     }
 
+    if (script.commands.isEmpty) {
+      logger
+        ..warn('There are no commands to run for "${keys.join(' ')}"')
+        ..warn('Here are the available scripts:');
+
+      final output = script
+          .listOut(
+            wrapCallableKey: (s) => lightGreen.wrap(s) ?? s,
+            wrapNonCallableKey: (s) => cyan.wrap(s) ?? s,
+            wrapMeta: (s) => lightBlue.wrap(s) ?? s,
+          )
+          .trim();
+
+      if (output.isEmpty) {
+        final name = green.wrap(script.keys.join(' '));
+        logger.info(
+          darkGray.wrap('No commands, aliases, nor description for $name'),
+        );
+      } else {
+        logger.write('\n${script.keys.join(' ')}\n');
+        logger.write('$output\n');
+      }
+
+      return ExitCode.config;
+    }
+
     final (resolved, exitCode) = script.resolve(flags: userArgs);
 
     if (exitCode != null) {

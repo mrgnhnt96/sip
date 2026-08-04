@@ -1,0 +1,7 @@
+parent:
+  (aliases):
+    - p
+  child:
+    (command): dart run parent child
+
+empty: {}
