@@ -9,3 +9,4 @@ packages/flutter
 pubspec_overrides.yaml
 .game_loop
 graphify-out
+.llm_chat
