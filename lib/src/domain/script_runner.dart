@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_private_typedef_functions
 
 import 'dart:async';
+import 'dart:io' as io;
 
 import 'package:mason_logger/mason_logger.dart';
 import 'package:sip_cli/src/deps/bindings.dart';
@@ -29,6 +30,7 @@ class ScriptRunner {
     MessageAction? Function(Runnable, Message)? onMessage,
     bool logTime = true,
     bool printLabels = true,
+    void Function(Runnable script, CommandResult result)? onScriptResult,
   }) async {
     final groups = <List<ScriptToRun>>[];
     final group = <ScriptToRun>[];
@@ -58,6 +60,7 @@ class ScriptRunner {
         printLabels: printLabels,
         disableConcurrency: disableConcurrency,
         onMessage: onMessage,
+        onScriptResult: onScriptResult,
       );
 
       if (result.exitCodeReason != ExitCode.success) {
@@ -80,6 +83,7 @@ class ScriptRunner {
     required bool printLabels,
     required bool disableConcurrency,
     required MessageAction? Function(Runnable, Message)? onMessage,
+    void Function(Runnable script, CommandResult result)? onScriptResult,
   }) async {
     final pending = <(ScriptToRun, _RunFunction)>[];
 
@@ -163,6 +167,7 @@ class ScriptRunner {
 
         final result = await future();
         results.add(result);
+        onScriptResult?.call(part, result);
 
         final shouldBail = switch (part) {
           ScriptToRun(bail: true) => true,
@@ -200,6 +205,7 @@ class ScriptRunner {
         done?.update(label());
         count++;
         results.add(taskResult);
+        onScriptResult?.call(part, taskResult);
 
         if (taskResult.exitCodeReason != ExitCode.success && bail) {
           final label = part.label;
@@ -256,9 +262,14 @@ class ScriptRunner {
     Completer<void>? waitForRunning;
     final running = <ScriptToRun>[];
 
+    final useLiveRows =
+        io.stdout.hasTerminal && logger.level.index <= Level.info.index;
+
     Progress? done;
     ({String output, bool parallel})? last;
     void Function()? updateDone;
+    _ConcurrentRows? liveRows;
+    final rowIndexByPart = <ScriptToRun, int>{};
 
     void log(String output) {
       if (showOutput) {
@@ -279,25 +290,26 @@ class ScriptRunner {
     for (final (index, (part, future)) in pending.indexed) {
       if (printLabels) {
         if (part case ScriptToRun(:final String label)) {
-          var current = (output: label, parallel: part.runInParallel ?? false);
+          final current = (
+            output: label,
+            parallel: part.runInParallel ?? false,
+          );
 
-          if (last?.parallel case true when current.parallel) {
-            current = (
-              output: [
-                ?cyan.wrap(last?.output),
-                ?cyan.wrap(current.output),
-              ].join(', '),
-              parallel: part.runInParallel ?? false,
-            );
-
-            done?.update(current.output);
-          } else if (last?.parallel case true) {
-            updateDone = () {
+          if (current.parallel) {
+            // Parallel scripts are listed one per row rather than merged
+            // into a single shared spinner; each animates independently
+            // until it finishes (see the `.then()` below).
+            if (last?.parallel == false) {
               done?.complete();
-              log(current.output);
-            };
-          } else if (current.parallel) {
-            done = logger.progress(current.output);
+              done = null;
+            }
+
+            if (useLiveRows) {
+              liveRows ??= _ConcurrentRows(logger);
+              rowIndexByPart[part] = liveRows!.addRow(current.output);
+            }
+          } else if (last?.parallel case true) {
+            updateDone = () => log(current.output);
           } else if (last != current) {
             done?.complete();
             log(current.output);
@@ -311,12 +323,59 @@ class ScriptRunner {
         running.add(part);
         waitForRunning ??= Completer<void>();
 
+        final stopwatch = Stopwatch()..start();
+
         future(showOutputOverride: false).then((result) {
+          stopwatch.stop();
           running.remove(part);
+
+          if (printLabels) {
+            if (part case ScriptToRun(:final String label)) {
+              final success = result.exitCodeReason == ExitCode.success;
+              final time = _formatElapsed(stopwatch.elapsed);
+
+              final detailLines = <String>[];
+              if (!success) {
+                final details = switch (result.error.trim()) {
+                  final error when error.isNotEmpty => error,
+                  _ => result.output.trim(),
+                };
+
+                if (details.isNotEmpty) {
+                  detailLines.addAll(
+                    details.split('\n').map((line) => '  $line'),
+                  );
+                }
+              }
+
+              final row = liveRows == null ? null : rowIndexByPart[part];
+
+              if (row != null) {
+                liveRows!.complete(
+                  row,
+                  success: success,
+                  time: time,
+                  details: detailLines,
+                );
+              } else {
+                final icon = success ? lightGreen.wrap('✓') : red.wrap('✗');
+                logger.info('$icon $label ${darkGray.wrap('($time)')}');
+
+                for (final line in detailLines) {
+                  logger.info(darkGray.wrap(line));
+                }
+              }
+            }
+          }
+
           controller.add((part, result));
 
           if (running.isEmpty) {
             waitForRunning?.complete();
+
+            liveRows?.dispose();
+            liveRows = null;
+            rowIndexByPart.clear();
 
             if (allLaunched) {
               controller.close().ignore();
@@ -356,4 +415,152 @@ class ScriptRunner {
 
     yield* controller.stream;
   }
+
+  static String _formatElapsed(Duration elapsed) {
+    final ms = elapsed.inMilliseconds;
+    final formatted = switch (ms) {
+      < 100 => '${ms}ms',
+      _ => '${(ms / 1000).toStringAsFixed(1)}s',
+    };
+    return formatted;
+  }
+}
+
+/// Renders a batch of concurrently-running scripts as one animated row per
+/// script, redrawing all rows in place on each tick.
+///
+/// Each row is either spinning (still running) or frozen with its final
+/// ✓/✗ and elapsed time. Rows can only be appended, never removed, so the
+/// cursor math in [_render] (move up by the previously-rendered physical
+/// line count, accounting for terminal-width wrapping) stays correct
+/// across ticks.
+class _ConcurrentRows {
+  _ConcurrentRows(this._logger);
+
+  static const _frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+
+  final Logger _logger;
+  final List<_ConcurrentRow> _rows = [];
+  Timer? _timer;
+  var _frame = 0;
+  var _rendered = 0;
+
+  int addRow(String label) {
+    final index = _rows.length;
+    _rows.add(_ConcurrentRow(label));
+    _timer ??= Timer.periodic(
+      const Duration(milliseconds: 80),
+      (_) => _render(),
+    );
+    return index;
+  }
+
+  void complete(
+    int index, {
+    required bool success,
+    required String time,
+    List<String> details = const [],
+  }) {
+    _rows[index]
+      ..done = true
+      ..success = success
+      ..time = time
+      ..details = details;
+  }
+
+  void dispose() {
+    _timer?.cancel();
+    _timer = null;
+    _render();
+  }
+
+  void _render() {
+    // A logical row's content can be wider than the terminal, in which case
+    // the terminal itself wraps it onto extra physical lines the cursor
+    // math below doesn't know about unless it's accounted for here.
+    final columns = io.stdout.hasTerminal ? io.stdout.terminalColumns : 80;
+    final width = columns > 1 ? columns - 1 : 1;
+
+    final buffer = StringBuffer();
+
+    if (_rendered > 0) {
+      buffer.write('\x1b[${_rendered}A');
+    }
+
+    var lineCount = 0;
+
+    void writeContent(String content) {
+      for (final physicalLine in _wrapVisible(content, width)) {
+        buffer
+          ..write('\x1b[2K\r')
+          ..write(physicalLine)
+          ..write('\n');
+        lineCount++;
+      }
+    }
+
+    for (final row in _rows) {
+      if (row case _ConcurrentRow(done: true, :final success?, :final time?)) {
+        final icon = success ? lightGreen.wrap('✓') : red.wrap('✗');
+        writeContent('$icon ${row.label} ${darkGray.wrap('($time)')}');
+      } else {
+        final char = _frames[_frame % _frames.length];
+        writeContent('${lightGreen.wrap(char)} ${row.label}');
+      }
+
+      for (final line in row.details) {
+        writeContent(darkGray.wrap(line) ?? line);
+      }
+    }
+
+    _rendered = lineCount;
+    _frame++;
+    _logger.write(buffer.toString());
+  }
+}
+
+/// Splits [text] into chunks no wider than [width] visible characters,
+/// treating ANSI SGR escape sequences (`\x1b[...m`) as zero-width so color
+/// codes don't get counted against the wrap width or split apart.
+List<String> _wrapVisible(String text, int width) {
+  if (width <= 0) return [text];
+
+  final lines = <String>[];
+  final current = StringBuffer();
+  var visible = 0;
+  var i = 0;
+
+  while (i < text.length) {
+    if (text[i] == '\x1b') {
+      final end = text.indexOf('m', i);
+      if (end != -1) {
+        current.write(text.substring(i, end + 1));
+        i = end + 1;
+        continue;
+      }
+    }
+
+    current.write(text[i]);
+    visible++;
+    i++;
+
+    if (visible == width && i < text.length) {
+      lines.add(current.toString());
+      current.clear();
+      visible = 0;
+    }
+  }
+
+  lines.add(current.toString());
+  return lines;
+}
+
+class _ConcurrentRow {
+  _ConcurrentRow(this.label);
+
+  final String label;
+  bool done = false;
+  bool? success;
+  String? time;
+  List<String> details = const [];
 }
