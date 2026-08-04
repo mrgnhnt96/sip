@@ -348,6 +348,29 @@ Fail fast:
 sip test --bail
 ```
 
+### Experimental: Flutter Test Bucketing
+
+> [!WARNING]
+> Experimental and strictly opt-in — may change or be removed without notice.
+
+For large Flutter widget-test suites, `--experimental-bucket` combines test files into a handful of generated bucket files (one `flutter test` invocation per shard) to cut per-file VM-isolate startup overhead:
+
+```bash
+sip test --experimental-bucket
+```
+
+Files that can't be safely combined (an explicit non-default `TestWidgetsFlutterBinding` subtype, or a test-surface mutation like `tester.view.physicalSize` left unreset) always run in their own isolated wrapper, never sharing an isolate with anything else. If a bucket's combined run looks untrustworthy — a compile error or hard binding assertion cuts it short — just that bucket's files are automatically discarded and re-run individually, and this is logged clearly.
+
+This does **not** catch arbitrary test-state leakage between files sharing an isolate (e.g. an unreset image cache) — that class of bug can't be caught statically or by the fallback above, so treat a bucketed run as a strong signal, not a guarantee of unbucketed-equivalent results.
+
+For CI matrix jobs, split the generated buckets across N jobs with `--bucket-shard-index`/`--bucket-shard-count` (entirely sip-side; distinct from `flutter test`'s own `--shard-index`/`--total-shards`, which isn't recommended for this since it still pays full test-graph discovery/compile cost per shard):
+
+```bash
+sip test --experimental-bucket --bucket-shard-index=0 --bucket-shard-count=4
+```
+
+`--bucket-count` controls how many combined bucket files are generated (default: number of processors).
+
 ## Pub Commands
 
 ### Pub Get
