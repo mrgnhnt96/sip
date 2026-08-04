@@ -1,3 +1,9 @@
+# 0.18.8 | 7.30.2026
+
+## Enhancements
+
+- **Experimental, opt-in:** Add `--experimental-bucket` to `sip test` for Flutter packages, combining test files into ~CPU-core-count generated bucket files (dispatched as one `flutter test` invocation per shard) to cut per-file VM-isolate startup overhead, the same idea as the existing Dart-only test optimizer. Files that can't be safely combined (unsafe `TestWidgetsFlutterBinding` subtypes, or test-surface mutation without a reset) always run in their own isolated wrapper, never sharing an isolate with anything else. If a bucket's combined run looks untrustworthy (a compile error or a hard binding assertion cuts it short, so one of its files never reports a result), just that bucket's original files are automatically discarded and re-run individually, logged clearly, while every other healthy bucket sharing the same invocation is left untouched. This covers the two known combining hazards, but not arbitrary global test-state leakage (e.g. an unreset image cache) between files sharing an isolate -- that class of bug can't be caught by a static check or the runtime fallback, so treat a bucketed run as a strong signal, not an absolute guarantee of unbucketed-equivalent results. Also adds `--bucket-count`, `--bucket-shard-index`, and `--bucket-shard-count` for splitting buckets across CI matrix jobs. Off by default; Dart packages and existing behavior are completely unaffected.
+
 # 0.18.7 | 4.14.2026
 
 ## Fixes
