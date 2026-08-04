@@ -59,6 +59,43 @@ class TestData {
   final _failure = <TestOutput>[];
   final _skipped = <TestOutput>[];
 
+  final _outputsByScript = <int, List<TestOutput>>{};
+
+  /// All [TestOutput]s recorded so far for [script], in report order.
+  List<TestOutput> outputsFor(Runnable script) {
+    return List.unmodifiable(_outputsByScript[script.hashCode] ?? const []);
+  }
+
+  /// Discards recorded results for [script] whose [TestOutput.path] is in
+  /// [filePaths], so those files can be re-run and their results replaced --
+  /// used by `--experimental-bucket`'s fallback-on-failure mechanism to drop
+  /// one compromised bucket's/solo file's untrustworthy results while
+  /// leaving every other (healthy) bucket/solo file sharing the same
+  /// invocation untouched.
+  void discardOutputsForFiles(Runnable script, Set<String> filePaths) {
+    final outputs = _outputsByScript[script.hashCode];
+    if (outputs == null) return;
+
+    final toRemove = outputs.where((o) => filePaths.contains(o.path)).toSet();
+    if (toRemove.isEmpty) return;
+
+    _success.removeWhere(toRemove.contains);
+    _failure.removeWhere(toRemove.contains);
+    _skipped.removeWhere(toRemove.contains);
+    outputs.removeWhere(toRemove.contains);
+  }
+
+  /// Clears any error previously attributed to [script] (e.g. via
+  /// [addError]) -- used once every file [script] was responsible for has
+  /// been discarded and successfully recovered by a fallback re-run.
+  void clearErrorFor(Runnable script) {
+    _data.remove(script.hashCode);
+  }
+
+  void _record(Runnable script, TestOutput output) {
+    (_outputsByScript[script.hashCode] ??= []).add(output);
+  }
+
   bool get hasTerminal {
     if (Env.sipCliScript.isSet) {
       return true;
@@ -126,6 +163,7 @@ class TestData {
       } else if (wasSuccess) {
         _success.add(output);
       }
+      _record(script, output);
 
       _print(output);
 
@@ -196,6 +234,7 @@ class TestData {
     } else if (wasFailure) {
       _failure.add(out);
     }
+    _record(script, out);
 
     if (path != null) {
       logger.detail('$path | $test');

@@ -6,8 +6,10 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/script_runner.dart';
+import 'package:sip_cli/src/domain/command_result.dart';
 import 'package:sip_cli/src/domain/dart_test_args.dart';
 import 'package:sip_cli/src/domain/flutter_test_args.dart';
+import 'package:sip_cli/src/domain/message.dart';
 import 'package:sip_cli/src/domain/message_action.dart';
 import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:sip_cli/src/domain/test_data.dart';
@@ -61,6 +63,7 @@ abstract mixin class TesterMixin {
     required List<String> tests,
     required bool bail,
     List<String>? providedPaths,
+    List<List<String>>? bucketFileGroups,
   }) {
     final toolArgs = switch (pkg) {
       Package(isFlutter: true) => const FlutterTestArgs().arguments,
@@ -72,12 +75,19 @@ abstract mixin class TesterMixin {
 
     // If original paths were '.', 'test', or empty, don't pass test directories
     // Just run the test command without path arguments
-    // However, always include optimized test files when present
+    // However, always include optimized/bucketed test files when present.
+    // A `--experimental-bucket` command must ALWAYS keep its explicit file
+    // list regardless of shouldSkipPaths -- it dispatches specific
+    // generated bucket files and/or specific solo (quarantined) files, not
+    // "run the whole package", and a solo file's own name won't match
+    // optimizedTestBasename the way a generated bucket file's does.
     final shouldSkipPaths = shouldSkipTestPaths(providedPaths);
     final hasOptimizedTestFile = tests.any(
-      (test) => test.contains('.test_optimizer.dart'),
+      (test) => test.contains(optimizedTestBasename),
     );
-    final testsToPass = (shouldSkipPaths && !hasOptimizedTestFile)
+    final isBucketCommand = bucketFileGroups != null;
+    final testsToPass =
+        (shouldSkipPaths && !hasOptimizedTestFile && !isBucketCommand)
         ? <String>[]
         : tests;
 
@@ -113,6 +123,7 @@ abstract mixin class TesterMixin {
       runInParallel: true,
       data: pkg,
       variables: {'GITHUB_ACTIONS': 'true'},
+      bucketFileGroups: bucketFileGroups,
     );
   }
 
@@ -238,11 +249,7 @@ abstract mixin class TesterMixin {
     logger.write(darkGray.wrap('loading...'));
 
     final data = TestData();
-
-    var killEverything = false;
-    var canKill = false;
-
-    var snapshot = (passing: 0, failing: 0, skipped: 0);
+    final scriptResults = <Runnable, CommandResult>{};
 
     try {
       await scriptRunner.run(
@@ -250,79 +257,19 @@ abstract mixin class TesterMixin {
         bail: bail,
         logTime: false,
         printLabels: false,
-        onMessage: (runnable, message) {
-          if (message.message.contains(
-            'The Dart compiler exited unexpectedly',
-          )) {
-            logger
-              ..err('The Dart compiler exited unexpectedly')
-              ..write(message.message);
-
-            data.addError(runnable, 'The Dart compiler exited unexpectedly');
-
-            return MessageAction.kill;
-          }
-
-          final lines = const LineSplitter().convert(message.message.trim());
-          final tests = <String>[];
-          final buf = StringBuffer();
-          final timePattern = RegExp(r'^\d{2,}:\d{2,}');
-          final ciPattern = RegExp('^[✅❌⚠️]');
-
-          for (final line in lines) {
-            // In CI format, each emoji-prefixed line is a separate test
-            if (ciPattern.hasMatch(line)) {
-              if (buf.isNotEmpty) {
-                tests.add(buf.toString());
-                buf.clear();
-              }
-              // Add the CI format line as its own test
-              tests.add(line);
-              continue;
-            } else if (timePattern.hasMatch(line)) {
-              if (buf.isNotEmpty) {
-                tests.add(buf.toString());
-                buf.clear();
-              }
-            }
-
-            buf.writeln(line);
-          }
-
-          if (buf.isNotEmpty) {
-            tests.add(buf.toString());
-          }
-
-          for (final test in tests) {
-            data.parse(runnable, test);
-          }
-
-          if (bail) {
-            // setup to fail on next
-            if (data.failing > 0 && !canKill) {
-              snapshot = data.snapshot;
-              canKill = true;
-              return null;
-            }
-
-            if (canKill && !killEverything) {
-              // wait till we have all the error data
-              if (data.snapshot == snapshot) {
-                return null;
-              }
-
-              killEverything = true;
-            } else if (killEverything) {
-              return MessageAction.kill;
-            }
-          }
-
-          return null;
-        },
+        onScriptResult: (script, result) => scriptResults[script] = result,
+        onMessage: _testOutputHandler(data, bail: bail),
       );
     } catch (e) {
       data.addError(null, e);
     }
+
+    await _runBucketFallbacks(
+      commandsToRun,
+      scriptResults: scriptResults,
+      data: data,
+      bail: bail,
+    );
 
     data.printResults();
 
@@ -331,6 +278,192 @@ abstract mixin class TesterMixin {
     }
 
     return ExitCode.success;
+  }
+
+  /// Builds a fresh `onMessage` handler that parses raw script output into
+  /// [data] and, when [bail] is set, kills the run once a failure has fully
+  /// reported. Each call gets its own bail-tracking state, so this is safe
+  /// to call again for a follow-up run (e.g. a bucket fallback re-run)
+  /// sharing the same [data].
+  MessageAction? Function(Runnable, Message) _testOutputHandler(
+    TestData data, {
+    required bool bail,
+  }) {
+    var killEverything = false;
+    var canKill = false;
+    var snapshot = (passing: 0, failing: 0, skipped: 0);
+
+    return (runnable, message) {
+      if (message.message.contains('The Dart compiler exited unexpectedly')) {
+        logger
+          ..err('The Dart compiler exited unexpectedly')
+          ..write(message.message);
+
+        data.addError(runnable, 'The Dart compiler exited unexpectedly');
+
+        return MessageAction.kill;
+      }
+
+      final lines = const LineSplitter().convert(message.message.trim());
+      final tests = <String>[];
+      final buf = StringBuffer();
+      final timePattern = RegExp(r'^\d{2,}:\d{2,}');
+      final ciPattern = RegExp('^[✅❌⚠️]');
+
+      for (final line in lines) {
+        // In CI format, each emoji-prefixed line is a separate test
+        if (ciPattern.hasMatch(line)) {
+          if (buf.isNotEmpty) {
+            tests.add(buf.toString());
+            buf.clear();
+          }
+          // Add the CI format line as its own test
+          tests.add(line);
+          continue;
+        } else if (timePattern.hasMatch(line)) {
+          if (buf.isNotEmpty) {
+            tests.add(buf.toString());
+            buf.clear();
+          }
+        }
+
+        buf.writeln(line);
+      }
+
+      if (buf.isNotEmpty) {
+        tests.add(buf.toString());
+      }
+
+      for (final test in tests) {
+        data.parse(runnable, test);
+      }
+
+      if (bail) {
+        // setup to fail on next
+        if (data.failing > 0 && !canKill) {
+          snapshot = data.snapshot;
+          canKill = true;
+          return null;
+        }
+
+        if (canKill && !killEverything) {
+          // wait till we have all the error data
+          if (data.snapshot == snapshot) {
+            return null;
+          }
+
+          killEverything = true;
+        } else if (killEverything) {
+          return MessageAction.kill;
+        }
+      }
+
+      return null;
+    };
+  }
+
+  /// `--experimental-bucket` fallback-on-failure: a bucket-mode command
+  /// covers one or more groups of original files (one group per generated
+  /// bucket file, plus a single-item group per solo file, all dispatched as
+  /// separate `flutter test` arguments in ONE invocation -- see
+  /// `Package.testGroups`/`bucketFileGroupsFor`). For any group where an
+  /// original file never reported a single test result, that group's run is
+  /// untrustworthy (a compile error or an unsafe binding can zero out an
+  /// entire bucket's results, per `FlutterTestSafety`; a process-level crash
+  /// can zero out several groups at once) -- so just that group's results
+  /// are discarded and its original files re-run individually (today's
+  /// normal, uncombined behavior), with that clearly logged. Every other
+  /// (healthy) group sharing the same invocation is left untouched.
+  ///
+  /// A group that simply has a genuine failing (but fully-executing) test
+  /// is not touched here: every original file in it still reports results
+  /// in that case, so there's nothing to fall back from.
+  Future<void> _runBucketFallbacks(
+    List<Runnable> commandsToRun, {
+    required Map<Runnable, CommandResult> scriptResults,
+    required TestData data,
+    required bool bail,
+  }) async {
+    for (final command in commandsToRun) {
+      if (command is! ScriptToRun) continue;
+
+      final groups = command.bucketFileGroups;
+      if (groups == null || groups.isEmpty) continue;
+
+      final pkg = command.data;
+      if (pkg is! Package) continue;
+
+      final outputs = data.outputsFor(command);
+      final missingGroups = [
+        for (final group in groups)
+          if (group.any((file) => !_bucketFileWasReported(file, outputs)))
+            group,
+      ];
+
+      if (missingGroups.isEmpty) continue;
+
+      final filesToRerun = [for (final group in missingGroups) ...group];
+      final exitCode = scriptResults[command]?.exitCode;
+
+      logger.warn(
+        '${command.label ?? command.exe} failed when combined '
+        '(exit code: ${exitCode ?? 'unknown'}; '
+        '${missingGroups.length}/${groups.length} combined group(s) never '
+        'fully reported results) -- re-running ${filesToRerun.length} '
+        'file(s) individually.',
+      );
+
+      data.discardOutputsForFiles(command, filesToRerun.toSet());
+      if (missingGroups.length == groups.length) {
+        data.clearErrorFor(command);
+      }
+
+      final fallbackCommand = createTestCommand(
+        pkg: pkg,
+        tests: filesToRerun,
+        bail: bail,
+      );
+
+      try {
+        await scriptRunner.run(
+          [fallbackCommand],
+          bail: bail,
+          logTime: false,
+          printLabels: false,
+          onMessage: _testOutputHandler(data, bail: bail),
+        );
+      } catch (e) {
+        data.addError(fallbackCommand, e);
+      }
+    }
+  }
+
+  /// Whether any recorded [outputs] belong to the original file [file].
+  /// Every dispatched unit (bucket or solo) is wrapped in its own top-level
+  /// `group('<file>', ...)` (see `Package.bucketPlan`), and that literal
+  /// group name ends up in a different `TestOutput` field depending on how
+  /// many file arguments were passed to the one `flutter test`/`dart test`
+  /// invocation -- confirmed empirically against real `dart test` CI-format
+  /// output:
+  ///  - a single-file invocation puts it in [TestOutput.path] (e.g.
+  ///    `✅ test/a_test.dart a passes` -> `path: test/a_test.dart`).
+  ///  - a multi-file invocation (the normal `--experimental-bucket` shape,
+  ///    since a shard's buckets/solo files are all passed as arguments to
+  ///    ONE invocation) prefixes with the *physical* wrapper file instead
+  ///    and pushes the group name into [TestOutput.test] (e.g.
+  ///    `✅ test/.test_optimizer_bucket_0.dart: test/a_test.dart a passes`
+  ///    -> `path: test/.test_optimizer_bucket_0.dart, test: test/a_test.dart
+  ///    a passes`).
+  /// So both fields are checked.
+  bool _bucketFileWasReported(String file, List<TestOutput> outputs) {
+    final normalized = file.replaceAll(r'\', '/');
+
+    return outputs.any(
+      (output) =>
+          output.path == normalized ||
+          output.test == normalized ||
+          output.test.startsWith('$normalized '),
+    );
   }
 
   void cleanUpOptimizedFiles(Iterable<String?> optimizedFiles) {

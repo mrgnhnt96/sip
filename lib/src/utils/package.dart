@@ -5,9 +5,12 @@ import 'package:glob/glob.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/find_file.dart';
 import 'package:sip_cli/src/deps/fs.dart';
+import 'package:sip_cli/src/deps/platform.dart';
 import 'package:sip_cli/src/deps/pubspec_lock.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
 import 'package:sip_cli/src/domain/executables.dart';
+import 'package:sip_cli/src/domain/test_bucket_plan.dart';
+import 'package:sip_cli/src/utils/flutter_test_safety.dart';
 import 'package:sip_cli/src/utils/list_ext.dart';
 import 'package:yaml/yaml.dart';
 
@@ -143,8 +146,7 @@ class Package {
 
     return [
       for (final file in results.whereType<File>())
-        if (file.basename != fs.path.basename(_optimizedTestFilePath))
-          file.path,
+        if (!file.basename.startsWith(_optimizedFilePrefix)) file.path,
     ];
   }
 
@@ -160,7 +162,34 @@ class Package {
 
   /// Splits the tests into groups of the given [args['slice']] size
   /// by separating [testDirs]
+  ///
+  /// In bucket mode this always returns a single group containing every
+  /// bucket/solo file this invocation is responsible for (the whole plan,
+  /// or just this shard's slice of it) as multiple arguments to ONE `flutter
+  /// test` invocation -- never one invocation per bucket. `flutter test`
+  /// already runs each file argument in its own isolate and schedules them
+  /// concurrently itself; dispatching one OS process per bucket instead
+  /// would pay Flutter's fixed per-invocation bootstrap/native-asset-build
+  /// cost once per bucket instead of once per shard, and multiple such
+  /// processes racing on the same package's `build/native_assets` directory
+  /// is a confirmed real crash (see `--experimental-bucket` validation
+  /// notes).
   List<List<String>> get testGroups {
+    if (bucketPlan case final plan?) {
+      final units = [for (final bucket in plan.buckets) bucket.file];
+
+      final shardIndex = bucketShardIndex;
+      final shardCount = bucketShardCount;
+
+      final selected = (shardIndex != null && shardCount != null)
+          ? units.shard(index: shardIndex, count: shardCount)
+          : units;
+
+      if (selected.isEmpty) return [];
+
+      return [selected];
+    }
+
     if (optimizedTestFile case final file?) {
       return [
         [fs.path.relative(file, from: path)],
@@ -178,8 +207,183 @@ class Package {
     return [files];
   }
 
+  static const _optimizedFilePrefix = '.test_optimizer';
+
   String get _optimizedTestFilePath =>
-      fs.path.join(path, 'test', '.test_optimizer.dart');
+      fs.path.join(path, 'test', '$_optimizedFilePrefix.dart');
+
+  String _bucketFileName(int index) =>
+      '${_optimizedFilePrefix}_bucket_$index.dart';
+
+  String _soloWrapperFileName(int index) =>
+      '${_optimizedFilePrefix}_solo_$index.dart';
+
+  /// Whether experimental Flutter test-file bucketing is enabled for this
+  /// package. Only ever applies to Flutter packages -- Dart packages keep
+  /// today's always-on [optimizedTestFile] behavior unchanged, flag or no
+  /// flag.
+  bool get experimentalBucketEnabled =>
+      isFlutter && args.get<bool>('experimental-bucket', defaultValue: false);
+
+  /// How many combined bucket files to generate from the combinable
+  /// (non-solo) test files. Defaults to the number of available processors.
+  int get bucketCount {
+    final requested = args.getOrNull<int>('bucket-count');
+    if (requested != null && requested > 0) return requested;
+    return platform.numberOfProcessors;
+  }
+
+  int? get bucketShardIndex => args.getOrNull<int>('bucket-shard-index');
+  int? get bucketShardCount => args.getOrNull<int>('bucket-shard-count');
+
+  TestBucketPlan? _bucketPlan;
+
+  /// Plans (and generates on disk) how this package's Flutter test files
+  /// should be bucketed, or `null` when [experimentalBucketEnabled] is
+  /// false or there are no test files.
+  ///
+  /// Every combinable file is round-robin distributed across [bucketCount]
+  /// generated combined-bucket files under `test/`. Files that fail either
+  /// [FlutterTestSafety] pre-check are quarantined -- reported via
+  /// [TestBucketPlan.soloFiles]/[TestBucketPlan.soloReasons] -- but are
+  /// still generated as their own trivial single-file wrapper (a "bucket of
+  /// one") alongside the real combined buckets in [TestBucketPlan.buckets],
+  /// rather than being dispatched via their raw original path. This keeps
+  /// every dispatched unit uniformly identifiable by its injected
+  /// `group('<original file>', ...)` name no matter how many other file
+  /// arguments end up in the same `flutter test`/`dart test` invocation --
+  /// confirmed empirically that `dart test`'s CI reporter only prefixes
+  /// results with the *physical* file path once more than one file is
+  /// passed on the command line, which would otherwise make a solo file
+  /// unidentifiable (and therefore always look "missing") whenever it
+  /// shares an invocation with anything else.
+  TestBucketPlan? get bucketPlan {
+    if (_bucketPlan case final plan?) {
+      return plan;
+    }
+
+    if (!experimentalBucketEnabled) return null;
+
+    final files = testFiles;
+    if (files.isEmpty) return null;
+
+    final combinable = <String>[];
+    final solo = <String>[];
+    final soloReasons = <String, String>{};
+
+    for (final filePath in files) {
+      final content = fs.file(filePath).readAsStringSync();
+      final relativeToPackage = fs.path.relative(filePath, from: path);
+
+      if (FlutterTestSafety.isCombinable(content)) {
+        combinable.add(relativeToPackage);
+      } else {
+        solo.add(relativeToPackage);
+        soloReasons[relativeToPackage] = FlutterTestSafety.soloReason(content);
+      }
+    }
+
+    combinable.sort();
+    solo.sort();
+
+    final k = combinable.isEmpty ? 0 : bucketCount.clamp(1, combinable.length);
+
+    final bucketedFiles = List.generate(k, (_) => <String>[]);
+    for (var i = 0; i < combinable.length; i++) {
+      bucketedFiles[i % k].add(combinable[i]);
+    }
+
+    final testDirPath = fs.path.join(path, 'test');
+
+    final buckets = <TestBucket>[
+      for (final (b, originalFiles) in bucketedFiles.indexed)
+        if (originalFiles.isNotEmpty)
+          _writeWrapperFile(
+            testDirPath: testDirPath,
+            fileName: _bucketFileName(b),
+            originalFiles: originalFiles,
+          ),
+      for (final (s, soloFile) in solo.indexed)
+        _writeWrapperFile(
+          testDirPath: testDirPath,
+          fileName: _soloWrapperFileName(s),
+          originalFiles: [soloFile],
+        ),
+    ];
+
+    return _bucketPlan = TestBucketPlan(
+      buckets: buckets,
+      soloFiles: solo,
+      soloReasons: soloReasons,
+    );
+  }
+
+  TestBucket _writeWrapperFile({
+    required String testDirPath,
+    required String fileName,
+    required List<String> originalFiles,
+  }) {
+    final wrapperFile = fs.file(fs.path.join(testDirPath, fileName))
+      ..createSync(recursive: true);
+
+    String import((int index, String file) data) {
+      final (index, file) = data;
+      final importPath = fs.path
+          .relative(fs.path.join(path, file), from: testDirPath)
+          .replaceAll(fs.path.separator, '/');
+      return "import '$importPath' as _i$index;";
+    }
+
+    String group((int index, String file) data) {
+      final (index, file) = data;
+      final groupName = file.replaceAll(fs.path.separator, '/');
+      return "group('$groupName', () { _i$index.main(); });";
+    }
+
+    final content =
+        '''
+// GENERATED FILE. DO NOT COMMIT.
+// Produced by sip's --experimental-bucket flutter test optimizer.
+import 'package:flutter_test/flutter_test.dart' show group;
+${originalFiles.indexed.map(import).join('\n')}
+
+void main() {
+  ${originalFiles.indexed.map(group).join('\n  ')}
+}
+''';
+
+    wrapperFile.writeAsStringSync(content);
+
+    return TestBucket(
+      file: fs.path.relative(wrapperFile.path, from: path),
+      originalFiles: originalFiles,
+    );
+  }
+
+  /// The original (package-relative) files combined into the generated
+  /// bucket [file] (also package-relative), or `null` if [file] isn't a
+  /// known bucket from [bucketPlan].
+  List<String>? bucketOriginalFilesFor(String file) {
+    for (final bucket in bucketPlan?.buckets ?? const <TestBucket>[]) {
+      if (bucket.file == file) return bucket.originalFiles;
+    }
+
+    return null;
+  }
+
+  /// For a `testGroups` unit list (bucket files and/or solo files, as
+  /// produced for one `flutter test` invocation), returns one original-files
+  /// group per unit: a bucket's [TestBucket.originalFiles], or a
+  /// single-item group for a solo file. Used by the fallback-on-failure
+  /// mechanism to check coverage and discard/re-run at the right
+  /// granularity -- per bucket (protecting against silent isolate-sharing
+  /// corruption within that one combined file) or per solo file, never the
+  /// whole shard's command at once.
+  List<List<String>> bucketFileGroupsFor(List<String> units) {
+    return [
+      for (final unit in units) bucketOriginalFilesFor(unit) ?? [unit],
+    ];
+  }
 
   String? _optimizedFile;
   String? get optimizedTestFile {
@@ -223,10 +427,16 @@ void main() {
   }
 
   void deleteOptimizedTestFile() {
-    final file = fs.file(_optimizedTestFilePath);
+    _bucketPlan = null;
 
-    if (!file.existsSync()) return;
+    final testDir = fs.directory(fs.path.join(path, 'test'));
+    if (!testDir.existsSync()) return;
 
-    file.deleteSync();
+    for (final entity in testDir.listSync(followLinks: false).toList()) {
+      if (entity is! File) continue;
+      if (!entity.basename.startsWith(_optimizedFilePrefix)) continue;
+
+      entity.deleteSync();
+    }
   }
 }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:file/file.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:platform/platform.dart' show Platform;
 import 'package:scoped_deps/scoped_deps.dart';
 import 'package:sip_cli/src/deps/analytics.dart';
 import 'package:sip_cli/src/deps/args.dart';
@@ -50,6 +51,7 @@ void testScoped(
   PubspecYaml Function()? pubspecYaml,
   ScriptRunner Function()? scriptRunner,
   Args Function()? args,
+  Platform Function()? platform,
   Object? skip,
 }) {
   setUpAll(() {
@@ -70,11 +72,15 @@ void testScoped(
 
     final mockTime = _MockTime();
     when(() => mockTime.snapshot(any())).thenReturn('00:00');
+    when(() => mockTime.get(any())).thenReturn(Stopwatch());
 
     final testProviders = {
       isUpToDateProvider,
       keyPressListenerProvider,
-      platformProvider,
+      if (platform?.call() case final platform?)
+        platformProvider.overrideWith(() => platform)
+      else
+        platformProvider,
       processProvider,
       pubUpdaterProvider,
       variablesProvider,

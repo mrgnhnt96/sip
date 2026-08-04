@@ -9,6 +9,8 @@ import 'package:sip_cli/src/commands/test_command/tester_mixin.dart';
 import 'package:sip_cli/src/domain/bindings.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
 import 'package:sip_cli/src/domain/find_file.dart';
+import 'package:sip_cli/src/domain/message.dart';
+import 'package:sip_cli/src/domain/message_action.dart';
 import 'package:sip_cli/src/domain/pubspec_lock.dart';
 import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:sip_cli/src/domain/scripts_yaml.dart';
@@ -236,6 +238,266 @@ void main() {
           ).called(2);
         });
       });
+    });
+
+    group('#runCommands experimental bucket fallback', () {
+      Package bucketPackage() {
+        fs.file('/project/pubspec.yaml')
+          ..createSync(recursive: true)
+          ..writeAsStringSync('name: project');
+
+        return Package('/project/pubspec.yaml');
+      }
+
+      void mockRunScriptWithOutput(
+        Future<CommandResult> Function(
+          String script,
+          MessageAction? Function(Message) onOutput,
+        )
+        answer,
+      ) {
+        when(
+          () => bindings.runScriptWithOutput(
+            any(),
+            onOutput: any(named: 'onOutput'),
+            bail: any(named: 'bail'),
+          ),
+        ).thenAnswer((invocation) {
+          final script = invocation.positionalArguments.first as String;
+          final onOutput =
+              invocation.namedArguments[#onOutput]
+                  as MessageAction? Function(Message);
+
+          return answer(script, onOutput);
+        });
+      }
+
+      test("discards a bucket's results and re-runs its files individually "
+          'when one of them never reports a result', () async {
+        mockRunScriptWithOutput((script, onOutput) async {
+          if (script.contains('.test_optimizer_bucket_0.dart')) {
+            // Simulates a compile error/hard assertion cutting the bucket
+            // short after only the first file's tests ran. Multi-file
+            // invocations prefix with the physical wrapper file and push
+            // the original file's group name into the `test` field (see
+            // TesterMixin._bucketFileWasReported).
+            onOutput(
+              const Message(
+                '✅ test/.test_optimizer_bucket_0.dart: '
+                'test/a_test.dart a passes',
+              ),
+            );
+            return const CommandResult(exitCode: 1, output: '', error: '');
+          }
+
+          onOutput(const Message('✅ test/a_test.dart a passes'));
+          onOutput(const Message('✅ test/b_test.dart b passes'));
+          return success;
+        });
+
+        final pkg = bucketPackage();
+        final bucketCommand = tester.createTestCommand(
+          pkg: pkg,
+          tests: ['test/.test_optimizer_bucket_0.dart'],
+          bail: false,
+          bucketFileGroups: [
+            ['test/a_test.dart', 'test/b_test.dart'],
+          ],
+        );
+
+        final exitCode = await tester.runCommands(
+          [bucketCommand],
+          bail: false,
+          showOutput: false,
+        );
+
+        expect(exitCode, ExitCode.success);
+        verify(
+          () => bindings.runScriptWithOutput(
+            any(),
+            onOutput: any(named: 'onOutput'),
+            bail: any(named: 'bail'),
+          ),
+        ).called(2);
+        verify(
+          () => logger.warn(
+            any(
+              that: allOf(
+                contains('failed when combined'),
+                contains('re-running 2 file(s) individually'),
+              ),
+            ),
+          ),
+        ).called(1);
+      });
+
+      test(
+        'only discards and re-runs the compromised group, leaving a '
+        "healthy group sharing the same invocation's results untouched",
+        () async {
+          // One shard-level invocation covering TWO combined buckets:
+          // bucket 0 (a_test/b_test) fails to fully report; bucket 1
+          // (c_test) reports cleanly and should be left alone.
+          mockRunScriptWithOutput((script, onOutput) async {
+            if (script.contains('.test_optimizer_bucket_0.dart') &&
+                script.contains('.test_optimizer_bucket_1.dart')) {
+              onOutput(
+                const Message(
+                  '✅ test/.test_optimizer_bucket_0.dart: '
+                  'test/a_test.dart a passes',
+                ),
+              );
+              onOutput(
+                const Message(
+                  '✅ test/.test_optimizer_bucket_1.dart: '
+                  'test/c_test.dart c passes',
+                ),
+              );
+              return const CommandResult(exitCode: 1, output: '', error: '');
+            }
+
+            onOutput(const Message('✅ test/a_test.dart a passes'));
+            onOutput(const Message('✅ test/b_test.dart b passes'));
+            return success;
+          });
+
+          final pkg = bucketPackage();
+          final shardCommand = tester.createTestCommand(
+            pkg: pkg,
+            tests: [
+              'test/.test_optimizer_bucket_0.dart',
+              'test/.test_optimizer_bucket_1.dart',
+            ],
+            bail: false,
+            bucketFileGroups: [
+              ['test/a_test.dart', 'test/b_test.dart'],
+              ['test/c_test.dart'],
+            ],
+          );
+
+          final exitCode = await tester.runCommands(
+            [shardCommand],
+            bail: false,
+            showOutput: false,
+          );
+
+          expect(exitCode, ExitCode.success);
+          // One call for the shard invocation, one fallback call containing
+          // only bucket 0's files -- bucket 1's already-healthy result for
+          // c_test is kept, not redundantly re-run.
+          final calls = verify(
+            () => bindings.runScriptWithOutput(
+              captureAny(),
+              onOutput: any(named: 'onOutput'),
+              bail: any(named: 'bail'),
+            ),
+          )..called(2);
+          final fallbackScript = calls.captured.last as String;
+          expect(fallbackScript, contains('test/a_test.dart'));
+          expect(fallbackScript, contains('test/b_test.dart'));
+          expect(fallbackScript, isNot(contains('test/c_test.dart')));
+          verify(
+            () => logger.warn(
+              any(
+                that: allOf(
+                  contains('failed when combined'),
+                  contains('1/2 combined group(s)'),
+                  contains('re-running 2 file(s) individually'),
+                ),
+              ),
+            ),
+          ).called(1);
+        },
+      );
+
+      test('does not fall back when the bucket runs cleanly', () async {
+        mockRunScriptWithOutput((script, onOutput) async {
+          onOutput(
+            const Message(
+              '✅ test/.test_optimizer_bucket_0.dart: test/a_test.dart a passes',
+            ),
+          );
+          onOutput(
+            const Message(
+              '✅ test/.test_optimizer_bucket_0.dart: test/b_test.dart b passes',
+            ),
+          );
+          return success;
+        });
+
+        final pkg = bucketPackage();
+        final bucketCommand = tester.createTestCommand(
+          pkg: pkg,
+          tests: ['test/.test_optimizer_bucket_0.dart'],
+          bail: false,
+          bucketFileGroups: [
+            ['test/a_test.dart', 'test/b_test.dart'],
+          ],
+        );
+
+        final exitCode = await tester.runCommands(
+          [bucketCommand],
+          bail: false,
+          showOutput: false,
+        );
+
+        expect(exitCode, ExitCode.success);
+        verify(
+          () => bindings.runScriptWithOutput(
+            any(),
+            onOutput: any(named: 'onOutput'),
+            bail: any(named: 'bail'),
+          ),
+        ).called(1);
+        verifyNever(() => logger.warn(any(that: contains('re-running'))));
+      });
+
+      test(
+        'does not fall back for a genuine failure that still fully reports',
+        () async {
+          mockRunScriptWithOutput((script, onOutput) async {
+            onOutput(
+              const Message(
+                '✅ test/.test_optimizer_bucket_0.dart: '
+                'test/a_test.dart a passes',
+              ),
+            );
+            onOutput(
+              const Message(
+                '❌ test/.test_optimizer_bucket_0.dart: '
+                'test/b_test.dart b fails (failed)',
+              ),
+            );
+            return failure;
+          });
+
+          final pkg = bucketPackage();
+          final bucketCommand = tester.createTestCommand(
+            pkg: pkg,
+            tests: ['test/.test_optimizer_bucket_0.dart'],
+            bail: false,
+            bucketFileGroups: [
+              ['test/a_test.dart', 'test/b_test.dart'],
+            ],
+          );
+
+          final exitCode = await tester.runCommands(
+            [bucketCommand],
+            bail: false,
+            showOutput: false,
+          );
+
+          expect(exitCode, ExitCode.software);
+          verify(
+            () => bindings.runScriptWithOutput(
+              any(),
+              onOutput: any(named: 'onOutput'),
+              bail: any(named: 'bail'),
+            ),
+          ).called(1);
+          verifyNever(() => logger.warn(any(that: contains('re-running'))));
+        },
+      );
     });
 
     group('#cleanUp', () {

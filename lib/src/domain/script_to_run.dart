@@ -18,6 +18,7 @@ class ScriptToRun implements Runnable {
     Map<String, String>? variables,
     this.runInParallel,
     this.data,
+    this.bucketFileGroups,
   }) : _bail = bail,
        variables = variables ?? {};
 
@@ -30,6 +31,11 @@ class ScriptToRun implements Runnable {
   final String? workingDirectory;
   final bool? runInParallel;
   final Object? data;
+
+  /// When this script is a `--experimental-bucket` invocation, one group of
+  /// original (package-relative) test files per bucket/solo file it covers
+  /// -- see `Package.bucketFileGroupsFor`. `null` for anything else.
+  final List<List<String>>? bucketFileGroups;
 
   final String? label;
 

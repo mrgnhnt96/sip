@@ -30,6 +30,37 @@ Flags:
                                       (default: true)
   --slice [count]                   Splits test files into chunks and runs them concurrently
   --omit-errors                     Omit errors from the test output, only show failures
+
+EXPERIMENTAL (Flutter only, strictly opt-in, may change or be removed):
+  --experimental-bucket             Combine Flutter test files into ~CPU-core-count
+                                      generated bucket files (run as one `flutter test`
+                                      invocation per shard) to cut per-file VM-isolate
+                                      startup overhead, same idea as the Dart-only test
+                                      optimizer above. Files that can't be safely combined
+                                      (unsafe TestWidgetsFlutterBinding subtypes, or test
+                                      surface mutation without a reset) always run in
+                                      their own isolated wrapper. If a bucket's combined
+                                      run looks untrustworthy (a compile error or hard
+                                      binding assertion cuts it short, so one of its files
+                                      never reports a result), just that bucket's original
+                                      files are discarded and re-run individually, logged
+                                      clearly, leaving other healthy buckets untouched.
+                                      This does not catch arbitrary test-state leakage
+                                      between files sharing an isolate (e.g. an unreset
+                                      image cache) -- that hazard can't be caught
+                                      statically or by this fallback, so treat a bucketed
+                                      run as a strong signal, not a guarantee of
+                                      unbucketed-equivalent results.
+  --bucket-count=<N>                 How many combined bucket files to generate from the
+                                      combinable files (default: number of processors)
+  --bucket-shard-index=<i>           Which shard (0-based) this invocation should run, for
+                                      CI matrix jobs. Must be used with --bucket-shard-count.
+                                      Entirely sip-side -- does not forward to `flutter
+                                      test`'s own --shard-index.
+  --bucket-shard-count=<n>           Total number of shards, for CI matrix jobs. Must be
+                                      used with --bucket-shard-index. Entirely sip-side --
+                                      does not forward to `flutter test`'s own
+                                      --total-shards.
 ---
 
 Include any dart or flutter args run `dart test --help` or `flutter test --help`
@@ -56,6 +87,13 @@ class TestRunCommand with TesterMixin {
     final cleanOptimizedFiles = args.get<bool>('clean', defaultValue: true);
     final bail = args.get<bool>('bail', defaultValue: false);
     final slice = args.getOrNull<int>('slice');
+    final experimentalBucket = args.get<bool>(
+      'experimental-bucket',
+      defaultValue: false,
+    );
+    final bucketCount = args.getOrNull<int>('bucket-count');
+    final bucketShardIndex = args.getOrNull<int>('bucket-shard-index');
+    final bucketShardCount = args.getOrNull<int>('bucket-shard-count');
 
     // Preserve original provided paths for display (before filtering)
     final originalProvidedPaths = [...paths, ...args.rest]
@@ -76,8 +114,30 @@ class TestRunCommand with TesterMixin {
         'is_flutter_only': isFlutterOnly,
         'optimize': optimize,
         'omit_errors': args.get<bool>('omit-errors', defaultValue: false),
+        'experimental_bucket': experimentalBucket,
+        'bucket_count': bucketCount,
+        'bucket_shard_index': bucketShardIndex,
+        'bucket_shard_count': bucketShardCount,
       },
     );
+
+    if ((bucketShardIndex == null) != (bucketShardCount == null)) {
+      logger.err(
+        '--bucket-shard-index and --bucket-shard-count must be used together',
+      );
+      return ExitCode.usage;
+    }
+
+    if (bucketShardCount != null &&
+        (bucketShardCount < 1 ||
+            bucketShardIndex! < 0 ||
+            bucketShardIndex >= bucketShardCount)) {
+      logger.err(
+        '--bucket-shard-index must be in the range '
+        '[0, --bucket-shard-count)',
+      );
+      return ExitCode.usage;
+    }
 
     List<String>? testsToRun;
     if (providedTests.isNotEmpty) {
@@ -174,6 +234,9 @@ class TestRunCommand with TesterMixin {
               // Pass empty list if no paths provided (to distinguish from null)
               // This allows us to show '.' when no paths were provided
               providedPaths: originalProvidedPaths,
+              bucketFileGroups: pkg.bucketPlan != null
+                  ? pkg.bucketFileGroupsFor(group)
+                  : null,
             ),
       ]);
 
