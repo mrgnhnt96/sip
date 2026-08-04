@@ -6,3 +6,6 @@ packages/flutter
 .DS_Store
 .test_optimizer.dart
 !test/**/coverage*
+pubspec_overrides.yaml
+.game_loop
+graphify-out
