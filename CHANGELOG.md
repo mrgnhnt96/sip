@@ -1,3 +1,9 @@
+# 0.18.10 | 8.11.2026
+
+## Fixes
+
+- Fix flags that take no value swallowing the argument that follows them. `sip test --omit-errors test/a_test.dart test/b_test.dart` set `--omit-errors` to `test/a_test.dart` and dropped that file from the run, and when only one path followed the flag, the run fell back to testing the entire package. Every flag sip reads as a boolean is now parsed as such and leaves the following argument alone. Flags sip doesn't know about still take a value, so unknown `dart test` / `flutter test` options are forwarded as before. The same fix applies to boolean abbreviations (`-b`, `-d`, `-l`, `-r`), which also fixes `sip pub upgrade --tighten <package>` and `sip pub constrain -d <package>` losing their first package name.
+
 # 0.18.9 | 7.30.2026
 
 ## Enhancements
