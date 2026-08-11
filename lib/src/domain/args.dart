@@ -1,3 +1,5 @@
+import 'package:sip_cli/src/domain/boolean_flags.dart';
+
 class Args {
   const Args({
     Map<String, dynamic>? args,
@@ -25,7 +27,11 @@ class Args {
        _original = original,
        _rawArgs = rawArgs;
 
-  factory Args.parse(List<String> args) {
+  factory Args.parse(
+    List<String> args, {
+    Set<String> booleanFlags = booleanFlagNames,
+    Set<String> booleanAbbrs = booleanFlagAbbrs,
+  }) {
     // --no-<key> should be false under <key>
     // --<key> should be true under <key>
     // --key=value should be value under key
@@ -100,10 +106,14 @@ class Args {
         var key = arg.substring(1);
         String? value;
 
+        // Only the last abbreviation of a cluster like `-rj` takes a value,
+        // so it alone decides whether the next argument is consumed.
+        final takesValue = !booleanAbbrs.contains(key[key.length - 1]);
+
         if (key.split('=') case [final k, final v]) {
           key = k;
           value = v;
-        } else if (i + 1 < args.length) {
+        } else if (takesValue && i + 1 < args.length) {
           value = switch (args[i + 1]) {
             final String value when !value.startsWith('-') => value,
             _ => null,
@@ -136,7 +146,7 @@ class Args {
 
       final key = arg.substring(2);
 
-      if (i + 1 < args.length) {
+      if (i + 1 < args.length && !booleanFlags.contains(key)) {
         if (args[i + 1] case final String value when !value.startsWith('-')) {
           add(key, value);
           i++;
