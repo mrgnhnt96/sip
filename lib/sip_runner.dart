@@ -4,6 +4,7 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:sip_cli/src/commands/ai/ai_command.dart';
 import 'package:sip_cli/src/commands/clean_command.dart';
 import 'package:sip_cli/src/commands/list_command.dart';
+import 'package:sip_cli/src/commands/mcp/mcp_command.dart';
 import 'package:sip_cli/src/commands/pub_command.dart';
 import 'package:sip_cli/src/commands/script_run_command.dart';
 import 'package:sip_cli/src/commands/test_command/test_command.dart';
@@ -33,6 +34,7 @@ Commands:
   update      Update the sip command line application
   test        Run tests
   validate    Check scripts.yaml for problems
+  mcp         Run sip as an MCP server over stdio
 
 Flags:
   --version           Print the current version
@@ -124,6 +126,8 @@ class SipRunner {
         return await const UpdateCommand().run();
       case ['validate']:
         return await const ValidateCommand().run();
+      case ['mcp']:
+        return await const McpCommand().run();
     }
 
     logger.write(_usage);
