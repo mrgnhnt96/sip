@@ -177,6 +177,48 @@ void main() {
         },
       );
 
+      test('should fail when a command exits non-zero', () async {
+        // The output parser is the only source of pass/fail, so a failure it
+        // does not recognize used to be reported as a pass: `dart test` exits
+        // 1 while sip printed `Results: ✅ n ❌ 0` and exited 0.
+        when(
+          () => bindings.runScriptWithOutput(
+            any(),
+            onOutput: any(named: 'onOutput'),
+            bail: any(named: 'bail'),
+          ),
+        ).thenAnswer((_) => Future.value(failure));
+
+        final result = await tester.runCommands(
+          [ScriptToRun('something', workingDirectory: '.')],
+          bail: false,
+          showOutput: false,
+        );
+
+        expect(result, ExitCode.software);
+      });
+
+      test('should succeed when every command exits zero', () async {
+        when(
+          () => bindings.runScriptWithOutput(
+            any(),
+            onOutput: any(named: 'onOutput'),
+            bail: any(named: 'bail'),
+          ),
+        ).thenAnswer((_) => Future.value(success));
+
+        final result = await tester.runCommands(
+          [
+            ScriptToRun('something', workingDirectory: '.'),
+            ScriptToRun('else', workingDirectory: '.'),
+          ],
+          bail: false,
+          showOutput: false,
+        );
+
+        expect(result, ExitCode.success);
+      });
+
       group('should run all commands', () {
         test('concurrently', () async {
           when(

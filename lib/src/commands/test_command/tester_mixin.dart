@@ -264,7 +264,7 @@ abstract mixin class TesterMixin {
       data.addError(null, e);
     }
 
-    await _runBucketFallbacks(
+    final superseded = await _runBucketFallbacks(
       commandsToRun,
       scriptResults: scriptResults,
       data: data,
@@ -275,6 +275,22 @@ abstract mixin class TesterMixin {
 
     if (data.failing > 0 || data.allFailures.isNotEmpty) {
       return ExitCode.software;
+    }
+
+    // Parsed output is not the whole story: a failure the parser does not
+    // recognize (a crashed runner, an unreported failure, a reporter change)
+    // leaves the counters at zero while the process still exits non-zero.
+    // Trusting the counters alone reports a passing run for a failing suite,
+    // so a non-zero exit fails the run even when nothing was parsed.
+    //
+    // A command whose results were discarded and re-run individually is
+    // skipped: its exit code describes the run that was thrown away, and the
+    // fallback's own result stands in for it.
+    for (final MapEntry(key: command, value: result) in scriptResults.entries) {
+      if (superseded.contains(command)) continue;
+      if (result.exitCode != ExitCode.success.code) {
+        return ExitCode.software;
+      }
     }
 
     return ExitCode.success;
@@ -378,12 +394,17 @@ abstract mixin class TesterMixin {
   /// A group that simply has a genuine failing (but fully-executing) test
   /// is not touched here: every original file in it still reports results
   /// in that case, so there's nothing to fall back from.
-  Future<void> _runBucketFallbacks(
+  ///
+  /// Returns the commands whose results were discarded, so the caller knows
+  /// not to judge them by the exit code of the run that was thrown away.
+  Future<Set<Runnable>> _runBucketFallbacks(
     List<Runnable> commandsToRun, {
     required Map<Runnable, CommandResult> scriptResults,
     required TestData data,
     required bool bail,
   }) async {
+    final superseded = <Runnable>{};
+
     for (final command in commandsToRun) {
       if (command is! ScriptToRun) continue;
 
@@ -424,18 +445,23 @@ abstract mixin class TesterMixin {
         bail: bail,
       );
 
+      superseded.add(command);
+
       try {
         await scriptRunner.run(
           [fallbackCommand],
           bail: bail,
           logTime: false,
           printLabels: false,
+          onScriptResult: (script, result) => scriptResults[script] = result,
           onMessage: _testOutputHandler(data, bail: bail),
         );
       } catch (e) {
         data.addError(fallbackCommand, e);
       }
     }
+
+    return superseded;
   }
 
   /// Whether any recorded [outputs] belong to the original file [file].
