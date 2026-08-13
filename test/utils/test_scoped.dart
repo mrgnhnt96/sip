@@ -23,6 +23,7 @@ import 'package:sip_cli/src/deps/pubspec_lock.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
 import 'package:sip_cli/src/deps/script_runner.dart';
 import 'package:sip_cli/src/deps/scripts_yaml.dart';
+import 'package:sip_cli/src/deps/terminal.dart';
 import 'package:sip_cli/src/deps/time.dart';
 import 'package:sip_cli/src/deps/variables.dart';
 import 'package:sip_cli/src/domain/analytics.dart';
@@ -35,6 +36,7 @@ import 'package:sip_cli/src/domain/pubspec_lock.dart';
 import 'package:sip_cli/src/domain/pubspec_yaml.dart';
 import 'package:sip_cli/src/domain/script_runner.dart';
 import 'package:sip_cli/src/domain/scripts_yaml.dart';
+import 'package:sip_cli/src/domain/terminal.dart';
 import 'package:sip_cli/src/domain/time.dart';
 import 'package:test/test.dart';
 
@@ -52,6 +54,7 @@ void testScoped(
   ScriptRunner Function()? scriptRunner,
   Args Function()? args,
   Platform Function()? platform,
+  Terminal Function()? terminal,
   Object? skip,
 }) {
   setUpAll(() {
@@ -85,6 +88,13 @@ void testScoped(
       pubUpdaterProvider,
       variablesProvider,
       onDeathProvider,
+
+      // Tests are never attached to a terminal, and a default of "no
+      // terminal" would silently turn colour off for every existing
+      // expectation. Assume one unless a test says otherwise.
+      terminalProvider.overrideWith(
+        () => terminal?.call() ?? const FakeTerminal(hasTerminal: true),
+      ),
 
       deviceInfoProvider.overrideWith(_MockDeviceInfo.new),
       analyticsProvider.overrideWith(() => mockAnalytics),
