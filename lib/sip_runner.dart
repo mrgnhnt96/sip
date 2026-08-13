@@ -8,6 +8,7 @@ import 'package:sip_cli/src/commands/pub_command.dart';
 import 'package:sip_cli/src/commands/script_run_command.dart';
 import 'package:sip_cli/src/commands/test_command/test_command.dart';
 import 'package:sip_cli/src/commands/update_command.dart';
+import 'package:sip_cli/src/commands/validate_command.dart';
 import 'package:sip_cli/src/deps/analytics.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/is_up_to_date.dart';
@@ -31,6 +32,7 @@ Commands:
   version     Print the current version
   update      Update the sip command line application
   test        Run tests
+  validate    Check scripts.yaml for problems
 
 Flags:
   --version           Print the current version
@@ -120,6 +122,8 @@ class SipRunner {
         return await const TestCommand().run(path);
       case ['update']:
         return await const UpdateCommand().run();
+      case ['validate']:
+        return await const ValidateCommand().run();
     }
 
     logger.write(_usage);

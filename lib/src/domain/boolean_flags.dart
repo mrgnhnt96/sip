@@ -23,6 +23,9 @@ const booleanFlagNames = <String>{
   // sip list
   'resolve',
 
+  // sip validate
+  'fatal-warnings',
+
   // sip ai
   'force',
 
