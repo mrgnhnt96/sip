@@ -220,8 +220,12 @@ class TestRunCommand with TesterMixin {
       }
 
       if (pkgs.isEmpty) {
+        // Reported as an error but returned as success, this was a silent
+        // pass: a moved test directory, or a `--dart-only`/`--flutter-only`
+        // filter that matches nothing, ran no tests and still went green in
+        // CI. Asking to run tests and running none is a failure.
         logger.err('No packages found to test');
-        return ExitCode.success;
+        return ExitCode.noInput;
       }
 
       commandsToRun.addAll([
