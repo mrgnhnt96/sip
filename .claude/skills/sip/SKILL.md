@@ -15,7 +15,7 @@ mono-repo.
 
 ## Do
 
-- Verify with `dart test` — `sip test` can exit 0 on a failing suite
+- Treat `dart test` as the reference; `sip test` is a parsing layer over it
 - Add commands as `const` classes with `Future<ExitCode> run([List<String>])`,
   then register them in the `switch (args.path)` in `lib/sip_runner.dart` and
   in its `_usage`

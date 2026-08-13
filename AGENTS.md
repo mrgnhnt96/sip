@@ -13,11 +13,11 @@ executable, `sip`.
 | Format | `dart format .` |
 | Try a change end-to-end | `dart compile exe bin/sip.dart -o /tmp/sip_dev` then run `/tmp/sip_dev` |
 
-> **Verify with `dart test`, not `sip test`.** `sip test` decides pass/fail by
-> parsing test output rather than reading the test process's exit code, so a
-> failure it fails to parse is reported as a pass — a package with one passing
-> and one failing test prints `Results: ✅ 1 ❌ 0` and exits 0 while `dart test`
-> exits 1. This is a known bug in this repo, not a quirk to work around.
+> **`dart test` is still the reference.** `sip test` used to report a passing
+> run for a failing suite; it now counts failures correctly and also fails on a
+> non-zero exit code from the test process, so a failure the parser misses can
+> no longer pass silently. It remains a layer of parsing over `dart test`, so
+> when a result looks surprising, confirm with `dart test` directly.
 
 To exercise the CLI without touching a globally activated `sip`, compile to a
 scratch path and run that binary. `sip run install` (alias `sip run i`)
@@ -108,27 +108,42 @@ should therefore fall back to `args.rest` if its path is empty.
   `(description)`, `(bail)`, `(env)`) plus `Keys.nonScriptKeys` (`(variables)`,
   `(executables)`). Every other key is a nested script.
 
-## Known bugs
+## Recently fixed — worth understanding before working nearby
 
-Confirmed against the working tree; each is reproducible.
+Each of these was reproducible and is covered by a regression test. The
+mechanisms are easy to reintroduce.
 
-1. **`sip test` reports success for a failing suite.** `TesterMixin.runCommands`
-   returns `ExitCode.success` based on `data.failing`/`data.allFailures` alone
-   (`lib/src/commands/test_command/tester_mixin.dart`). The child process's
-   exit code is captured in `scriptResults` but only ever consulted by
-   `_runBucketFallbacks`. Independent of `--optimize`.
-2. **Bail does not stop later commands.** Both `--bail` and `(bail): true` still
-   run subsequent entries of a `(command)` list.
-3. **This repo's own `scripts.yaml` is broken.** `build_runner` uses
-   `${{ build_runner:_ }}`, which does not resolve; `sip run build_runner build`
-   exits 64 with `bad substitution`. Change the colons to dots.
+1. **Test failures were swallowed by the output parser.** sip forces the
+   `github` reporter by exporting `GITHUB_ACTIONS=true`
+   (`TesterMixin.createTestCommand`). That reporter closes the previous group
+   on the line before opening the next, so a failure arrives as a chunk
+   starting with `::endgroup::`. `TestData.parseCi` strips the group markers in
+   place, which left a leading newline, so its `^[✅❌]` check missed the result
+   and recorded the whole failure as *error text on the previous passing test*.
+   A failing suite summarized as `✅ 1 ❌ 0`. Fixed by trimming after stripping.
+   Any change to that marker handling needs `test/src/domain/test_data_test.dart`
+   to still fail without the trim — note it must reuse one `ScriptToRun`
+   instance, since the per-script state is keyed by identity.
+
+2. **A non-zero exit code did not fail the run.** `TesterMixin.runCommands`
+   judged pass/fail purely from parsed output; the process exit code was
+   captured in `scriptResults` but read only by `_runBucketFallbacks`. It is
+   now also a failure signal, except for commands superseded by a bucket
+   fallback (their exit code describes the discarded run).
+
+3. **Bail never stopped anything.** `ScriptRunner._group` launches every task
+   before yielding `controller.stream`, so the consumer's `break` on failure
+   always came too late — `--bail` and `(bail): true` ran the whole list while
+   printing "Bail is set, stopping on first error". Bail is now enforced inside
+   the launch loop. Already-running `(+)` commands still finish; they cannot be
+   unstarted.
 
 ## Releasing
 
-`sip run publish` is the release path. It chains `sip test`, `sip run prep`,
-`dart pub publish`, then a commit, a tag and a push. Note that its first step is
-`sip test`, which has the reporting bug above — a red suite will not stop the
-release.
+`sip run publish` is the release path. It chains `sip test --bail --recursive`,
+`sip run prep`, `dart pub publish`, then a commit, a tag and a push. It sets
+`(bail): true`, so a failing step now stops the release — before the fixes above
+it did not, and a red suite would publish.
 
 `sip run prep` keeps three things in sync from `CHANGELOG.md`: `pubspec.yaml`'s
 `version`, `packageVersion` in `lib/src/version.dart`, and `example/README.md`

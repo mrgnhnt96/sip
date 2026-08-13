@@ -230,8 +230,8 @@ sip test path/to/a_test.dart
 
 Unrecognized flags are forwarded to `dart test` / `flutter test`.
 
-**`sip test` can report a passing run for a failing suite.** Verify with
-`dart test` / `flutter test` before trusting a green result. See gotchas.
+`sip test` fails the run both when a test reports a failure and when the test
+process exits non-zero, so a failure it cannot parse still fails the run.
 
 ## Pub
 
@@ -269,19 +269,14 @@ These are verified behaviours of the current release, not style advice.
 2. **`(bail):` with no value does not enable bail.** An empty YAML value is
    `null`, which sip reads as `false`. Write `(bail): true`.
 
-3. **Bail does not reliably stop subsequent commands.** Both `--bail` and
-   `(bail): true` can still run later commands in a `(command)` list. Do not
-   depend on bail for correctness; check the exit code.
+3. **Bail stops launching, but cannot unstart `(+)` commands.** Once a command
+   fails under `--bail` or `(bail): true`, no further commands are launched;
+   concurrent commands already running still finish.
 
-4. **`sip test` derives pass/fail by parsing test output, not from the test
-   process's exit code.** When parsing misses a failure, sip prints
-   `Results: ✅ n ❌ 0` and exits 0 even though `dart test` exited 1. In CI,
-   or any time correctness matters, run `dart test` / `flutter test`.
-
-5. **The variable is `projectRoot`, not `packageRoot`.** An unknown name is
+4. **The variable is `projectRoot`, not `packageRoot`.** An unknown name is
    left unsubstituted and reaches the shell.
 
-6. **Unknown flags consume the next argument.** sip forwards flags it does not
+5. **Unknown flags consume the next argument.** sip forwards flags it does not
    know to `dart`/`flutter`, so it assumes an unknown `--flag` takes a value.
    `sip test --some-flag a_test.dart` reads `a_test.dart` as the flag's value
    and drops it from the file list. Use `--some-flag=value` form, or put
@@ -465,13 +460,13 @@ resolved versions and takes `--pin`/`--no-pin`, `--bump <breaking|major|minor|pa
 
 ## Failure modes
 
-1. **`sip test` can exit 0 on a failing suite.** Pass/fail is parsed from test
-   output rather than taken from the test process's exit code, so a missed
-   failure prints `Results: ✅ n ❌ 0` and exits 0 while `dart test` exits 1.
-   Verify with `dart test` / `flutter test` when it matters.
+1. **`sip test` fails on either signal.** A reported test failure *or* a
+   non-zero exit from the test process fails the run, so a failure the output
+   parser cannot read still fails it.
 
-2. **Bail is unreliable.** Both `--bail` and `(bail): true` can still run
-   later commands in a list. Check exit codes rather than relying on it.
+2. **Bail stops launching, not running work.** After a failure under `--bail`
+   or `(bail): true`, nothing further is launched, but concurrent `(+)`
+   commands already running finish.
 
 3. **`(bail):` with no value is `false`.** Write `(bail): true`.
 
