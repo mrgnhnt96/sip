@@ -225,19 +225,23 @@ class ScriptRunner {
     final output = StringBuffer();
     final error = StringBuffer();
 
-    var hasFailure = false;
+    // Keep the first failure's own exit code rather than flattening every
+    // failure to 1. A hardcoded 1 has no `ExitCode` mapping, so callers that
+    // turn this into sip's exit code reported `usage` (64) -- "you invoked
+    // the CLI wrong" -- for what was really the script failing.
+    int? failureCode;
 
     for (final result in results) {
       if (result.exitCodeReason != ExitCode.success) {
-        hasFailure = true;
+        failureCode ??= result.exitCode;
         output.write(result.output);
         error.write(result.error);
       }
     }
 
-    if (hasFailure) {
+    if (failureCode case final code?) {
       return CommandResult(
-        exitCode: 1,
+        exitCode: code,
         output: output.toString(),
         error: error.toString(),
       );

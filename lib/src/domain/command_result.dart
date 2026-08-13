@@ -51,7 +51,10 @@ class CommandResult {
       ExitCode.config.code: ExitCode.config,
     };
 
-    return codes[exitCode] ?? ExitCode.usage;
+    // A code with no `ExitCode` of its own -- 1 and 127 being the common ones
+    // -- means the command failed, not that it was invoked wrongly, so it
+    // falls back to `software` rather than `usage`.
+    return codes[exitCode] ?? ExitCode.software;
   }
 
   @override
