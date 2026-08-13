@@ -5,3 +5,10 @@ hooks
 failed_tests.txt
 build.yaml
 build
+
+# pub uses this file INSTEAD of .gitignore, so anything ignored only by
+# .gitignore still ships unless it is listed here.
+graphify-out
+ci_logs
+AGENT_TASK.md
+todo.md
