@@ -87,12 +87,28 @@ publish:
     # get version from changelog
     version=$(grep -m 1 "# " CHANGELOG.md | awk '{print $2}')
 
-    echo "Committing version $version"
     git add .
+
+    # `git commit` exits 1 when there is nothing staged, so committing the
+    # version by hand first used to fail the release here. Under (bail) that
+    # now halts the whole publish, which is worse than doing nothing.
+    if git diff --cached --quiet; then
+      echo "Nothing to commit; v$version is already committed"
+      exit 0
+    fi
+
+    echo "Committing version $version"
     git commit -m "v$version"
   tag: |
     # get version from changelog
     version=$(grep -m 1 "# " CHANGELOG.md | awk '{print $2}')
+
+    # Same reasoning as commit: re-running publish after a partial failure
+    # must not die because the tag survived from the first attempt.
+    if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
+      echo "Tag v$version already exists"
+      exit 0
+    fi
 
     echo "Tagging version $version"
     git tag -a "v$version" -m "v$version"
