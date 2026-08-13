@@ -35,6 +35,18 @@ jobs:
           set -o pipefail
           dart pub get 2>&1 | tee ci_logs/01-pub-get.log
 
+      - name: Analyze
+        shell: bash
+        run: |
+          set -o pipefail
+          dart analyze . --fatal-infos --fatal-warnings 2>&1 | tee ci_logs/01b-analyze.log
+
+      - name: Run tests
+        shell: bash
+        run: |
+          set -o pipefail
+          dart test 2>&1 | tee ci_logs/01c-test.log
+
       - name: Install SIP
         shell: bash
         run: |
