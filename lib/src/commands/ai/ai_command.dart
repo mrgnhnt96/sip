@@ -12,6 +12,7 @@ Usage: sip ai <tool>
 Install a sip reference file for an AI coding assistant
 
 Tools:
+  agents      AGENTS.md (read by Codex, Cursor, Copilot, Zed, Amp and others)
   claude      Claude Code (CLAUDE.md)
   cursor      Cursor (.cursor/rules/sip-*.mdc)
   copilot     GitHub Copilot (.github/copilot-instructions.md)

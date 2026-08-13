@@ -20,6 +20,7 @@ void main() {
 
     group('writes the expected files', () {
       for (final (tool, expected) in [
+        (AiTool.agents, ['AGENTS.md']),
         (AiTool.claude, ['CLAUDE.md']),
         (
           AiTool.cursor,

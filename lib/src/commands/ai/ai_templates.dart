@@ -310,6 +310,7 @@ executing it.
 Install sip with `dart pub global activate sip_cli`.
 ''';
 
+const agentsMd = '$_preamble\n$sipReference';
 const claudeMd = '$_preamble\n$sipReference';
 const copilotMd = '$_preamble\n$sipReference';
 const windsurfRules = '$_preamble\n$sipReference';

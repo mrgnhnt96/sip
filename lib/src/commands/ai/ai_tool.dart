@@ -3,6 +3,7 @@ import 'package:sip_cli/src/commands/ai/ai_templates.dart';
 
 /// An AI coding assistant that `sip ai` can install a reference file for.
 enum AiTool {
+  agents('agents', 'AGENTS.md — the cross-tool convention'),
   claude('claude', 'Claude Code (CLAUDE.md)'),
   cursor('cursor', 'Cursor (.cursor/rules/sip-*.mdc)'),
   copilot('copilot', 'GitHub Copilot (.github/copilot-instructions.md)'),
@@ -24,6 +25,7 @@ enum AiTool {
 
   /// The files to write, keyed by their path relative to the project root.
   Map<String, String> files() => switch (this) {
+    AiTool.agents => {'AGENTS.md': agentsMd},
     AiTool.claude => {'CLAUDE.md': claudeMd},
     AiTool.cursor => {
       for (final MapEntry(:key, :value) in cursorMdcFiles.entries)
