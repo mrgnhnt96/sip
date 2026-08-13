@@ -16,9 +16,11 @@ const sipReference = r'''
 | --- | --- |
 | `sip run <script>` (`sip r`) | Run a script from `scripts.yaml` |
 | `sip list [query]` (`sip ls`) | List or search scripts |
+| `sip validate` | Check `scripts.yaml` without running anything |
 | `sip test [files or dirs]` | Run Dart/Flutter tests |
 | `sip pub <get\|upgrade\|downgrade\|deps\|constrain>` | Pub operations across packages |
 | `sip clean` | Remove `.dart_tool`/`build`, run `flutter clean` |
+| `sip mcp` | Run sip as an MCP server over stdio |
 | `sip update` | Update sip itself |
 | `sip version` | Print the installed version |
 
@@ -198,6 +200,7 @@ sip run <script> [subscript...] [flags]
 | Flag | Effect |
 | --- | --- |
 | `--print` | Print the resolved commands without running them |
+| `--json` | With `--print`, print those commands as JSON |
 | `--bail` | Stop on first error (see gotchas) |
 | `--no-concurrent` | Disable all concurrency |
 | `--never-exit`, `-n` | Restart the script forever, 1s between runs |
@@ -205,6 +208,65 @@ sip run <script> [subscript...] [flags]
 
 `--print` is the fastest way to check how references, variables and flags
 actually expand before running anything.
+
+## Reading sip's output
+
+Every command that reports something takes `--json`, and the payload is the
+only thing on stdout -- messages, warnings and errors all go to stderr. sip
+emits ANSI colour only when stdout is a terminal, so piped output is plain.
+
+```bash
+sip list --json                      # every script, resolved
+sip list <query> --json              # only the ones matching a query
+sip run <script> --print --json      # one script's resolved commands
+sip test --json                      # counts and structured failures
+sip validate --json                  # diagnostics with stable codes
+```
+
+**Prefer `sip list --json` over reading `scripts.yaml`.** Each entry carries
+the dotted `key`, the `path` to pass to `sip run`, the raw `commands` as
+written and the `resolved` commands that will actually run -- references,
+`(variables)` and `(executables)` already applied. Reading the file tells you
+what was declared; this tells you what happens.
+
+```json
+{
+  "path": ["build_runner", "build"],
+  "key": "build_runner.build",
+  "aliases": ["b"],
+  "private": false,
+  "runnable": true,
+  "commands": ["${{ build_runner._ }} build"],
+  "resolved": [{"command": "fvm dart run build_runner build",
+                "concurrent": false}],
+  "location": {"file": "/repo/scripts.yaml", "line": 28, "column": 3}
+}
+```
+
+`runnable: false` means a group with no `(command)` -- run one of its
+children. `private: true` means a `_`-prefixed script: referenceable from
+another script, but not runnable.
+
+`sip test --json` reports `passed`, `counts`, and a `failures` list with the
+file, test name and message for each. Failures that are not test failures --
+a compile error, a crashed runner -- are in `errors`, so an empty `failures`
+list does not mean the run passed. Check `passed`.
+
+## Validating
+
+Run `sip validate` after editing `scripts.yaml`. It reports problems against
+the line they were written on, and catches every gotcha listed below before
+a script runs:
+
+```console
+scripts.yaml:8:1: error: ${{ a:b }} is not a valid substitution, so it is passed to the shell unchanged.
+  Separate script names with dots: ${{ a.b }}
+```
+
+Errors exit `78`; warnings exit `0` unless `--fatal-warnings` is passed.
+`--json` gives each diagnostic a stable `code` (`unknown-reference`,
+`malformed-substitution`, `circular-reference`, `empty-bail`,
+`duplicate-alias`, ...) alongside its `location`.
 
 ## Testing
 
@@ -227,6 +289,7 @@ sip test path/to/a_test.dart
 | `--clean` | Delete generated optimized files afterwards (default: true) |
 | `--slice [count]` | Split test files into chunks and run them concurrently |
 | `--omit-errors` | Show failures only |
+| `--json` | Report counts and structured failures instead of prose |
 
 Unrecognized flags are forwarded to `dart test` / `flutter test`.
 
@@ -262,6 +325,9 @@ sip pub constrain --dev --dry-run
 ## Gotchas
 
 These are verified behaviours of the current release, not style advice.
+`sip validate` detects 1, 2 and 4 statically -- run it after editing
+`scripts.yaml` rather than relying on remembering them. 3, 5 and 6 are
+runtime and argument-parsing behaviours it cannot see.
 
 1. **Colon references are silently not substituted.** `${{ a.b }}` resolves;
    `${{ a:b }}` does not — it is passed to the shell verbatim, which fails
@@ -303,9 +369,12 @@ const _preamble = '''
 > concurrently.
 
 This project uses sip to run its scripts. They are declared in `scripts.yaml`
-at the repo root; run them with `sip run <script>` and discover them with
-`sip list`. Use `sip run <script> --print` to see the resolved command without
-executing it.
+at the repo root; run them with `sip run <script>`.
+
+Start with `sip list --json` — it reports every script along with the command
+it actually runs, so prefer running a declared script over reconstructing its
+command yourself. Use `sip run <script> --print` to see what one expands to
+without executing it, and `sip validate` after editing `scripts.yaml`.
 
 Install sip with `dart pub global activate sip_cli`.
 ''';
@@ -425,6 +494,11 @@ sets empty, and lines with more than one `=` are skipped.
 
 ## Verify before running
 
+`sip validate` checks the whole file and reports each problem against the
+line it was written on -- unresolvable references, `${{ a:b }}`, circular
+references, invalid names, duplicate aliases, a valueless `(bail)`. Run it
+after every edit.
+
 `sip run <script> --print` prints the fully resolved commands without
 executing them. Use it to confirm references and flags expanded as intended.
 ''',
@@ -442,15 +516,36 @@ alwaysApply: false
 | --- | --- |
 | `sip run <script>` (`sip r`) | Run a script from `scripts.yaml` |
 | `sip list [query]` (`sip ls`) | List or search scripts |
+| `sip validate` | Check `scripts.yaml` without running anything |
 | `sip test [files or dirs]` | Run Dart/Flutter tests |
 | `sip pub <get\|upgrade\|downgrade\|deps\|constrain>` | Pub across packages |
 | `sip clean` | Remove `.dart_tool`/`build`, run `flutter clean` |
+| `sip mcp` | Run sip as an MCP server over stdio |
 | `sip update` | Update sip itself |
+
+## Machine-readable output
+
+`sip list`, `sip run --print`, `sip test` and `sip validate` all take
+`--json`. The payload is the only thing on stdout; everything else goes to
+stderr. Colour is emitted only when stdout is a terminal.
+
+`sip list --json` is the fastest way to learn a project: it gives every
+script's dotted `key`, the `path` to pass to `sip run`, the raw `commands`
+and the `resolved` commands that actually run. Prefer it to reading
+`scripts.yaml`, which does not tell you what a reference expands to.
 
 ## run
 
-`--print` (resolve without executing), `--bail`, `--no-concurrent`,
-`--never-exit`/`-n` (restart forever, 1s apart), `--list`/`-l`.
+`--print` (resolve without executing), `--json` (with `--print`), `--bail`,
+`--no-concurrent`, `--never-exit`/`-n` (restart forever, 1s apart),
+`--list`/`-l`.
+
+## validate
+
+Run it after editing `scripts.yaml`. Reports unresolvable references,
+malformed `${{ }}`, circular references, invalid names, duplicate aliases and
+a valueless `(bail)` -- each against its line. Errors exit `78`; `--json`
+gives each diagnostic a stable `code`.
 
 ## test
 
