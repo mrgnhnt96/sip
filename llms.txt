@@ -1,0 +1,44 @@
+# sip
+
+> sip (`sip_cli`) is a Dart command-line tool for Dart and Flutter repos and mono-repos. It runs scripts declared in a `scripts.yaml` file, and runs `pub`, `test` and `clean` across every package in a repo — recursively and concurrently.
+
+Install with `dart pub global activate sip_cli`. Scripts live in `scripts.yaml` at the repo root, and `sip run` always executes from that file's directory regardless of the current working directory.
+
+To install a sip reference file into your own project for an AI coding assistant, run `sip ai claude` (or `cursor`, `copilot`, `windsurf`, `cline`, `all`).
+
+## Getting started
+
+- [Installation](https://github.com/mrgnhnt96/sip/blob/main/README.md#installation): Activate sip from pub.
+- [Quick start](https://github.com/mrgnhnt96/sip/blob/main/README.md#quick-start): Write a `scripts.yaml` and run your first script.
+- [Usage](https://github.com/mrgnhnt96/sip/blob/main/README.md#usage): The top-level command list.
+
+## scripts.yaml
+
+- [Configuration overview](https://github.com/mrgnhnt96/sip/blob/main/README.md#scriptsyaml-configuration): What the file holds and where it lives.
+- [Defining a script](https://github.com/mrgnhnt96/sip/blob/main/README.md#defining-a-script): Map a key to one command or a list of them.
+- [Script key rules](https://github.com/mrgnhnt96/sip/blob/main/README.md#script-key-rules): The allowed key pattern, and which keys are reserved.
+- [Nested scripts](https://github.com/mrgnhnt96/sip/blob/main/README.md#nested-scripts): Group subscripts and give the parent its own `(command)`.
+- [Private keys](https://github.com/mrgnhnt96/sip/blob/main/README.md#private-keys): Keys starting with `_` are referenceable but not runnable.
+- [Referencing other scripts](https://github.com/mrgnhnt96/sip/blob/main/README.md#referencing-other-scripts): Inline another script with `${{ a.b }}` — dots only, never colons.
+- [Variables](https://github.com/mrgnhnt96/sip/blob/main/README.md#variables): Built-ins (`projectRoot`, `scriptsRoot`, `cwd`, `dart`, `flutter`, `dartOrFlutter`) and your own under `(variables)`.
+- [Flags](https://github.com/mrgnhnt96/sip/blob/main/README.md#flags): Forward a caller's flag into a command with `${{ --flag }}`.
+- [Executable commands](https://github.com/mrgnhnt96/sip/blob/main/README.md#executable-commands): Point `dart` and `flutter` at something else, such as `fvm`.
+- [Concurrent commands](https://github.com/mrgnhnt96/sip/blob/main/README.md#concurrent-commands): Prefix a command with `(+)` to run it alongside its neighbours.
+- [Bail](https://github.com/mrgnhnt96/sip/blob/main/README.md#bail): Stop on first error — write `(bail): true`, not an empty value.
+- [Environment configuration](https://github.com/mrgnhnt96/sip/blob/main/README.md#environment-configuration): Load env vars from files, a generator command, or inline `vars`.
+- [Example scripts.yaml](https://github.com/mrgnhnt96/sip/blob/main/README.md#example-scriptsyaml): A complete file using most features together.
+
+## Commands
+
+- [Running scripts](https://github.com/mrgnhnt96/sip/blob/main/README.md#running-scripts): `sip run`, and the flags it accepts.
+- [Listing scripts](https://github.com/mrgnhnt96/sip/blob/main/README.md#listing-scripts): `sip list` and `sip run <script> --help` to explore what exists.
+- [Continuous commands](https://github.com/mrgnhnt96/sip/blob/main/README.md#continuous-commands): `--never-exit` restarts a script forever.
+- [Running tests](https://github.com/mrgnhnt96/sip/blob/main/README.md#running-tests): `sip test`, recursive/dart-only/flutter-only/bail.
+- [Pub commands](https://github.com/mrgnhnt96/sip/blob/main/README.md#pub-commands): `sip pub get`, `upgrade`, `downgrade`, `deps`, `constrain`.
+- [Pub constrain](https://github.com/mrgnhnt96/sip/blob/main/README.md#pub-constrain): Rewrite constraints to resolved versions, pin, unpin, or bump.
+
+## Optional
+
+- [Experimental Flutter test bucketing](https://github.com/mrgnhnt96/sip/blob/main/README.md#experimental-flutter-test-bucketing): Combine widget-test files into shards to cut isolate startup cost. Opt-in and unstable.
+- [Contributor and agent guide](https://github.com/mrgnhnt96/sip/blob/main/AGENTS.md): Repo layout, command/provider conventions, known bugs, release flow.
+- [Changelog](https://github.com/mrgnhnt96/sip/blob/main/CHANGELOG.md): Release history.
