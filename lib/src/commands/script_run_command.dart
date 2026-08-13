@@ -35,7 +35,15 @@ Options:
 class ScriptRunCommand with RunScriptHelper, WorkingDirectory {
   const ScriptRunCommand();
 
-  Future<ExitCode> run(List<String> keys) async {
+  Future<ExitCode> run(List<String> rawKeys) async {
+    // `Args` stops building the command path at the first flag, so
+    // `sip run --bail build` left no script name at all and reported "No
+    // script specified". The name is in `rest` in that case.
+    final keys = switch (rawKeys) {
+      [] => args.rest,
+      _ => rawKeys,
+    };
+
     final help = args.get<bool>('help', defaultValue: false);
     if (help && keys.isEmpty) {
       logger.write(_usage);
