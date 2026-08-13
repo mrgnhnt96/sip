@@ -31,8 +31,8 @@ mono-repo.
 ## Don't
 
 - Construct a `FileSystem` or `Logger` directly — it breaks provider overrides
-- Assume CI catches a red suite; `.github/workflows/ci.yml` runs only a smoke
-  test, never `dart test`
+- Return `ExitCode.usage` for a command that failed — that claims the CLI was
+  invoked wrongly; `software` is the honest fallback
 - Use `${{ a:b }}` in a `scripts.yaml` — only dots resolve
 - Write `(bail):` with no value and expect bail; it parses as `false`
 - Run `sip run install` casually — it overwrites the global sip install

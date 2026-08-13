@@ -357,6 +357,10 @@ Fail fast:
 sip test --bail
 ```
 
+> [!NOTE]
+> `sip test` fails when a test fails, when the test process exits non-zero, and
+> when it finds no packages to test — running nothing is not a pass.
+
 ### Experimental: Flutter Test Bucketing
 
 > [!WARNING]

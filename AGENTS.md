@@ -26,10 +26,10 @@ not reversible in one step.
 
 ## CI
 
-`.github/workflows/ci.yml` runs on ubuntu and windows. It does **not** run
-`dart test` — it activates sip from source and runs a single shell smoke test
-in `test/integration/smoke`. A red unit suite will not fail CI, so run
-`dart test` locally before pushing.
+`.github/workflows/ci.yml` runs on ubuntu and windows: `dart analyze
+--fatal-infos --fatal-warnings`, `dart test`, then a shell smoke test in
+`test/integration/smoke` against sip activated from source. Every step tees to
+`ci_logs/`, which is uploaded as an artifact.
 
 `hooks/pre_commit.dart` (hooksman) formats and analyzes staged Dart files with
 `--fatal-infos --fatal-warnings` on commit.
@@ -92,7 +92,18 @@ positional argument. Add new ones to `booleanFlagNames`; add an abbreviation to
 
 **Argument order.** `Args.parse` stops filling `path` at the first flag;
 positionals after a flag land in `rest`. A command that takes a subcommand name
-should therefore fall back to `args.rest` if its path is empty.
+should therefore fall back to `args.rest` when its path is empty — `sip run`
+and `sip ai` do. `sip pub` deliberately does not: it reads `args.rest` as
+package names (`pub_upgrade_command.dart`, `pub_constrain_command.dart`), so
+the same fallback would read the subcommand as a package to upgrade.
+
+**Exit codes.** Commands return mason_logger's `ExitCode`, whose constructor is
+private, so sip cannot return a child's arbitrary code (127 and friends).
+`ScriptRunner.run` preserves the first failing command's code in its aggregate
+result, and `CommandResult.exitCodeReason` maps it — falling back to `software`
+(70), never `usage` (64), which would claim the CLI was invoked wrongly. Codes
+that have an `ExitCode` (65, 70, 77, 78, …) round-trip exactly. Full
+passthrough would mean changing the `ExitCode` return contract everywhere.
 
 ## scripts.yaml semantics worth knowing before touching them
 

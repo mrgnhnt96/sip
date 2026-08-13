@@ -231,7 +231,8 @@ sip test path/to/a_test.dart
 Unrecognized flags are forwarded to `dart test` / `flutter test`.
 
 `sip test` fails the run both when a test reports a failure and when the test
-process exits non-zero, so a failure it cannot parse still fails the run.
+process exits non-zero, so a failure it cannot parse still fails the run. It
+also fails when it finds nothing to test, rather than passing silently.
 
 ## Pub
 
@@ -276,7 +277,13 @@ These are verified behaviours of the current release, not style advice.
 4. **The variable is `projectRoot`, not `packageRoot`.** An unknown name is
    left unsubstituted and reaches the shell.
 
-5. **Unknown flags consume the next argument.** sip forwards flags it does not
+5. **A subcommand name after a flag only works for `sip run` and `sip ai`.**
+   The command path stops at the first flag. `sip run --bail build` and
+   `sip ai --force claude` recover the name; `sip pub --recursive get` does
+   not, because pub reads the same list for package names. Put the subcommand
+   before the flags.
+
+6. **Unknown flags consume the next argument.** sip forwards flags it does not
    know to `dart`/`flutter`, so it assumes an unknown `--flag` takes a value.
    `sip test --some-flag a_test.dart` reads `a_test.dart` as the flag's value
    and drops it from the file list. Use `--some-flag=value` form, or put
@@ -462,7 +469,8 @@ resolved versions and takes `--pin`/`--no-pin`, `--bump <breaking|major|minor|pa
 
 1. **`sip test` fails on either signal.** A reported test failure *or* a
    non-zero exit from the test process fails the run, so a failure the output
-   parser cannot read still fails it.
+   parser cannot read still fails it. Finding no packages to test is also a
+   failure (`66`), not a silent pass.
 
 2. **Bail stops launching, not running work.** After a failure under `--bail`
    or `(bail): true`, nothing further is launched, but concurrent `(+)`
