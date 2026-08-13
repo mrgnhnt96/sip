@@ -23,10 +23,13 @@ import 'package:sip_cli/src/deps/pubspec_lock.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
 import 'package:sip_cli/src/deps/script_runner.dart';
 import 'package:sip_cli/src/deps/scripts_yaml.dart';
+import 'package:sip_cli/src/deps/terminal.dart';
 import 'package:sip_cli/src/deps/time.dart';
 import 'package:sip_cli/src/deps/variables.dart';
 import 'package:sip_cli/src/domain/args.dart';
+import 'package:sip_cli/src/domain/terminal.dart';
 import 'package:sip_cli/src/domain/time.dart';
+import 'package:sip_cli/src/utils/output_mode.dart';
 
 void main(List<String> arguments) async {
   final args = Args.parse(arguments);
@@ -39,7 +42,16 @@ void main(List<String> arguments) async {
     },
   );
 
-  await overrideAnsiOutput(true, () async {
+  // Colour follows the reader: a terminal gets escape codes, a pipe, a file
+  // or a CI log gets plain text. `--color`, `NO_COLOR` and `FORCE_COLOR`
+  // override the guess.
+  final useAnsi = shouldUseAnsi(
+    args: args,
+    environment: Platform.environment,
+    hasTerminal: const Terminal().hasTerminal,
+  );
+
+  await overrideAnsiOutput(useAnsi, () async {
     await runScoped(
       run,
       values: {
@@ -57,6 +69,7 @@ void main(List<String> arguments) async {
         pubspecLockProvider,
         pubspecYamlProvider,
         scriptsYamlProvider,
+        terminalProvider,
         variablesProvider,
         scriptRunnerProvider,
         timeProvider,

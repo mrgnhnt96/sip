@@ -12,6 +12,9 @@ import 'package:sip_cli/src/deps/analytics.dart';
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/is_up_to_date.dart';
 import 'package:sip_cli/src/deps/logger.dart';
+import 'package:sip_cli/src/deps/platform.dart';
+import 'package:sip_cli/src/deps/terminal.dart';
+import 'package:sip_cli/src/utils/output_mode.dart';
 import 'package:sip_cli/src/version.dart';
 
 const _usage = '''
@@ -30,8 +33,15 @@ Commands:
   test        Run tests
 
 Flags:
-  --version   Print the current version
-  --help      Print usage information
+  --version           Print the current version
+  --help              Print usage information
+  --[no-]color        Force ANSI colour on or off (default: on when stdout is
+                      a terminal; also honours NO_COLOR and FORCE_COLOR)
+  --[no-]version-check
+                      Check pub.dev for a newer sip (default: on when stdout
+                      is a terminal; also honours SIP_NO_VERSION_CHECK)
+  --quiet             Only print errors
+  --loud              Print verbose output
 ''';
 
 /// The command runner for the sip command line application
@@ -41,7 +51,11 @@ class SipRunner {
   Future<ExitCode> run() async {
     ExitCode exitCode;
 
-    final versionCheck = args.get<bool>('version-check', defaultValue: true);
+    final versionCheck = shouldCheckVersion(
+      args: args,
+      environment: platform.environment,
+      hasTerminal: terminal.hasTerminal,
+    );
 
     if (args['disable-analytics'] case true) {
       analytics.disable();
@@ -67,9 +81,11 @@ class SipRunner {
         logger.detail('Checking for updates');
         if (!await isUpToDate.check()) {
           final latestVersion = await isUpToDate.latestVersion();
-          logger.info(
+          // stderr, so it never lands in output somebody is capturing.
+          logger.warn(
             'A new version is available ($latestVersion). '
             'Run `sip update` to update.',
+            tag: '',
           );
         }
       }
