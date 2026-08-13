@@ -12,12 +12,16 @@
 /// argument -- add new ones here.
 const booleanFlagNames = <String>{
   // sip itself
+  'color',
   'disable-analytics',
   'help',
   'loud',
   'quiet',
   'version',
   'version-check',
+
+  // sip list
+  'resolve',
 
   // sip ai
   'force',
@@ -64,7 +68,6 @@ const booleanFlagNames = <String>{
   // forwarded to `dart test` / `flutter test`
   'branch-coverage',
   'chain-stack-traces',
-  'color',
   'debug',
   'experimental-faster-testing',
   'fail-fast',

@@ -12,6 +12,8 @@ import 'package:sip_cli/src/domain/resolved_script.dart';
 import 'package:sip_cli/src/domain/script.dart';
 import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:sip_cli/src/domain/scripts_config.dart';
+import 'package:sip_cli/src/domain/scripts_json.dart';
+import 'package:sip_cli/src/utils/json_output.dart';
 import 'package:sip_cli/src/utils/run_script_helper.dart';
 import 'package:sip_cli/src/utils/working_directory.dart';
 
@@ -24,6 +26,7 @@ Options:
   --list, --ls, -l        List all available scripts
   --help                  Print usage information
   --print                 Print the commands that would be run without executing them
+  --json                  With --print, print the resolved commands as JSON
   --bail                  Stop on first error
   --never-exit, -n        !!USE WITH CAUTION!!! After the script is done,
                           the command will restart after a 1 second delay.
@@ -151,6 +154,34 @@ class ScriptRunCommand with RunScriptHelper, WorkingDirectory {
     }
 
     if (printOnly) {
+      if (args.get<bool>('json', defaultValue: false)) {
+        writeJson({
+          'version': scriptsJsonVersion,
+          'key': script.keys.join('.'),
+          'path': script.keys.toList(),
+          'bail': resolved.bail,
+          'env': switch (resolved.envConfig) {
+            null => null,
+            final env => {
+              'files': env.files,
+              'commands': env.commands,
+              'vars': env.variables,
+            },
+          },
+          'commands': [
+            for (final command in resolved.commands)
+              if (command case final ScriptToRun run)
+                {
+                  'command': run.exe,
+                  'concurrent': run.runInParallel ?? false,
+                  if (run.label case final label?) 'label': label,
+                },
+          ],
+        });
+
+        return ExitCode.success;
+      }
+
       for (final command in resolved.commands) {
         switch (command) {
           case ConcurrentBreak():
