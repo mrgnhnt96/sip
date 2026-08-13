@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:mason_logger/mason_logger.dart';
+import 'package:sip_cli/src/commands/ai/ai_command.dart';
 import 'package:sip_cli/src/commands/clean_command.dart';
 import 'package:sip_cli/src/commands/list_command.dart';
 import 'package:sip_cli/src/commands/pub_command.dart';
@@ -19,6 +20,7 @@ A command line application to handle mono-repos in dart
 Usage: sip <command>
 
 Commands:
+  ai          Install a sip reference file for an AI coding assistant
   clean       Clean the project
   list, ls    List all scripts
   pub         Modify dependencies in pubspec.yaml file
@@ -88,6 +90,8 @@ class SipRunner {
     }
 
     switch (args.path) {
+      case ['ai', ...final path]:
+        return await const AiCommand().run(path);
       case ['run' || 'r', ...final path]:
         return await const ScriptRunCommand().run(path);
       case ['pub', ...final path]:

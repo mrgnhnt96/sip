@@ -380,6 +380,22 @@ sip test --experimental-bucket --bucket-shard-index=0 --bucket-shard-count=4
 
 `--bucket-count` controls how many combined bucket files are generated (default: number of processors).
 
+## AI Coding Assistants
+
+Install a sip reference file so your AI assistant knows how `scripts.yaml` and
+the CLI work:
+
+```bash
+sip ai claude     # CLAUDE.md
+sip ai cursor     # .cursor/rules/sip-*.mdc
+sip ai copilot    # .github/copilot-instructions.md
+sip ai windsurf   # .windsurfrules
+sip ai cline      # .clinerules
+sip ai all        # every file above
+```
+
+Existing files are left alone; pass `--force` to overwrite them.
+
 ## Pub Commands
 
 ### Pub Get

@@ -19,6 +19,9 @@ const booleanFlagNames = <String>{
   'version',
   'version-check',
 
+  // sip ai
+  'force',
+
   // sip run
   'bail',
   'h',
