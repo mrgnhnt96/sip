@@ -143,39 +143,36 @@ void main() {
         expect(results, ExitCode.success);
       });
 
-      test(
-        'should bail when first fails',
-        skip: 'Tests do not fail due to exit code, it fails with test output',
-        () async {
-          when(
-            () => bindings.runScriptWithOutput(
-              any(),
-              onOutput: any(named: 'onOutput'),
-              bail: any(named: 'bail'),
-            ),
-          ).thenAnswer((_) => Future.value(failure));
+      test('should bail when first fails', () async {
+        when(
+          () => bindings.runScriptWithOutput(
+            any(),
+            onOutput: any(named: 'onOutput'),
+            bail: any(named: 'bail'),
+          ),
+        ).thenAnswer((_) => Future.value(failure));
 
-          final commands = [
-            ScriptToRun('something', workingDirectory: '.'),
-            ScriptToRun('else', workingDirectory: '.'),
-          ];
+        final commands = [
+          ScriptToRun('something', workingDirectory: '.'),
+          ScriptToRun('else', workingDirectory: '.'),
+        ];
 
-          final results = await tester.runCommands(
-            commands,
-            bail: true,
-            showOutput: false,
-          );
+        final results = await tester.runCommands(
+          commands,
+          bail: true,
+          showOutput: false,
+        );
 
-          expect(results.code, failure.exitCode);
-          verify(
-            () => bindings.runScriptWithOutput(
-              any(),
-              onOutput: any(named: 'onOutput'),
-              bail: any(named: 'bail'),
-            ),
-          ).called(2);
-        },
-      );
+        expect(results, ExitCode.software);
+        // The second command must never be launched.
+        verify(
+          () => bindings.runScriptWithOutput(
+            any(),
+            onOutput: any(named: 'onOutput'),
+            bail: any(named: 'bail'),
+          ),
+        ).called(1);
+      });
 
       test('should fail when a command exits non-zero', () async {
         // The output parser is the only source of pass/fail, so a failure it

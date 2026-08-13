@@ -187,6 +187,7 @@ class ScriptRunner {
         pending,
         printLabels: printLabels,
         showOutput: showOutput,
+        bail: bail,
       );
 
       var count = 0;
@@ -252,6 +253,7 @@ class ScriptRunner {
     pending, {
     required bool printLabels,
     required bool showOutput,
+    required bool bail,
   }) async* {
     if (pending.isEmpty) {
       throw Exception('Unexpected: No scripts to run');
@@ -287,7 +289,15 @@ class ScriptRunner {
     // callback is safe.
     var allLaunched = false;
 
+    // Every task is launched before the first result reaches the consumer --
+    // this loop runs to completion and only then is `controller.stream`
+    // yielded. So a consumer that stops reading on failure cannot stop
+    // anything: bail has to be enforced here, where the launching happens.
+    var bailed = false;
+
     for (final (index, (part, future)) in pending.indexed) {
+      if (bailed) break;
+
       if (printLabels) {
         if (part case ScriptToRun(:final String label)) {
           final current = (
@@ -368,6 +378,10 @@ class ScriptRunner {
             }
           }
 
+          if (bail && result.exitCodeReason != ExitCode.success) {
+            bailed = true;
+          }
+
           controller.add((part, result));
 
           if (running.isEmpty) {
@@ -390,9 +404,19 @@ class ScriptRunner {
         }
 
         final result = await future();
+
+        final shouldBail = switch (part) {
+          ScriptToRun(bail: true) => true,
+          _ => bail,
+        };
+
+        if (shouldBail && result.exitCodeReason != ExitCode.success) {
+          bailed = true;
+        }
+
         controller.add((part, result));
 
-        if (index == pending.length - 1) {
+        if (bailed || index == pending.length - 1) {
           controller.close().ignore();
         }
       }
