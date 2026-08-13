@@ -13,6 +13,7 @@ import 'package:sip_cli/src/domain/message.dart';
 import 'package:sip_cli/src/domain/message_action.dart';
 import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:sip_cli/src/domain/test_data.dart';
+import 'package:sip_cli/src/utils/json_output.dart';
 import 'package:sip_cli/src/utils/package.dart';
 
 abstract mixin class TesterMixin {
@@ -233,22 +234,25 @@ abstract mixin class TesterMixin {
     List<Runnable> commandsToRun, {
     required bool showOutput,
     required bool bail,
+    bool asJson = false,
   }) async {
-    final labels = {
-      for (final command in commandsToRun)
-        switch (command) {
-          ScriptToRun(:final label) => label,
-          _ => null,
-        },
-    }.whereType<String>();
+    if (!asJson) {
+      final labels = {
+        for (final command in commandsToRun)
+          switch (command) {
+            ScriptToRun(:final label) => label,
+            _ => null,
+          },
+      }.whereType<String>();
 
-    for (final label in labels) {
-      logger.info(label);
+      for (final label in labels) {
+        logger.info(label);
+      }
+
+      logger.write(darkGray.wrap('loading...'));
     }
 
-    logger.write(darkGray.wrap('loading...'));
-
-    final data = TestData();
+    final data = TestData(quiet: asJson);
     final scriptResults = <Runnable, CommandResult>{};
 
     try {
@@ -271,7 +275,11 @@ abstract mixin class TesterMixin {
       bail: bail,
     );
 
-    data.printResults();
+    if (asJson) {
+      writeJson(data.toJson());
+    } else {
+      data.printResults();
+    }
 
     if (data.failing > 0 || data.allFailures.isNotEmpty) {
       return ExitCode.software;

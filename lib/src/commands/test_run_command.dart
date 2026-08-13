@@ -30,6 +30,8 @@ Flags:
                                       (default: true)
   --slice [count]                   Splits test files into chunks and runs them concurrently
   --omit-errors                     Omit errors from the test output, only show failures
+  --json                            Print the results as JSON: counts, and the file,
+                                      test name and message for every failure
 
 EXPERIMENTAL (Flutter only, strictly opt-in, may change or be removed):
   --experimental-bucket             Combine Flutter test files into ~CPU-core-count
@@ -253,13 +255,18 @@ class TestRunCommand with TesterMixin {
 
     _printArgs();
 
+    final asJson = args.get<bool>('json', defaultValue: false);
+
     final exitCode = await runCommands(
       commandsToRun,
-      showOutput: !args.get<bool>('concurrent', defaultValue: false),
+      // Raw test output goes straight to stdout when it is shown, which
+      // would sit in front of the payload. JSON mode captures it instead.
+      showOutput: !asJson && !args.get<bool>('concurrent', defaultValue: false),
       bail: bail,
+      asJson: asJson,
     );
 
-    logger.write('\n');
+    if (!asJson) logger.write('\n');
 
     if (optimize && cleanOptimizedFiles) {
       cleanUp?.call();

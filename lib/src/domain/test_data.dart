@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io' as io;
 
 import 'package:mason_logger/mason_logger.dart';
@@ -17,7 +18,14 @@ typedef TextItem = ({
 });
 
 class TestData {
-  TestData();
+  TestData({this.quiet = false});
+
+  /// Suppresses the live per-test output.
+  ///
+  /// Results are normally painted to stdout as they arrive. When the caller
+  /// is going to emit JSON on stdout instead, that progress would sit in
+  /// front of the payload and make it unparseable.
+  final bool quiet;
 
   int get passing => _success.length;
   int get failing => _failure.length;
@@ -58,6 +66,15 @@ class TestData {
   final _success = <TestOutput>[];
   final _failure = <TestOutput>[];
   final _skipped = <TestOutput>[];
+
+  /// Every test that failed, in report order.
+  List<TestOutput> get failures => List.unmodifiable(_failure);
+
+  /// Every test that passed, in report order.
+  List<TestOutput> get successes => List.unmodifiable(_success);
+
+  /// Every test that was skipped, in report order.
+  List<TestOutput> get skips => List.unmodifiable(_skipped);
 
   final _outputsByScript = <int, List<TestOutput>>{};
 
@@ -332,6 +349,7 @@ class TestData {
   }
 
   void _print(TestOutput output) {
+    if (quiet) return;
     if (isCi()) return;
 
     // Get terminal width for truncation
@@ -520,6 +538,68 @@ class TestData {
         ..write('\x1b[?7h');
     }
   }
+
+  /// The results as a machine-readable payload.
+  ///
+  /// The pretty output is written for a person watching a terminal: it
+  /// repaints a line in place, groups things for GitHub Actions, and prints
+  /// failures as the runner's own prose. Reading a failure back out of that
+  /// means parsing a moving target, so this reports the same run as data --
+  /// which file, which test, and the runner's message for it.
+  Map<String, Object?> toJson() {
+    Map<String, Object?> output(TestOutput test) => {
+      'path': test.path,
+      'test': test.test,
+      'error': _messageFor(test),
+    };
+
+    return {
+      'passed': failing == 0 && allFailures.isEmpty,
+      'counts': {'passing': passing, 'failing': failing, 'skipped': skipped},
+      'failures': [for (final failure in _failure) output(failure)],
+      'skipped': [for (final skip in _skipped) output(skip)],
+      // A run can fail without any individual test failing -- a compile
+      // error, a crashed runner, a reporter sip could not parse. Those land
+      // here, and a reader that only counts `failures` would call the run
+      // green.
+      'errors': [for (final error in allFailures) '$error'.trim()],
+    };
+  }
+
+  /// The failure message for [test], stopping where the next thing the
+  /// runner reported begins.
+  ///
+  /// An error is accumulated from raw runner output, so whatever the runner
+  /// printed next -- the next result line, a skip notice, a CI summary --
+  /// ends up appended to it. That is invisible in the pretty output, which
+  /// only ever shows the first lines, but a JSON reader gets the whole
+  /// string. Cutting at the first line that starts a new report keeps the
+  /// message to the failure it belongs to.
+  static String? _messageFor(TestOutput test) {
+    final error = test.error?.trim();
+    if (error == null || error.isEmpty) return null;
+
+    final lines = const LineSplitter().convert(error);
+    final kept = <String>[];
+
+    for (final line in lines) {
+      if (_nextReportStart.hasMatch(line)) break;
+      kept.add(line);
+    }
+
+    final message = kept.join('\n').trim();
+
+    // If the very first line already starts a new report there is nothing
+    // attributable left; the untrimmed error beats an empty string.
+    return message.isEmpty ? error : message;
+  }
+
+  /// A line that begins a new piece of runner output rather than continuing
+  /// the current failure's message.
+  static final _nextReportStart = RegExp(
+    '^(?:✅|❌|⚠|⏭|::(?:error|group|endgroup)::'
+    r'|\d{2,}:\d{2,}\s)',
+  );
 
   void printResults() {
     final buf = StringBuffer();
