@@ -1,3 +1,19 @@
+# 0.19.0 | 8.13.2026
+
+## Features
+
+- Add `sip validate`, which checks `scripts.yaml` without running anything and reports each problem against the line it was written on. It catches unresolvable references, malformed substitutions (`${{ a:b }}`, which sip passes to the shell verbatim), circular references, invalid script names, aliases claimed twice, keys that look reserved but are not, a valueless `(bail)` that reads as `false`, and scripts with nothing to run. Errors exit `78`; `--fatal-warnings` makes warnings do the same. `--json` gives every diagnostic a stable code and location.
+- Add `--json` to `sip list`, printing every script as a flat list: its dotted key, the path to pass to `sip run`, aliases, description, private and runnable flags, bail, the raw commands as written, the fully resolved commands with their concurrency, env, and the `scripts.yaml` line and column it was declared on. `--no-resolve` skips expansion, and a query still filters the listing.
+- Add `--json` to `sip run <script> --print`, emitting the resolved commands for a single script.
+- Add `--json` to `sip test`, reporting counts and the file, test name and message for each failure. Failures that are not test failures -- a compile error, a crashed runner, output sip could not parse -- are reported separately, so an empty failure list does not read as a passing run.
+- Add `sip mcp`, which runs sip as an MCP server over stdio and exposes this project's scripts to an AI coding assistant as tools: `list_scripts`, `dry_run`, `run_script` and `validate`. `run_script` takes a script name, never a command, so it cannot run anything not declared in `scripts.yaml`.
+- Add `sip ai agents`, which writes `AGENTS.md` -- the convention Codex, Cursor, Copilot, Zed and Amp read. `sip ai all` includes it.
+
+## Enhancements
+
+- sip no longer forces ANSI colour on. Output is plain when stdout is not a terminal, so piping `sip list` no longer hands the reader a tree full of escape codes. `--color`/`--no-color`, `NO_COLOR`, `FORCE_COLOR` and `TERM=dumb` override the guess.
+- The "a new version is available" notice moved to stderr and is skipped entirely, along with its network request, when stdout is not a terminal. Previously it went to stdout on every command -- for a failed run it was the only thing on stdout. `--no-version-check` and `SIP_NO_VERSION_CHECK` also turn it off.
+
 # 0.18.10 | 8.11.2026
 
 ## Fixes

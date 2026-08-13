@@ -4,7 +4,9 @@
 
 Install with `dart pub global activate sip_cli`. Scripts live in `scripts.yaml` at the repo root, and `sip run` always executes from that file's directory regardless of the current working directory.
 
-To install a sip reference file into your own project for an AI coding assistant, run `sip ai claude` (or `cursor`, `copilot`, `windsurf`, `cline`, `all`).
+To install a sip reference file into your own project for an AI coding assistant, run `sip ai agents` (or `claude`, `cursor`, `copilot`, `windsurf`, `cline`, `all`). To expose the project's scripts as MCP tools instead, run `sip mcp`.
+
+Every command that reports something has a `--json` form, and JSON is written to stdout on its own — messages, warnings and errors go to stderr. Colour is emitted only when stdout is a terminal.
 
 ## Getting started
 
@@ -36,6 +38,14 @@ To install a sip reference file into your own project for an AI coding assistant
 - [Running tests](https://github.com/mrgnhnt96/sip/blob/main/README.md#running-tests): `sip test`, recursive/dart-only/flutter-only/bail.
 - [Pub commands](https://github.com/mrgnhnt96/sip/blob/main/README.md#pub-commands): `sip pub get`, `upgrade`, `downgrade`, `deps`, `constrain`.
 - [Pub constrain](https://github.com/mrgnhnt96/sip/blob/main/README.md#pub-constrain): Rewrite constraints to resolved versions, pin, unpin, or bump.
+- [Validating scripts.yaml](https://github.com/mrgnhnt96/sip/blob/main/README.md#validating-scriptsyaml): `sip validate` reports unresolvable references, malformed `${{ }}`, cycles, bad names and duplicate aliases against the line they were written on.
+
+## For tools and AI assistants
+
+- [Machine-readable listing](https://github.com/mrgnhnt96/sip/blob/main/README.md#machine-readable-listing): `sip list --json` gives every script's dotted key, raw commands, fully resolved commands and its line in `scripts.yaml` — enough to pick and run the right script without parsing the file.
+- [MCP server](https://github.com/mrgnhnt96/sip/blob/main/README.md#mcp-server): `sip mcp` exposes `list_scripts`, `dry_run`, `run_script` and `validate` over stdio. `run_script` only runs scripts declared in `scripts.yaml`.
+- [AI coding assistants](https://github.com/mrgnhnt96/sip/blob/main/README.md#ai-coding-assistants): `sip ai <tool>` writes a reference file where each assistant reads one.
+- [Output for scripts and assistants](https://github.com/mrgnhnt96/sip/blob/main/README.md#output-for-scripts-and-assistants): No ANSI when piped, no update notice on stdout, and `--json` alone on stdout.
 
 ## Optional
 

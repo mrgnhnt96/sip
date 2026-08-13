@@ -40,6 +40,7 @@ not reversible in one step.
 bin/sip.dart              entrypoint
 lib/sip_runner.dart       top-level arg dispatch (the command table lives here)
 lib/src/commands/         one directory or file per command
+lib/src/commands/mcp/     the `sip mcp` server and its tools
 lib/src/deps/             scoped_deps providers — the injection seam
 lib/src/domain/           models: Script, ScriptsConfig, Args, TestData, ...
 lib/src/utils/            constants, mixins, helpers
@@ -97,6 +98,26 @@ and `sip ai` do. `sip pub` deliberately does not: it reads `args.rest` as
 package names (`pub_upgrade_command.dart`, `pub_constrain_command.dart`), so
 the same fallback would read the subcommand as a package to upgrade.
 
+**Machine-readable output.** `--json` payloads are built by plain functions in
+`lib/src/domain/` — `scriptsConfigToJson`, `validateScripts`,
+`TestData.toJson` — never by the commands themselves. The commands and the MCP
+server both call those functions, so there is one behaviour and one place to
+change it. Write payloads with `writeJson` (`lib/src/utils/json_output.dart`),
+which uses `logger.write` so `--quiet` cannot swallow them.
+
+**stdout belongs to the payload.** Anything sip has to say alongside JSON goes
+to stderr. That is why `sip validate` reports diagnostics with `logger.err` /
+`logger.warn`, why `sip test --json` passes `quiet: true` to `TestData` and
+turns off `showOutput`, and why the version notice moved to stderr. `sip mcp`
+goes further and points `stdout` at stderr with `IOOverrides` for the whole
+session: stdout is the JSON-RPC transport there, and mason_logger's `Progress`
+spinner writes through a handle a `Logger` subclass cannot reach.
+
+**Colour and the version check follow the terminal.** `shouldUseAnsi` and
+`shouldCheckVersion` (`lib/src/utils/output_mode.dart`) are pure functions over
+args, environment and `terminal.hasTerminal`. `bin/sip.dart` passes the first
+to `overrideAnsiOutput`; sip used to force ANSI on unconditionally.
+
 **Exit codes.** Commands return mason_logger's `ExitCode`, whose constructor is
 private, so sip cannot return a child's arbitrary code (127 and friends).
 `ScriptRunner.run` preserves the first failing command's code in its aggregate
@@ -118,6 +139,16 @@ passthrough would mean changing the `ExitCode` return contract everywhere.
 - Reserved keys are exactly `Keys.scriptParameters` (`(command)`, `(aliases)`,
   `(description)`, `(bail)`, `(env)`) plus `Keys.nonScriptKeys` (`(variables)`,
   `(executables)`). Every other key is a nested script.
+- `sip validate` (`lib/src/domain/script_validator.dart`) checks every one of
+  these statically. When you change a semantic here, add or update the
+  matching check — otherwise the gotcha stays documented but undetected.
+- `ScriptLocations` (`lib/src/domain/script_locations.dart`) is the only place
+  that keeps YAML source spans. Everything else parses through
+  `jsonDecode(jsonEncode(...))`, which throws them away.
+- `Script`'s `==` compares its command list, so two distinct scripts that both
+  have no commands compare equal. Anything keying a map or set on `Script` —
+  cycle detection, the `only` filter in `scriptsConfigToJson` — must use
+  identity collections.
 
 ## Recently fixed — worth understanding before working nearby
 

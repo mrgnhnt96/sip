@@ -23,6 +23,14 @@ Sip is a command-line tool that simplifies managing Dart and Flutter projects. I
 
 - Customize executable commands (`dart`, `flutter`, etc.)
 
+- Validate `scripts.yaml` before running it (`sip validate`)
+
+- Work with AI coding assistants
+
+  - `--json` output for `list`, `run --print`, `test` and `validate`
+  - An MCP server (`sip mcp`)
+  - Reference files for the popular assistants (`sip ai`)
+
 ## Installation
 
 ```bash
@@ -128,6 +136,52 @@ To explore nested scripts, you can use the `--help` flag:
 ```bash
 sip run build_runner --help
 ```
+
+#### Machine-readable listing
+
+`--json` prints every script as data instead of a tree — its dotted key, its
+aliases and description, the raw commands as written, the **fully resolved**
+commands that will actually run, and the `scripts.yaml` line it was declared
+on:
+
+```bash
+sip list --json
+sip list build --json      # only scripts matching a query
+sip list --json --no-resolve   # skip expanding references and variables
+```
+
+```json
+{
+  "version": 1,
+  "scriptsYaml": "/repo/scripts.yaml",
+  "executables": { "dart": "fvm dart" },
+  "variables": { "projectRoot": "/repo" },
+  "scripts": [
+    {
+      "path": ["build_runner", "build"],
+      "key": "build_runner.build",
+      "name": "build",
+      "parent": "build_runner",
+      "aliases": ["b"],
+      "description": null,
+      "private": false,
+      "runnable": true,
+      "bail": false,
+      "commands": ["${{ build_runner._ }} build"],
+      "resolved": [
+        { "command": "fvm dart run build_runner build", "concurrent": false }
+      ],
+      "resolveError": null,
+      "env": null,
+      "location": { "file": "/repo/scripts.yaml", "line": 28, "column": 3 }
+    }
+  ]
+}
+```
+
+Pass the `path` back to `sip run` (`sip run build_runner build`). A script
+that cannot be resolved reports why in `resolveError` instead of failing the
+whole listing.
 
 ### Referencing Other Scripts
 
@@ -290,6 +344,51 @@ sip run build_runner build
 
 Run `sip run --help` for all available flags.
 
+`--print` shows the resolved commands without executing them, and `--json`
+alongside it prints them as data:
+
+```bash
+sip run build_runner build --print
+sip run build_runner build --print --json
+```
+
+## Validating `scripts.yaml`
+
+`sip validate` checks the file without running anything, and reports each
+problem against the line it was written on:
+
+```bash
+sip validate
+sip validate --json             # structured diagnostics with stable codes
+sip validate --fatal-warnings   # exit non-zero for warnings too
+```
+
+```console
+scripts.yaml:8:1: error: ${{ a:b }} is not a valid substitution, so it is passed to the shell unchanged.
+  Separate script names with dots: ${{ a.b }}
+scripts.yaml:16:3: warning: (bail) has no value, which sip reads as false.
+  Write `(bail): true`.
+1 error, 1 warning
+```
+
+It finds:
+
+| Code | Severity | What it catches |
+| --- | --- | --- |
+| `invalid-yaml` | error | The file does not parse |
+| `unknown-reference` | error | `${{ x }}` names no script or variable |
+| `malformed-substitution` | error | `${{ a:b }}` and friends, passed to the shell verbatim |
+| `reference-has-no-command` | error | A reference to a group with no `(command)` |
+| `circular-reference` | error | Scripts that reference each other in a loop |
+| `invalid-key` | error | A script name sip rejects |
+| `empty-bail` | warning | `(bail):` with no value, which reads as `false` |
+| `unknown-reserved-key` | warning | `(descriptions)` and other near-misses |
+| `duplicate-alias` | warning | An alias claimed twice, which deactivates it |
+| `empty-script` | warning | A script with no `(command)` and no subscripts |
+
+Errors exit `78`. Warnings exit `0` unless `--fatal-warnings` is passed.
+Diagnostics go to stderr, so `--json` output on stdout stands alone.
+
 ## Environment Configuration
 
 You can load environment variables before running a script:
@@ -361,6 +460,33 @@ sip test --bail
 > `sip test` fails when a test fails, when the test process exits non-zero, and
 > when it finds no packages to test — running nothing is not a pass.
 
+Machine-readable results:
+
+```bash
+sip test --json
+```
+
+```json
+{
+  "passed": false,
+  "counts": { "passing": 12, "failing": 1, "skipped": 0 },
+  "failures": [
+    {
+      "path": "test/a_test.dart",
+      "test": "fails loudly",
+      "error": "Expected: <2>\n  Actual: <1>"
+    }
+  ],
+  "skipped": [],
+  "errors": []
+}
+```
+
+`errors` holds failures that are not test failures — a compile error, a
+crashed runner, output sip could not parse. A run with an empty `failures`
+list and a non-empty `errors` list still failed, which is why `passed`
+exists rather than leaving it to be inferred from the counts.
+
 ### Experimental: Flutter Test Bucketing
 
 > [!WARNING]
@@ -390,6 +516,7 @@ Install a sip reference file so your AI assistant knows how `scripts.yaml` and
 the CLI work:
 
 ```bash
+sip ai agents     # AGENTS.md
 sip ai claude     # CLAUDE.md
 sip ai cursor     # .cursor/rules/sip-*.mdc
 sip ai copilot    # .github/copilot-instructions.md
@@ -399,6 +526,46 @@ sip ai all        # every file above
 ```
 
 Existing files are left alone; pass `--force` to overwrite them.
+
+### MCP server
+
+`sip mcp` runs sip as an [MCP](https://modelcontextprotocol.io) server over
+stdio, so an assistant discovers your scripts as tools instead of having to
+remember a CLI convention:
+
+| Tool | What it does |
+| --- | --- |
+| `list_scripts` | Every script, with the commands it actually runs |
+| `dry_run` | What a script expands to, without running it |
+| `run_script` | Run a declared script; returns exit code, stdout and stderr |
+| `validate` | Check `scripts.yaml` for problems |
+
+Point your assistant at it:
+
+```json
+{
+  "mcpServers": {
+    "sip": { "command": "sip", "args": ["mcp"] }
+  }
+}
+```
+
+`run_script` takes a script name, never a command, so it cannot run anything
+that is not declared in `scripts.yaml`. What a declared script does is of
+course up to your project, so the tool is marked destructive.
+
+### Output for scripts and assistants
+
+sip's output is meant to be read by whoever is reading it:
+
+- **Colour follows the terminal.** Piped or redirected output is plain text.
+  `--color` / `--no-color`, `NO_COLOR`, `FORCE_COLOR` and `TERM=dumb`
+  override the guess.
+- **The update notice never touches stdout.** It goes to stderr, and is
+  skipped entirely (along with its network request) when stdout is not a
+  terminal. `--no-version-check` or `SIP_NO_VERSION_CHECK=1` also turn it off.
+- **`--json` output stands alone on stdout.** Every message, warning and
+  error goes to stderr.
 
 ## Pub Commands
 
