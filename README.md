@@ -147,6 +147,11 @@ pub:
   ui: cd packages/ui && ${{ pub.get }}
 ```
 
+> [!IMPORTANT]
+> Nested references are separated by dots. A colon (`${{ pub:get }}`) is not
+> substituted — it is passed to the shell verbatim and fails with
+> `bad substitution`.
+
 ### Flags
 
 Sip forwards only the flags and arguments you explicitly include using `${{ --FLAG_NAME }}`:
@@ -186,9 +191,13 @@ Or set it in config:
 
 ```yaml
 format:
-  (bail):
+  (bail): true
   (command): dart format
 ```
+
+> [!NOTE]
+> `(bail)` must be given an explicit `true`. An empty value (`(bail):`) is
+> parsed as `null` and read as `false`.
 
 ### Concurrent Commands
 
@@ -213,7 +222,7 @@ sip run format --no-concurrent
 
 Sip provides built-in variables:
 
-- `${{ packageRoot }}`: The nearest `pubspec.yaml` to the current working directory
+- `${{ projectRoot }}`: The nearest `pubspec.yaml` to the current working directory
 - `${{ scriptsRoot }}`: The nearest `scripts.yaml` to the current working directory
 - `${{ cwd }}`: The current working directory
 - `${{ dartOrFlutter }}`: Either `dart` or `flutter` executable, depending on the nearest `pubspec.yaml` to the current working directory
@@ -253,7 +262,7 @@ test:
 
 echo:
   dirs:
-    - echo "${{ packageRoot }}"
+    - echo "${{ projectRoot }}"
     - echo "${{ scriptsRoot }}"
     - echo "${{ cwd }}"
 
