@@ -118,9 +118,16 @@ class TestData {
 
     var message = [?data._previous, output].join('\n');
 
+    // Trimmed because the markers are stripped in place: a chunk that opens
+    // with `::endgroup::` (the close of the previous group, which the
+    // reporter emits on the line before the next `::group::❌ ...`) would
+    // otherwise leave a leading newline, the `^[✅❌]` check below would miss
+    // the result, and the whole failure would be recorded as error text on
+    // the preceding passing test instead of being counted.
     message = message
         .replaceAll('::group::', '')
-        .replaceAll('::endgroup::', '');
+        .replaceAll('::endgroup::', '')
+        .trim();
 
     if (output.contains('::group::') && !output.contains('::endgroup::')) {
       data._previous = output;
