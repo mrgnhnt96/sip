@@ -499,20 +499,23 @@ class _ConcurrentRows {
   void dispose() {
     _timer?.cancel();
     _timer = null;
-    _render();
+    _render(finalRender: true);
   }
 
-  void _render() {
+  void _render({bool finalRender = false}) {
     // A logical row's content can be wider than the terminal, in which case
     // the terminal itself wraps it onto extra physical lines the cursor
     // math below doesn't know about unless it's accounted for here.
     final columns = io.stdout.hasTerminal ? io.stdout.terminalColumns : 80;
     final width = columns > 1 ? columns - 1 : 1;
+    final height = io.stdout.hasTerminal ? io.stdout.terminalLines : 24;
 
     final buffer = StringBuffer();
 
     if (_rendered > 0) {
-      buffer.write('\x1b[${_rendered}A');
+      // Resizing can leave old rows in scrollback, beyond the cursor's reach.
+      final reachable = _rendered.clamp(0, height > 0 ? height - 1 : 0);
+      if (reachable > 0) buffer.write('\x1b[${reachable}A');
     }
 
     var lineCount = 0;
@@ -539,6 +542,15 @@ class _ConcurrentRows {
       for (final line in row.details) {
         writeContent(darkGray.wrap(line) ?? line);
       }
+    }
+
+    // Cursor-up cannot reach scrollback. Keep one line for the cursor after
+    // the trailing newline; once the batch outgrows the screen, print only
+    // its final results instead of repeatedly scrolling the same rows.
+    if (!finalRender && lineCount >= height) {
+      _timer?.cancel();
+      _timer = null;
+      return;
     }
 
     _rendered = lineCount;
