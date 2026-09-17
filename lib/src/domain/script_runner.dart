@@ -454,14 +454,10 @@ class ScriptRunner {
   }
 }
 
-/// Renders a batch of concurrently-running scripts as one animated row per
-/// script, redrawing all rows in place on each tick.
+/// Renders concurrent scripts as single-line, truncated progress rows.
 ///
-/// Each row is either spinning (still running) or frozen with its final
-/// ✓/✗ and elapsed time. Rows can only be appended, never removed, so the
-/// cursor math in [_render] (move up by the previously-rendered physical
-/// line count, accounting for terminal-width wrapping) stays correct
-/// across ticks.
+/// Large batches show a screenful of active rows and a progress count. The
+/// complete results and failure details remain available when the batch ends.
 class _ConcurrentRows {
   _ConcurrentRows(this._logger);
 
@@ -503,9 +499,6 @@ class _ConcurrentRows {
   }
 
   void _render({bool finalRender = false}) {
-    // A logical row's content can be wider than the terminal, in which case
-    // the terminal itself wraps it onto extra physical lines the cursor
-    // math below doesn't know about unless it's accounted for here.
     final columns = io.stdout.hasTerminal ? io.stdout.terminalColumns : 80;
     final width = columns > 1 ? columns - 1 : 1;
     final height = io.stdout.hasTerminal ? io.stdout.terminalLines : 24;
@@ -518,10 +511,14 @@ class _ConcurrentRows {
       if (reachable > 0) buffer.write('\x1b[${reachable}A');
     }
 
+    buffer.write('\x1b[J');
     var lineCount = 0;
 
-    void writeContent(String content) {
-      for (final physicalLine in _wrapVisible(content, width)) {
+    void writeContent(String content, {bool truncate = true}) {
+      final lines = truncate
+          ? [_truncateVisible(content, width)]
+          : _wrapVisible(content, width);
+      for (final physicalLine in lines) {
         buffer
           ..write('\x1b[2K\r')
           ..write(physicalLine)
@@ -530,33 +527,58 @@ class _ConcurrentRows {
       }
     }
 
-    for (final row in _rows) {
+    // Leave one screen line for the cursor after the final newline.
+    final available = height > 0 ? height - 1 : 0;
+    if (!finalRender && available == 0) return;
+    final limited = !finalRender && _rows.length > available;
+    final visibleRows = limited
+        ? [
+            ..._rows.where((row) => !row.done),
+            ..._rows.where((row) => row.done),
+          ].take(available - 1)
+        : _rows;
+
+    for (final row in visibleRows) {
       if (row case _ConcurrentRow(done: true, :final success?, :final time?)) {
         final icon = success ? lightGreen.wrap('✓') : red.wrap('✗');
-        writeContent('$icon ${row.label} ${darkGray.wrap('($time)')}');
+        final suffix = ' ($time)';
+        final label = _truncateVisible(row.label, width - 2 - suffix.length);
+        writeContent('$icon $label${darkGray.wrap(suffix)}');
       } else {
         final char = _frames[_frame % _frames.length];
         writeContent('${lightGreen.wrap(char)} ${row.label}');
       }
 
-      for (final line in row.details) {
-        writeContent(darkGray.wrap(line) ?? line);
+      if (finalRender) {
+        for (final line in row.details) {
+          writeContent(darkGray.wrap(line) ?? line, truncate: false);
+        }
       }
     }
 
-    // Cursor-up cannot reach scrollback. Keep one line for the cursor after
-    // the trailing newline; once the batch outgrows the screen, print only
-    // its final results instead of repeatedly scrolling the same rows.
-    if (!finalRender && lineCount >= height) {
-      _timer?.cancel();
-      _timer = null;
-      return;
+    if (limited) {
+      final completed = _rows.where((row) => row.done).length;
+      final failed = _rows.where((row) => row.success == false).length;
+      writeContent(
+        '$completed/${_rows.length} done, $failed failed '
+        '· ${_rows.length - visibleRows.length} more rows',
+      );
     }
 
     _rendered = lineCount;
     _frame++;
     _logger.write(buffer.toString());
   }
+}
+
+/// Truncates a single line, preserving ANSI colors and marking omitted text.
+String _truncateVisible(String text, int width) {
+  if (width <= 0) return '';
+  final singleLine = text.replaceAll(RegExp(r'[\r\n]'), ' ');
+  if (_wrapVisible(singleLine, width).length == 1) return singleLine;
+  final prefix = width == 1 ? '' : _wrapVisible(singleLine, width - 1).first;
+  final reset = prefix.contains('\x1b') ? '\x1b[0m' : '';
+  return '$prefix…$reset';
 }
 
 /// Splits [text] into chunks no wider than [width] visible characters,

@@ -45,7 +45,7 @@ void main() {
             [
               for (var i = 0; i < scenario.rows; i++)
                 ScriptToRun(
-                  'command',
+                  'command$i',
                   label: '${scenario.label}$i',
                   workingDirectory: '/',
                   runInParallel: true,
@@ -55,15 +55,34 @@ void main() {
             logTime: false,
           );
           await Future<void>.delayed(const Duration(milliseconds: 260));
+          bindings.firstFinished.complete();
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+          if (scenario.name == 'too many rows') {
+            expect(output.last, contains('1/5 done'));
+            expect(output.last, contains('package1'));
+          } else {
+            expect(output.last, contains('✓'));
+          }
           bindings.finished.complete();
           await run;
         }, stdout: () => stdout);
 
-        if (scenario.name == 'rows that fit') {
-          expect(output.length, greaterThan(1));
-          expect(output.first, contains('⠋'));
-        } else {
-          expect(output, hasLength(1));
+        expect(output.length, greaterThan(1));
+        expect(output.first, contains('⠋'));
+        for (final frame in output.take(output.length - 1)) {
+          final plain = frame.replaceAll(RegExp(r'\x1b\[[0-9;]*[A-Za-z]'), '');
+          final lines = plain.split('\n')..removeLast();
+          expect(lines.length, lessThan(5));
+          for (final line in lines) {
+            expect(
+              line.replaceAll('\r', '').length,
+              lessThan(scenario.columns),
+            );
+          }
+        }
+        if (scenario.name == 'wrapped paths') {
+          expect(output.first, contains('…'));
+          expect('\n'.allMatches(output.first), hasLength(scenario.rows));
         }
         expect(output.last, isNot(contains('⠋')));
         expect('✓'.allMatches(output.last), hasLength(scenario.rows));
@@ -80,6 +99,7 @@ class _MockLogger extends Mock implements Logger {}
 class _MockStdout extends Mock implements io.Stdout {}
 
 class _DelayedBindings extends Bindings {
+  final firstFinished = Completer<void>();
   final finished = Completer<void>();
 
   @override
@@ -88,7 +108,7 @@ class _DelayedBindings extends Bindings {
     required bool showOutput,
     bool bail = false,
   }) async {
-    await finished.future;
+    await (script.contains('command0') ? firstFinished : finished).future;
     return const CommandResult(exitCode: 0, output: '', error: '');
   }
 }
