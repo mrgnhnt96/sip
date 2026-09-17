@@ -457,7 +457,8 @@ class ScriptRunner {
 /// Renders concurrent scripts as single-line, truncated progress rows.
 ///
 /// Large batches show a screenful of active rows and a progress count. The
-/// complete results and failure details remain available when the batch ends.
+/// complete results remain available when the batch ends. Failures are printed
+/// immediately above the live rows, with their full labels and error details.
 class _ConcurrentRows {
   _ConcurrentRows(this._logger);
 
@@ -488,8 +489,17 @@ class _ConcurrentRows {
     _rows[index]
       ..done = true
       ..success = success
-      ..time = time
-      ..details = details;
+      ..time = time;
+
+    if (!success) {
+      final buffer = StringBuffer(_clearRenderedRows())
+        ..writeln('${red.wrap('✗')} ${_rows[index].label} ($time)');
+      for (final line in details) {
+        buffer.writeln(line);
+      }
+      // Start the next progress frame below this permanent error block.
+      _logger.write(buffer.toString());
+    }
   }
 
   void dispose() {
@@ -498,33 +508,28 @@ class _ConcurrentRows {
     _render(finalRender: true);
   }
 
+  String _clearRenderedRows() {
+    final height = io.stdout.hasTerminal ? io.stdout.terminalLines : 24;
+    // Resizing can leave old rows in scrollback, beyond the cursor's reach.
+    final reachable = _rendered.clamp(0, height > 0 ? height - 1 : 0);
+    _rendered = 0;
+    return '${reachable > 0 ? '\x1b[${reachable}A' : ''}\r\x1b[J';
+  }
+
   void _render({bool finalRender = false}) {
     final columns = io.stdout.hasTerminal ? io.stdout.terminalColumns : 80;
     final width = columns > 1 ? columns - 1 : 1;
     final height = io.stdout.hasTerminal ? io.stdout.terminalLines : 24;
 
-    final buffer = StringBuffer();
-
-    if (_rendered > 0) {
-      // Resizing can leave old rows in scrollback, beyond the cursor's reach.
-      final reachable = _rendered.clamp(0, height > 0 ? height - 1 : 0);
-      if (reachable > 0) buffer.write('\x1b[${reachable}A');
-    }
-
-    buffer.write('\x1b[J');
+    final buffer = StringBuffer(_clearRenderedRows());
     var lineCount = 0;
 
-    void writeContent(String content, {bool truncate = true}) {
-      final lines = truncate
-          ? [_truncateVisible(content, width)]
-          : _wrapVisible(content, width);
-      for (final physicalLine in lines) {
-        buffer
-          ..write('\x1b[2K\r')
-          ..write(physicalLine)
-          ..write('\n');
-        lineCount++;
-      }
+    void writeContent(String content) {
+      buffer
+        ..write('\x1b[2K\r')
+        ..write(_truncateVisible(content, width))
+        ..write('\n');
+      lineCount++;
     }
 
     // Leave one screen line for the cursor after the final newline.
@@ -547,12 +552,6 @@ class _ConcurrentRows {
       } else {
         final char = _frames[_frame % _frames.length];
         writeContent('${lightGreen.wrap(char)} ${row.label}');
-      }
-
-      if (finalRender) {
-        for (final line in row.details) {
-          writeContent(darkGray.wrap(line) ?? line, truncate: false);
-        }
       }
     }
 
@@ -624,5 +623,4 @@ class _ConcurrentRow {
   bool done = false;
   bool? success;
   String? time;
-  List<String> details = const [];
 }
