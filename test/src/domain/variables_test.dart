@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
 import 'package:meta/meta.dart';
-import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/deps/variables.dart';
 import 'package:sip_cli/src/domain/pubspec_yaml.dart';
 import 'package:sip_cli/src/domain/scripts_yaml.dart';
@@ -45,9 +44,9 @@ void main() {
         expect(populated['scriptsRoot'], isNotNull);
         expect(populated['cwd'], isNotNull);
 
-        expect(populated['projectRoot'], path.separator);
-        expect(populated['scriptsRoot'], path.separator);
-        expect(populated['cwd'], path.separator);
+        expect(populated['projectRoot'], fs.path.separator);
+        expect(populated['scriptsRoot'], fs.path.separator);
+        expect(populated['cwd'], fs.path.separator);
       });
 
       test('should add executables', () {

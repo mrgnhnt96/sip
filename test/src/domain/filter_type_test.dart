@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
 import 'package:sip_cli/src/domain/filter_type.dart' as filter;
 import 'package:sip_cli/src/domain/filter_type.dart';
 import 'package:test/test.dart';
@@ -253,8 +254,16 @@ To run this test again: /Users/morgan/fvm/versions/3.29.3/bin/cache/dart-sdk/bin
               output,
             );
 
+            // The formatter relativizes the path with the host's separator.
+            final relative = p.join(
+              'test',
+              'lib',
+              'domain',
+              'filter_type_test.dart',
+            );
             final expected =
-                '${resetToStart}00:00 +132 -3: test/lib/domain/filter_type_test.dart | FilterType #formatter example [E]$clearToEnd\n';
+                '${resetToStart}00:00 +132 -3: $relative | '
+                'FilterType #formatter example [E]$clearToEnd\n';
 
             expect(formatted, expected);
             expect(isError, true);

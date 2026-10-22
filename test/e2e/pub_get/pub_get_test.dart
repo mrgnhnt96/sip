@@ -3,7 +3,6 @@ import 'package:file/memory.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:meta/meta.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:path/path.dart' as p;
 import 'package:sip_cli/src/commands/pub_get_command.dart';
 import 'package:sip_cli/src/domain/bindings.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
@@ -30,7 +29,7 @@ void main() {
 
       command = const PubGetCommand();
 
-      final cwd = fs.directory(p.join('packages', 'sip'))
+      final cwd = fs.directory(fs.path.join('packages', 'sip'))
         ..createSync(recursive: true);
       fs.currentDirectory = cwd;
 
@@ -49,11 +48,11 @@ void main() {
     /// Create a directory with a pubspec.yaml file inside.
     void createDirs(List<List<String>> dirs) {
       for (final segments in dirs) {
-        final path = p.joinAll(segments);
+        final path = fs.path.joinAll(segments);
         final dir = fs.directory(path)..createSync(recursive: true);
-        fs.file(p.join(dir.path, 'pubspec.yaml'))
+        fs.file(fs.path.join(dir.path, 'pubspec.yaml'))
           ..createSync()
-          ..writeAsString('name: ${p.basename(path)}');
+          ..writeAsString('name: ${fs.path.basename(path)}');
       }
     }
 
