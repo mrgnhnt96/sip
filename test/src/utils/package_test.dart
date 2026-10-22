@@ -651,6 +651,175 @@ void _clearHttpOverrides() {
       expect(bucketFs.file('/project/${bucket.file}').existsSync(), isFalse);
       expect(bucketFs.file('/project/test/a_test.dart').existsSync(), isTrue);
     }, args: {'experimental-bucket': true, 'bucket-count': 1});
+
+    group('with a nested flutter_test_config.dart', () {
+      void writeConfig(String relativeDir) {
+        writeTestFile('$relativeDir/flutter_test_config.dart', '''
+Future<void> testExecutable(Future<void> Function() testMain) => testMain();
+''');
+      }
+
+      bucketTest('only combines files that share the nearest config', () {
+        final pkg = flutterPackage();
+        writeConfig('test/feature');
+        writeTestFile('test/a_test.dart', safeContent);
+        writeTestFile('test/b_test.dart', safeContent);
+        writeTestFile('test/feature/c_test.dart', safeContent);
+        writeTestFile('test/feature/deep/d_test.dart', safeContent);
+
+        final plan = pkg.bucketPlan!;
+
+        expect(
+          plan.buckets.map((b) => b.originalFiles),
+          unorderedEquals([
+            ['test/a_test.dart', 'test/b_test.dart'],
+            ['test/feature/c_test.dart', 'test/feature/deep/d_test.dart'],
+          ]),
+        );
+      }, args: {'experimental-bucket': true, 'bucket-count': 1});
+
+      bucketTest("writes each bucket in its config's directory", () {
+        final pkg = flutterPackage();
+        writeConfig('test/feature');
+        writeTestFile('test/a_test.dart', safeContent);
+        writeTestFile('test/feature/deep/d_test.dart', safeContent);
+
+        final plan = pkg.bucketPlan!;
+        final files = {
+          for (final bucket in plan.buckets)
+            bucket.originalFiles.single: bucket.file,
+        };
+
+        expect(files['test/a_test.dart'], startsWith('test/.test_optimizer'));
+        expect(
+          files['test/feature/deep/d_test.dart'],
+          startsWith('test/feature/.test_optimizer'),
+        );
+
+        final generated = bucketFs
+            .file('/project/${files['test/feature/deep/d_test.dart']}')
+            .readAsStringSync();
+
+        expect(generated, contains("import 'deep/d_test.dart' as _i0;"));
+        expect(
+          generated,
+          contains(
+            "group('test/feature/deep/d_test.dart', () { _i0.main(); });",
+          ),
+        );
+      }, args: {'experimental-bucket': true, 'bucket-count': 4});
+
+      bucketTest("writes a solo wrapper in its config's directory", () {
+        final pkg = flutterPackage();
+        writeConfig('test/feature');
+        writeTestFile('test/feature/bad_test.dart', unsafeBindingContent);
+
+        final solo = pkg.bucketPlan!.buckets.single;
+
+        expect(solo.originalFiles, ['test/feature/bad_test.dart']);
+        expect(solo.file, startsWith('test/feature/.test_optimizer_solo'));
+      }, args: {'experimental-bucket': true, 'bucket-count': 1});
+
+      bucketTest(
+        'keeps files outside test/ away from test/flutter_test_config.dart',
+        () {
+          final pkg = flutterPackage();
+          writeConfig('test');
+          writeTestFile('test/a_test.dart', safeContent);
+          writeTestFile('integration_test/b_test.dart', safeContent);
+
+          final plan = pkg.bucketPlan!;
+          final files = {
+            for (final bucket in plan.buckets)
+              bucket.originalFiles.single: bucket.file,
+          };
+
+          expect(files['test/a_test.dart'], startsWith('test/.test_optimizer'));
+          expect(
+            files['integration_test/b_test.dart'],
+            startsWith('.test_optimizer'),
+          );
+        },
+        args: {'experimental-bucket': true, 'bucket-count': 1},
+      );
+
+      bucketTest('gives each config at least one bucket of its share', () {
+        final pkg = flutterPackage();
+        writeConfig('test/feature');
+        for (final name in ['a', 'b', 'c', 'd', 'e', 'f']) {
+          writeTestFile('test/${name}_test.dart', safeContent);
+        }
+        writeTestFile('test/feature/g_test.dart', safeContent);
+
+        final plan = pkg.bucketPlan!;
+
+        expect(
+          plan.buckets.map((b) => b.originalFiles),
+          unorderedEquals([
+            ['test/a_test.dart', 'test/c_test.dart', 'test/e_test.dart'],
+            ['test/b_test.dart', 'test/d_test.dart', 'test/f_test.dart'],
+            ['test/feature/g_test.dart'],
+          ]),
+        );
+        expect(
+          plan.buckets.map((b) => b.file).toSet(),
+          hasLength(plan.buckets.length),
+        );
+      }, args: {'experimental-bucket': true, 'bucket-count': 2});
+
+      bucketTest(
+        'deleteOptimizedTestFile removes wrappers in subdirectories',
+        () {
+          final pkg = flutterPackage();
+          writeConfig('test/feature');
+          writeConfig('test/other');
+          writeTestFile('test/a_test.dart', safeContent);
+          writeTestFile('test/feature/b_test.dart', safeContent);
+          writeTestFile('test/other/bad_test.dart', unsafeBindingContent);
+
+          final wrappers = [
+            for (final bucket in pkg.bucketPlan!.buckets)
+              bucketFs.file('/project/${bucket.file}'),
+          ];
+          expect(wrappers, hasLength(3));
+          expect(wrappers.every((f) => f.existsSync()), isTrue);
+
+          // A fresh Package, as `sip test clean` would use: it has no plan
+          // telling it where the wrappers went.
+          Package('/project/pubspec.yaml').deleteOptimizedTestFile();
+
+          expect(wrappers.where((f) => f.existsSync()), isEmpty);
+          expect(
+            bucketFs.file('/project/test/feature/b_test.dart').existsSync(),
+            isTrue,
+          );
+          expect(
+            bucketFs
+                .file('/project/test/feature/flutter_test_config.dart')
+                .existsSync(),
+            isTrue,
+          );
+        },
+        args: {'experimental-bucket': true, 'bucket-count': 1},
+      );
+
+      bucketTest('deleteOptimizedTestFile leaves nested packages alone', () {
+        final pkg = flutterPackage();
+        writeTestFile('packages/inner/pubspec.yaml', 'name: inner\n');
+        writeTestFile('packages/inner/test/.test_optimizer_bucket_0.dart', '');
+
+        pkg.deleteOptimizedTestFile();
+
+        expect(
+          bucketFs
+              .file(
+                '/project/packages/inner/test/.test_optimizer_bucket_0.dart',
+              )
+              .existsSync(),
+          isTrue,
+        );
+      });
+    });
   });
 }
 
