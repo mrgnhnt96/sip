@@ -501,6 +501,8 @@ For large Flutter widget-test suites, `--experimental-bucket` combines test file
 sip test --experimental-bucket
 ```
 
+Files and directories given on the command line are bucketed the same way, so `sip test --experimental-bucket test/a_test.dart test/b_test.dart` runs both files in one combined runner.
+
 Files that can't be safely combined (an explicit non-default `TestWidgetsFlutterBinding` subtype, or a test-surface mutation like `tester.view.physicalSize` left unreset) always run in their own isolated wrapper, never sharing an isolate with anything else. If a bucket's combined run looks untrustworthy — a compile error or hard binding assertion cuts it short — just that bucket's files are automatically discarded and re-run individually, and this is logged clearly.
 
 A bucket that mixes files which initialize the Flutter test binding (`testWidgets`, `ensureInitialized`, …) with plain `test()` files clears `HttpOverrides.global` around each plain file's group, so the binding's mock `HttpClient`, which answers every request with 400, can't break their real HTTP calls.

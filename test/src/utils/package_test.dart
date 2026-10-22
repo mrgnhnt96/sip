@@ -404,6 +404,23 @@ void main() {
       );
     }, args: {'experimental-bucket': true, 'bucket-count': 1});
 
+    bucketTest('covers only the given files when constructed with only', () {
+      flutterPackage();
+      writeTestFile('test/a_test.dart', safeContent);
+      writeTestFile('test/b_test.dart', safeContent);
+      writeTestFile('test/sub/c_test.dart', safeContent);
+
+      final pkg = Package(
+        '/project/pubspec.yaml',
+        only: {'/project/test/a_test.dart', '/project/test/sub/c_test.dart'},
+      );
+
+      expect(
+        pkg.bucketPlan!.buckets.single.originalFiles,
+        unorderedEquals(['test/a_test.dart', 'test/sub/c_test.dart']),
+      );
+    }, args: {'experimental-bucket': true, 'bucket-count': 1});
+
     bucketTest(
       'writes a generated bucket file with correct imports and groups',
       () {

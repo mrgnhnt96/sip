@@ -54,7 +54,8 @@ EXPERIMENTAL (Flutter only, strictly opt-in, may change or be removed):
                                       image cache) -- that hazard can't be caught
                                       statically or by this fallback, so treat a bucketed
                                       run as a strong signal, not a guarantee of
-                                      unbucketed-equivalent results.
+                                      unbucketed-equivalent results. Files and
+                                      directories given as arguments are bucketed too.
   --bucket-count=<N>                 How many combined bucket files to generate from the
                                       combinable files (default: number of processors)
   --bucket-shard-index=<i>           Which shard (0-based) this invocation should run, for
@@ -186,7 +187,11 @@ class TestRunCommand with TesterMixin {
 
     List<String>? testsToRun;
     if (providedTests.isNotEmpty) {
-      testsToRun = await getTestsFromProvided(providedTests);
+      // Bucketing combines files, so it needs every given file on its own,
+      // not the directories holding them.
+      testsToRun = experimentalBucket
+          ? getTestFilesFromProvided(providedTests)
+          : await getTestsFromProvided(providedTests);
 
       if (testsToRun.isEmpty) {
         logger.err('No valid files or directories found');
@@ -218,7 +223,59 @@ class TestRunCommand with TesterMixin {
 
     void Function()? cleanUp;
 
-    if (testsToRun != null) {
+    // One command per test group of each package; in bucket mode a group is
+    // the package's generated bucket and solo wrappers.
+    List<Runnable> packageCommands(List<Package> pkgs) => [
+      for (final pkg in pkgs)
+        for (final group in pkg.testGroups)
+          createTestCommand(
+            pkg: pkg,
+            tests: group,
+            bail: bail,
+            // Pass empty list if no paths provided (to distinguish from null)
+            // This allows us to show '.' when no paths were provided
+            providedPaths: originalProvidedPaths,
+            bucketFileGroups: pkg.bucketPlan != null
+                ? pkg.bucketFileGroupsFor(group)
+                : null,
+          ),
+    ];
+
+    if (testsToRun != null && experimentalBucket) {
+      // Given files are bucketed like discovered ones: each package plans
+      // buckets from just the files it was given.
+      final pkgs = packagesOwning(testsToRun);
+      if (pkgs == null) return ExitCode.usage;
+
+      for (final pkg in pkgs) {
+        if (pkg.experimentalBucketEnabled) {
+          commandsToRun.addAll(packageCommands([pkg]));
+        } else {
+          // Bucketing is Flutter only; a Dart package runs its given files
+          // as it would without the flag.
+          final groups = switch (slice) {
+            null => [pkg.testFiles],
+            final int count => pkg.testFiles.chunked(count),
+          };
+
+          commandsToRun.addAll([
+            for (final group in groups)
+              createTestCommand(
+                pkg: pkg,
+                tests: group,
+                bail: bail,
+                providedPaths: originalProvidedPaths,
+              ),
+          ]);
+        }
+      }
+
+      cleanUp = () {
+        for (final pkg in pkgs) {
+          pkg.deleteOptimizedTestFile();
+        }
+      };
+    } else if (testsToRun != null) {
       final pkg = Package.nearest();
 
       // If original paths were '.', 'test', or empty,
@@ -273,21 +330,7 @@ class TestRunCommand with TesterMixin {
         return ExitCode.noInput;
       }
 
-      commandsToRun.addAll([
-        for (final pkg in pkgs)
-          for (final group in pkg.testGroups)
-            createTestCommand(
-              pkg: pkg,
-              tests: group,
-              bail: bail,
-              // Pass empty list if no paths provided (to distinguish from null)
-              // This allows us to show '.' when no paths were provided
-              providedPaths: originalProvidedPaths,
-              bucketFileGroups: pkg.bucketPlan != null
-                  ? pkg.bucketFileGroupsFor(group)
-                  : null,
-            ),
-      ]);
+      commandsToRun.addAll(packageCommands(pkgs));
 
       cleanUp = () {
         for (final pkg in pkgs) {
