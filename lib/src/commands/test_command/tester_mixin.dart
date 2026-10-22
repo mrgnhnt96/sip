@@ -623,43 +623,17 @@ abstract mixin class TesterMixin {
 
   Future<List<String>> getTestsFromProvided(List<String> providedTests) async {
     final testsToRun = <String>[];
-    final glob = Glob('**/*_test.dart', recursive: true);
 
     for (final path in providedTests) {
-      // Resolve relative paths to absolute paths
-      final fileOrDir = switch (path) {
-        '.' => fs.currentDirectory.path,
-        _ =>
-          fs.path.isAbsolute(path)
-              ? path
-              : fs.path.join(fs.currentDirectory.path, path),
-      };
+      final fileOrDir = _resolveProvided(path);
 
       if (fs.isFileSync(fileOrDir)) {
         if (fs.path.basename(fileOrDir).endsWith('_test.dart')) {
           testsToRun.add(fileOrDir);
         }
       } else if (fs.isDirectorySync(fileOrDir)) {
-        // Use glob to find test files in subdirectories
-        final results = glob.listFileSystemSync(
-          fs,
-          followLinks: false,
-          root: fileOrDir,
-        );
-        final files = results.whereType<File>().toList();
-
-        // Also check for test files directly in the provided directory
-        // (the glob pattern **/*_test.dart matches files in subdirectories,
-        // but not files directly in the root)
-        final dir = fs.directory(fileOrDir);
-        final directFiles = dir.listSync()
-          ..retainWhere(
-            (entity) =>
-                entity is File && entity.basename.endsWith('_test.dart'),
-          );
-        files.addAll(directFiles.whereType<File>());
-
-        final directories = {for (final file in files) file.parent.path};
+        final files = _testFilesIn(fileOrDir);
+        final directories = {for (final file in files) fs.path.dirname(file)};
 
         testsToRun.addAll(directories);
       } else {
@@ -669,5 +643,95 @@ abstract mixin class TesterMixin {
 
     logger.detail('Running tests: \n  - ${testsToRun.join('\n  - ')}');
     return testsToRun;
+  }
+
+  /// Like [getTestsFromProvided], but resolves each directory to the test
+  /// files inside it instead of the directories holding them, so the files
+  /// can be bucketed one by one (`--experimental-bucket`).
+  List<String> getTestFilesFromProvided(List<String> providedTests) {
+    final testFiles = <String>{};
+
+    for (final path in providedTests) {
+      final fileOrDir = _resolveProvided(path);
+
+      if (fs.isFileSync(fileOrDir)) {
+        if (fs.path.basename(fileOrDir).endsWith('_test.dart')) {
+          testFiles.add(fs.path.normalize(fileOrDir));
+        }
+      } else if (fs.isDirectorySync(fileOrDir)) {
+        testFiles.addAll(_testFilesIn(fileOrDir).map(fs.path.normalize));
+      } else {
+        logger.err('File or directory not found: $fileOrDir');
+      }
+    }
+
+    logger.detail('Running tests: \n  - ${testFiles.join('\n  - ')}');
+    return testFiles.toList();
+  }
+
+  /// Groups [testFiles] by the package that owns each one: the nearest
+  /// `pubspec.yaml` above it. Each package only runs the files it was given.
+  ///
+  /// Returns `null`, after reporting it, when a file has no package.
+  List<Package>? packagesOwning(List<String> testFiles) {
+    final filesByPubspec = <String, Set<String>>{};
+
+    for (final file in testFiles) {
+      final pubspec = _nearestPubspecAbove(file);
+      if (pubspec == null) {
+        logger.err('No pubspec.yaml found above $file');
+        return null;
+      }
+
+      filesByPubspec
+          .putIfAbsent(pubspec, () => {})
+          .add(fs.path.canonicalize(file));
+    }
+
+    return [
+      for (final MapEntry(key: pubspec, value: files) in filesByPubspec.entries)
+        Package(pubspec, only: files),
+    ];
+  }
+
+  String? _nearestPubspecAbove(String file) {
+    var dir = fs.path.dirname(file);
+
+    while (true) {
+      final pubspec = fs.path.join(dir, 'pubspec.yaml');
+      if (fs.isFileSync(pubspec)) return pubspec;
+
+      final parent = fs.path.dirname(dir);
+      if (parent == dir) return null;
+      dir = parent;
+    }
+  }
+
+  String _resolveProvided(String path) => switch (path) {
+    '.' => fs.currentDirectory.path,
+    _ =>
+      fs.path.isAbsolute(path)
+          ? path
+          : fs.path.join(fs.currentDirectory.path, path),
+  };
+
+  List<String> _testFilesIn(String dir) {
+    final glob = Glob('**/*_test.dart', recursive: true);
+    final files = glob
+        .listFileSystemSync(fs, followLinks: false, root: dir)
+        .whereType<File>()
+        .map((file) => file.path)
+        .toList();
+
+    // Also check for test files directly in the provided directory
+    // (the glob pattern **/*_test.dart matches files in subdirectories,
+    // but not files directly in the root)
+    final directFiles = fs.directory(dir).listSync()
+      ..retainWhere(
+        (entity) => entity is File && entity.basename.endsWith('_test.dart'),
+      );
+    files.addAll(directFiles.map((file) => file.path));
+
+    return files;
   }
 }

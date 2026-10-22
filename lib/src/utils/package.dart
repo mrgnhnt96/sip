@@ -17,7 +17,7 @@ import 'package:sip_cli/src/utils/list_ext.dart';
 import 'package:yaml/yaml.dart';
 
 class Package {
-  Package(this._pubspecYaml);
+  Package(this._pubspecYaml, {Set<String>? only}) : _only = only;
 
   factory Package.nearest() {
     final yaml = pubspecYaml.nearest();
@@ -30,6 +30,12 @@ class Package {
   }
 
   final String _pubspecYaml;
+
+  /// The canonical paths (`fs.path.canonicalize`) of the only test files to
+  /// run, when the files were given on the command line instead of
+  /// discovered under [path]. Everything built from [testFiles] -- the
+  /// bucket plan included -- then covers just these.
+  final Set<String>? _only;
 
   String get pubspec => _pubspecYaml;
 
@@ -148,7 +154,9 @@ class Package {
 
     return [
       for (final file in results.whereType<File>())
-        if (!file.basename.startsWith(_optimizedFilePrefix)) file.path,
+        if (!file.basename.startsWith(_optimizedFilePrefix))
+          if (_only?.contains(fs.path.canonicalize(file.path)) ?? true)
+            file.path,
     ];
   }
 
