@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
@@ -537,6 +538,173 @@ void main() {
           verifyNever(() => logger.warn(any(that: contains('re-running'))));
         },
       );
+
+      group('with retryBucketFailures', () {
+        const bucket = 'test/.test_optimizer_bucket_0.dart';
+
+        // b_test fails inside the combined bucket; [passesAlone] decides how
+        // it does when re-run on its own.
+        void mockCombinedFailure({required bool passesAlone}) {
+          mockRunScriptWithOutput((script, onOutput) async {
+            if (script.contains(bucket)) {
+              onOutput(const Message('✅ $bucket: test/a_test.dart a passes'));
+              onOutput(
+                const Message('❌ $bucket: test/b_test.dart b fails (failed)'),
+              );
+              return failure;
+            }
+
+            if (passesAlone) {
+              onOutput(const Message('✅ test/b_test.dart b fails'));
+              return success;
+            }
+
+            onOutput(const Message('❌ test/b_test.dart b fails (failed)'));
+            return failure;
+          });
+        }
+
+        Future<(ExitCode, Map<String, Object?>)> runAsJson(
+          List<List<String>> bucketFileGroups,
+        ) async {
+          final command = tester.createTestCommand(
+            pkg: bucketPackage(),
+            tests: [bucket],
+            bail: false,
+            bucketFileGroups: bucketFileGroups,
+          );
+
+          final exitCode = await tester.runCommands(
+            [command],
+            bail: false,
+            showOutput: false,
+            asJson: true,
+            retryBucketFailures: true,
+          );
+
+          final written = verify(
+            () => logger.write(captureAny()),
+          ).captured.cast<String>();
+          final json = jsonDecode(written.last) as Map<String, Object?>;
+
+          return (exitCode, json);
+        }
+
+        List<String> scriptsRun() {
+          return verify(
+            () => bindings.runScriptWithOutput(
+              captureAny(),
+              onOutput: any(named: 'onOutput'),
+              bail: any(named: 'bail'),
+            ),
+          ).captured.cast<String>();
+        }
+
+        test('reports a file that passes alone as failing only when '
+            'combined, and still fails the run', () async {
+          mockCombinedFailure(passesAlone: true);
+
+          final (exitCode, json) = await runAsJson([
+            ['test/a_test.dart', 'test/b_test.dart'],
+          ]);
+
+          expect(exitCode, ExitCode.software);
+          expect(json['combinedOnlyFailures'], [
+            {
+              'path': 'test/b_test.dart',
+              'tests': ['b fails'],
+            },
+          ]);
+          expect(json['passed'], isFalse);
+          expect(json['counts'], {'passing': 1, 'failing': 1, 'skipped': 0});
+
+          final scripts = scriptsRun();
+          expect(scripts, hasLength(2));
+          expect(scripts.last, contains('test/b_test.dart'));
+          expect(scripts.last, isNot(contains(bucket)));
+        });
+
+        test('keeps a file that also fails alone a plain failure', () async {
+          mockCombinedFailure(passesAlone: false);
+
+          final (exitCode, json) = await runAsJson([
+            ['test/a_test.dart', 'test/b_test.dart'],
+          ]);
+
+          expect(exitCode, ExitCode.software);
+          expect(json['combinedOnlyFailures'], isEmpty);
+          expect(json['counts'], {'passing': 1, 'failing': 1, 'skipped': 0});
+          expect(scriptsRun(), hasLength(2));
+        });
+
+        test('does not re-run a file that already ran alone', () async {
+          mockCombinedFailure(passesAlone: true);
+
+          final (exitCode, json) = await runAsJson([
+            ['test/a_test.dart'],
+            ['test/b_test.dart'],
+          ]);
+
+          expect(exitCode, ExitCode.software);
+          expect(json['combinedOnlyFailures'], isEmpty);
+          expect(scriptsRun(), hasLength(1));
+        });
+
+        test('does not re-run anything when the flag is off', () async {
+          mockCombinedFailure(passesAlone: true);
+
+          final command = tester.createTestCommand(
+            pkg: bucketPackage(),
+            tests: [bucket],
+            bail: false,
+            bucketFileGroups: [
+              ['test/a_test.dart', 'test/b_test.dart'],
+            ],
+          );
+
+          final exitCode = await tester.runCommands(
+            [command],
+            bail: false,
+            showOutput: false,
+          );
+
+          expect(exitCode, ExitCode.software);
+          expect(scriptsRun(), hasLength(1));
+        });
+
+        test('warns about combined-only failures in pretty output', () async {
+          mockCombinedFailure(passesAlone: true);
+
+          final command = tester.createTestCommand(
+            pkg: bucketPackage(),
+            tests: [bucket],
+            bail: false,
+            bucketFileGroups: [
+              ['test/a_test.dart', 'test/b_test.dart'],
+            ],
+          );
+
+          final exitCode = await tester.runCommands(
+            [command],
+            bail: false,
+            showOutput: false,
+            retryBucketFailures: true,
+          );
+
+          expect(exitCode, ExitCode.software);
+          verify(
+            () => logger.warn(
+              any(
+                that: allOf(
+                  contains('1 file(s) fail only when combined'),
+                  contains('test/b_test.dart'),
+                  contains('- b fails'),
+                ),
+              ),
+            ),
+          ).called(1);
+        });
+      });
     });
 
     group('#cleanUp', () {

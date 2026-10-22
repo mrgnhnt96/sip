@@ -54,6 +54,19 @@ class TestData {
     _exitFailures.add('$label exited with code $exitCode');
   }
 
+  final _combinedOnlyFailures = <({String path, List<String> tests})>[];
+
+  /// Files that failed inside a combined bucket but passed when re-run on
+  /// their own (`--bucket-retry-failures`), with the tests that failed
+  /// combined. Their combined failures still count: a file that only passes
+  /// alone is leaking or depending on state, and that must not go quiet.
+  List<({String path, List<String> tests})> get combinedOnlyFailures =>
+      List.unmodifiable(_combinedOnlyFailures);
+
+  void addCombinedOnlyFailure(String path, List<String> tests) {
+    _combinedOnlyFailures.add((path: path, tests: tests));
+  }
+
   List<Object> get allFailures {
     Iterable<Object> items(TestData data) sync* {
       if (data._error case final Object e) {
@@ -572,6 +585,12 @@ class TestData {
       // here, and a reader that only counts `failures` would call the run
       // green.
       'errors': [for (final error in allFailures) '$error'.trim()],
+      // Only filled with --bucket-retry-failures. The same tests are also in
+      // `failures`; this says which of those files pass when run alone.
+      'combinedOnlyFailures': [
+        for (final (:path, :tests) in _combinedOnlyFailures)
+          {'path': path, 'tests': tests},
+      ],
     };
   }
 
@@ -673,6 +692,24 @@ class TestData {
     }
 
     logger.write(buf.toString());
+
+    if (_combinedOnlyFailures.isNotEmpty) {
+      final summary =
+          '${_combinedOnlyFailures.length} file(s) fail only when combined '
+          'and pass on their own -- likely state left behind by another '
+          'file in the same bucket. Reset it in a tearDown, or keep the '
+          'file out of the buckets with --bucket-solo:';
+
+      logger.warn(
+        [
+          summary,
+          for (final (:path, :tests) in _combinedOnlyFailures) ...[
+            '  $path',
+            for (final test in tests) '    - $test',
+          ],
+        ].join('\n'),
+      );
+    }
   }
 }
 

@@ -235,6 +235,7 @@ abstract mixin class TesterMixin {
     required bool showOutput,
     required bool bail,
     bool asJson = false,
+    bool retryBucketFailures = false,
   }) async {
     if (!asJson) {
       final labels = {
@@ -274,6 +275,10 @@ abstract mixin class TesterMixin {
       data: data,
       bail: bail,
     );
+
+    if (retryBucketFailures) {
+      await _retryBucketFailuresAlone(commandsToRun, data: data);
+    }
 
     // Parsed output is not the whole story: a failure the parser does not
     // recognize (a crashed runner, an unreported failure, a reporter change)
@@ -477,6 +482,106 @@ abstract mixin class TesterMixin {
     return superseded;
   }
 
+  /// `--bucket-retry-failures`: re-runs each bucketed file that had a failing
+  /// test on its own, one `flutter test` per file, to tell a real failure
+  /// from one caused by another file sharing the bucket's isolate (a
+  /// singleton set up with someone else's fake, a static map that kept its
+  /// values). A file that passes alone is recorded on [data] as failing only
+  /// when combined; its combined failures still count, so the run still
+  /// fails and the leak is never silent.
+  ///
+  /// The solo runs report into their own [TestData], never [data]: the run's
+  /// results stay the bucketed run's, and nothing is counted twice.
+  ///
+  /// Single-file groups are skipped: a solo wrapper or a bucket of one
+  /// already ran alone. So are files the missing-results fallback re-ran,
+  /// since their combined results were discarded.
+  Future<void> _retryBucketFailuresAlone(
+    List<Runnable> commandsToRun, {
+    required TestData data,
+  }) async {
+    for (final command in commandsToRun) {
+      if (command is! ScriptToRun) continue;
+
+      final groups = command.bucketFileGroups;
+      if (groups == null || groups.isEmpty) continue;
+
+      final pkg = command.data;
+      if (pkg is! Package) continue;
+
+      final failures = [
+        for (final output in data.outputsFor(command))
+          if (output.didFail) output,
+      ];
+      if (failures.isEmpty) continue;
+
+      final failingTestsByFile = <String, List<String>>{
+        for (final group in groups)
+          if (group.length > 1)
+            for (final file in group)
+              if (_testNamesIn(file, failures) case final tests
+                  when tests.isNotEmpty)
+                file: tests,
+      };
+      if (failingTestsByFile.isEmpty) continue;
+
+      if (!data.quiet) {
+        logger.info(
+          '\nRe-running ${failingTestsByFile.length} failing file(s) on their '
+          'own to check for failures that only happen when combined...',
+        );
+      }
+
+      for (final MapEntry(key: file, value: tests)
+          in failingTestsByFile.entries) {
+        if (await _passesAlone(pkg, file)) {
+          data.addCombinedOnlyFailure(file, tests);
+        }
+      }
+    }
+  }
+
+  Future<bool> _passesAlone(Package pkg, String file) async {
+    final command = createTestCommand(pkg: pkg, tests: [file], bail: false);
+    final soloData = TestData(quiet: true);
+    int? exitCode;
+
+    try {
+      await scriptRunner.run(
+        [command],
+        bail: false,
+        logTime: false,
+        printLabels: false,
+        onScriptResult: (_, result) => exitCode = result.exitCode,
+        onMessage: _testOutputHandler(soloData, bail: false),
+      );
+    } catch (e) {
+      soloData.addError(command, e);
+    }
+
+    return exitCode == ExitCode.success.code &&
+        soloData.passing > 0 &&
+        soloData.failing == 0 &&
+        soloData.allFailures.isEmpty;
+  }
+
+  /// The names of the tests in [outputs] that belong to [file], without the
+  /// file's own group name in front.
+  List<String> _testNamesIn(String file, List<TestOutput> outputs) {
+    final normalized = file.replaceAll(r'\', '/');
+
+    return [
+      for (final output in outputs)
+        if (_outputBelongsTo(normalized, output))
+          switch (output.test) {
+            final test when test.startsWith('$normalized ') => test.substring(
+              normalized.length + 1,
+            ),
+            final test => test,
+          },
+    ];
+  }
+
   /// Whether any recorded [outputs] belong to the original file [file].
   /// Every dispatched unit (bucket or solo) is wrapped in its own top-level
   /// `group('<file>', ...)` (see `Package.bucketPlan`), and that literal
@@ -497,12 +602,13 @@ abstract mixin class TesterMixin {
   bool _bucketFileWasReported(String file, List<TestOutput> outputs) {
     final normalized = file.replaceAll(r'\', '/');
 
-    return outputs.any(
-      (output) =>
-          output.path == normalized ||
-          output.test == normalized ||
-          output.test.startsWith('$normalized '),
-    );
+    return outputs.any((output) => _outputBelongsTo(normalized, output));
+  }
+
+  bool _outputBelongsTo(String normalizedFile, TestOutput output) {
+    return output.path == normalizedFile ||
+        output.test == normalizedFile ||
+        output.test.startsWith('$normalizedFile ');
   }
 
   void cleanUpOptimizedFiles(Iterable<String?> optimizedFiles) {
