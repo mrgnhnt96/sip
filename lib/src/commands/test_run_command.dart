@@ -70,6 +70,11 @@ EXPERIMENTAL (Flutter only, strictly opt-in, may change or be removed):
                                       the package root; quote it so the shell does not
                                       expand it. Repeatable, and merged with the
                                       `(test): bucket-solo:` list in scripts.yaml.
+  --bucket-retry-failures            After a bucketed run, re-run each file with a
+                                      failing test on its own. A file that passes alone
+                                      is reported as failing only when combined (state
+                                      left behind by another file in its bucket). The
+                                      run still fails; real failures stay failures.
 ---
 
 Include any dart or flutter args run `dart test --help` or `flutter test --help`
@@ -106,6 +111,10 @@ class TestRunCommand with TesterMixin {
     final bucketSoloFlags = TestConfig.globList(
       args.getOrNull<Object>('bucket-solo'),
     );
+    final retryBucketFailures = args.get<bool>(
+      'bucket-retry-failures',
+      defaultValue: false,
+    );
 
     // Preserve original provided paths for display (before filtering)
     final originalProvidedPaths = [...paths, ...args.rest]
@@ -131,11 +140,18 @@ class TestRunCommand with TesterMixin {
         'bucket_shard_index': bucketShardIndex,
         'bucket_shard_count': bucketShardCount,
         'bucket_solo': bucketSoloFlags.length,
+        'bucket_retry_failures': retryBucketFailures,
       },
     );
 
     if (bucketSoloFlags.isNotEmpty && !experimentalBucket) {
       logger.warn('--bucket-solo has no effect without --experimental-bucket');
+    }
+
+    if (retryBucketFailures && !experimentalBucket) {
+      logger.warn(
+        '--bucket-retry-failures has no effect without --experimental-bucket',
+      );
     }
 
     if (experimentalBucket) {
@@ -291,6 +307,7 @@ class TestRunCommand with TesterMixin {
       showOutput: !asJson && !args.get<bool>('concurrent', defaultValue: false),
       bail: bail,
       asJson: asJson,
+      retryBucketFailures: retryBucketFailures,
     );
 
     if (!asJson) logger.write('\n');

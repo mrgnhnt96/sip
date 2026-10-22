@@ -39,6 +39,7 @@ const booleanFlagNames = <String>{
   'print',
 
   // sip test
+  'bucket-retry-failures',
   'clean',
   'concurrent',
   'dart-only',

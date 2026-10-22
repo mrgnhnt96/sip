@@ -119,5 +119,36 @@ test/a_test.dart 4:23  main.<fn>
         expect(json['skipped'], hasLength(1));
       },
     );
+
+    testScoped(
+      'lists no combined-only failures unless some were recorded',
+      fileSystem: MemoryFileSystem.test,
+      () {
+        final json = TestData(quiet: true).toJson();
+
+        expect(json['combinedOnlyFailures'], isEmpty);
+      },
+    );
+
+    testScoped(
+      'lists combined-only failures without hiding the failure itself',
+      fileSystem: MemoryFileSystem.test,
+      () {
+        final data = TestData(quiet: true)
+          ..parse(script(), failureChunk)
+          ..addCombinedOnlyFailure('test/a_test.dart', ['fails loudly']);
+
+        final json = data.toJson();
+
+        expect(json['passed'], isFalse);
+        expect(json['failures'], hasLength(1));
+        expect(json['combinedOnlyFailures'], [
+          {
+            'path': 'test/a_test.dart',
+            'tests': ['fails loudly'],
+          },
+        ]);
+      },
+    );
   });
 }

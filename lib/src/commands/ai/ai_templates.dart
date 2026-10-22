@@ -251,7 +251,10 @@ another script, but not runnable.
 `sip test --json` reports `passed`, `counts`, and a `failures` list with the
 file, test name and message for each. Failures that are not test failures --
 a compile error, a crashed runner -- are in `errors`, so an empty `failures`
-list does not mean the run passed. Check `passed`.
+list does not mean the run passed. Check `passed`. With
+`--bucket-retry-failures`, `combinedOnlyFailures` lists the files that failed
+in a bucket but pass alone: state left behind by another file in the same
+isolate. Fix it with a `tearDown` that resets the state, not by skipping.
 
 ## Validating
 
@@ -293,6 +296,7 @@ sip test path/to/a_test.dart
 | `--json` | Report counts and structured failures instead of prose |
 | `--experimental-bucket` | Flutter only, opt-in: combine test files into a few generated buckets |
 | `--bucket-solo <glob>` | Keep matching files out of the buckets; repeatable, quote the glob |
+| `--bucket-retry-failures` | Re-run each failing bucketed file alone; one that passes is reported as failing only when combined (the run still fails) |
 
 Unrecognized flags are forwarded to `dart test` / `flutter test`.
 
