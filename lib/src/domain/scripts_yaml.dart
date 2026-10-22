@@ -51,4 +51,15 @@ class ScriptsYaml extends FindYaml {
 
     return Map.from(parsed?[Keys.executables] as Map? ?? {});
   }
+
+  Map<String, dynamic>? test() {
+    final parsed = parse();
+
+    // `sip validate` reports a (test) that is not a map; running tests
+    // should not crash on it.
+    return switch (parsed?[Keys.test]) {
+      final Map<Object?, Object?> test => Map.from(test),
+      _ => {},
+    };
+  }
 }

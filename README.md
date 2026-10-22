@@ -510,6 +510,22 @@ sip test --experimental-bucket --bucket-shard-index=0 --bucket-shard-count=4
 
 `--bucket-count` controls how many combined bucket files are generated (default: number of processors).
 
+To keep specific files out of the combined buckets — goldens, say, or a file whose state leaks in a way sip can't detect — give their globs with `--bucket-solo` (repeatable) or list them under `(test):` in `scripts.yaml`. Matching files run in their own wrapper, exactly like files sip detects as unsafe, and stay in sharding and `--json` output. Globs are relative to the package root; write `test/golden/**`, not an absolute path. Quote them on the command line so the shell doesn't expand them.
+
+```bash
+sip test --experimental-bucket --bucket-solo 'test/golden/**' --bucket-solo '**/*_leaky_test.dart'
+```
+
+```yaml
+# scripts.yaml
+(test):
+  bucket-solo:
+    - test/golden/**
+    - "**/*_leaky_test.dart"
+```
+
+Both sources are merged. `sip validate` reports a `(test)` section that isn't a map, an unknown setting, or a glob that doesn't parse.
+
 ## AI Coding Assistants
 
 Install a sip reference file so your AI assistant knows how `scripts.yaml` and

@@ -1,5 +1,6 @@
 // ignore_for_file: cascade_invocations
 
+import 'package:glob/glob.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:sip_cli/src/commands/test_command/tester_mixin.dart';
 import 'package:sip_cli/src/deps/analytics.dart';
@@ -9,6 +10,7 @@ import 'package:sip_cli/src/deps/pubspec_yaml.dart';
 import 'package:sip_cli/src/domain/dart_test_args.dart';
 import 'package:sip_cli/src/domain/flutter_test_args.dart';
 import 'package:sip_cli/src/domain/script_to_run.dart';
+import 'package:sip_cli/src/domain/test_config.dart';
 import 'package:sip_cli/src/utils/list_ext.dart';
 import 'package:sip_cli/src/utils/package.dart';
 
@@ -63,6 +65,11 @@ EXPERIMENTAL (Flutter only, strictly opt-in, may change or be removed):
                                       used with --bucket-shard-index. Entirely sip-side --
                                       does not forward to `flutter test`'s own
                                       --total-shards.
+  --bucket-solo=<glob>               Keep test files matching <glob> out of combined
+                                      buckets; each runs in its own wrapper. Relative to
+                                      the package root; quote it so the shell does not
+                                      expand it. Repeatable, and merged with the
+                                      `(test): bucket-solo:` list in scripts.yaml.
 ---
 
 Include any dart or flutter args run `dart test --help` or `flutter test --help`
@@ -96,6 +103,9 @@ class TestRunCommand with TesterMixin {
     final bucketCount = args.getOrNull<int>('bucket-count');
     final bucketShardIndex = args.getOrNull<int>('bucket-shard-index');
     final bucketShardCount = args.getOrNull<int>('bucket-shard-count');
+    final bucketSoloFlags = TestConfig.globList(
+      args.getOrNull<Object>('bucket-solo'),
+    );
 
     // Preserve original provided paths for display (before filtering)
     final originalProvidedPaths = [...paths, ...args.rest]
@@ -120,8 +130,25 @@ class TestRunCommand with TesterMixin {
         'bucket_count': bucketCount,
         'bucket_shard_index': bucketShardIndex,
         'bucket_shard_count': bucketShardCount,
+        'bucket_solo': bucketSoloFlags.length,
       },
     );
+
+    if (bucketSoloFlags.isNotEmpty && !experimentalBucket) {
+      logger.warn('--bucket-solo has no effect without --experimental-bucket');
+    }
+
+    if (experimentalBucket) {
+      final globs = [...bucketSoloFlags, ...TestConfig.load().bucketSolo];
+      for (final glob in globs) {
+        try {
+          Glob(glob);
+        } on FormatException catch (e) {
+          logger.err('Invalid --bucket-solo glob "$glob": ${e.message}');
+          return ExitCode.usage;
+        }
+      }
+    }
 
     if ((bucketShardIndex == null) != (bucketShardCount == null)) {
       logger.err(

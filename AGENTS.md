@@ -138,7 +138,8 @@ passthrough would mean changing the `ExitCode` return contract everywhere.
   `false`. Only `(bail): true` (or `'true'`/`'yes'`/`'y'`) enables it.
 - Reserved keys are exactly `Keys.scriptParameters` (`(command)`, `(aliases)`,
   `(description)`, `(bail)`, `(env)`) plus `Keys.nonScriptKeys` (`(variables)`,
-  `(executables)`). Every other key is a nested script.
+  `(executables)`, `(test)`). Every other key is a nested script. `(test)`
+  configures `sip test` (today only `bucket-solo:`, read by `TestConfig`).
 - `sip validate` (`lib/src/domain/script_validator.dart`) checks every one of
   these statically. When you change a semantic here, add or update the
   matching check — otherwise the gotcha stays documented but undetected.

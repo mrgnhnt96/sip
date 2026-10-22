@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:file/file.dart';
 import 'package:glob/glob.dart';
+import 'package:path/path.dart' as p;
 import 'package:sip_cli/src/deps/args.dart';
 import 'package:sip_cli/src/deps/find_file.dart';
 import 'package:sip_cli/src/deps/fs.dart';
@@ -10,6 +11,7 @@ import 'package:sip_cli/src/deps/pubspec_lock.dart';
 import 'package:sip_cli/src/deps/pubspec_yaml.dart';
 import 'package:sip_cli/src/domain/executables.dart';
 import 'package:sip_cli/src/domain/test_bucket_plan.dart';
+import 'package:sip_cli/src/domain/test_config.dart';
 import 'package:sip_cli/src/utils/flutter_test_safety.dart';
 import 'package:sip_cli/src/utils/list_ext.dart';
 import 'package:yaml/yaml.dart';
@@ -233,6 +235,14 @@ class Package {
     return platform.numberOfProcessors;
   }
 
+  /// Globs of test files to keep out of combined buckets, from every
+  /// `--bucket-solo` flag and `(test): bucket-solo:` in `scripts.yaml`.
+  /// They match paths relative to the package root, written with `/`.
+  List<String> get bucketSoloGlobs => [
+    ...TestConfig.globList(args.getOrNull<Object>('bucket-solo')),
+    ...TestConfig.load().bucketSolo,
+  ];
+
   int? get bucketShardIndex => args.getOrNull<int>('bucket-shard-index');
   int? get bucketShardCount => args.getOrNull<int>('bucket-shard-count');
 
@@ -243,8 +253,9 @@ class Package {
   /// false or there are no test files.
   ///
   /// Every combinable file is round-robin distributed across [bucketCount]
-  /// generated combined-bucket files under `test/`. Files that fail either
-  /// [FlutterTestSafety] pre-check are quarantined -- reported via
+  /// generated combined-bucket files under `test/`. Files that match one of
+  /// [bucketSoloGlobs], or fail either [FlutterTestSafety] pre-check, are
+  /// quarantined -- reported via
   /// [TestBucketPlan.soloFiles]/[TestBucketPlan.soloReasons] -- but are
   /// still generated as their own trivial single-file wrapper (a "bucket of
   /// one") alongside the real combined buckets in [TestBucketPlan.buckets],
@@ -271,9 +282,24 @@ class Package {
     final solo = <String>[];
     final soloReasons = <String, String>{};
 
+    final soloGlobs = [
+      for (final pattern in bucketSoloGlobs) Glob(pattern, context: p.posix),
+    ];
+
     for (final filePath in files) {
-      final content = fs.file(filePath).readAsStringSync();
       final relativeToPackage = fs.path.relative(filePath, from: path);
+      final posixPath = relativeToPackage.replaceAll(fs.path.separator, '/');
+
+      final soloGlob = soloGlobs.where((e) => e.matches(posixPath)).firstOrNull;
+
+      if (soloGlob != null) {
+        solo.add(relativeToPackage);
+        soloReasons[relativeToPackage] =
+            'matches bucket-solo "${soloGlob.pattern}"';
+        continue;
+      }
+
+      final content = fs.file(filePath).readAsStringSync();
 
       if (FlutterTestSafety.isCombinable(content)) {
         combinable.add(relativeToPackage);
