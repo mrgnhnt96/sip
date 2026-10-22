@@ -421,6 +421,53 @@ void main() {
       );
     }, args: {'experimental-bucket': true, 'bucket-count': 1});
 
+    // Regression (#24): discovery globbed the whole package, so
+    // integration_test/, example/ and nested packages ran on the host.
+    bucketTest('discovers only test/ when constructed without only', () {
+      final pkg = flutterPackage();
+      writeTestFile('test/a_test.dart', safeContent);
+      writeTestFile('test/sub/b_test.dart', safeContent);
+      writeTestFile('integration_test/app_test.dart', safeContent);
+      writeTestFile('example/test/widget_test.dart', safeContent);
+      writeTestFile('tool/c_test.dart', safeContent);
+
+      expect(
+        pkg.testFiles,
+        unorderedEquals([
+          '/project/test/a_test.dart',
+          '/project/test/sub/b_test.dart',
+        ]),
+      );
+      expect(
+        pkg.bucketPlan!.buckets.single.originalFiles,
+        unorderedEquals(['test/a_test.dart', 'test/sub/b_test.dart']),
+      );
+    }, args: {'experimental-bucket': true, 'bucket-count': 1});
+
+    bucketTest('covers given files outside test/', () {
+      flutterPackage();
+      writeTestFile('test/a_test.dart', safeContent);
+      writeTestFile('integration_test/app_test.dart', safeContent);
+
+      final pkg = Package(
+        '/project/pubspec.yaml',
+        only: {'/project/integration_test/app_test.dart'},
+      );
+
+      expect(pkg.testFiles, ['/project/integration_test/app_test.dart']);
+      expect(pkg.bucketPlan!.buckets.single.originalFiles, [
+        'integration_test/app_test.dart',
+      ]);
+    }, args: {'experimental-bucket': true, 'bucket-count': 1});
+
+    bucketTest('is null when the only tests are outside test/', () {
+      final pkg = flutterPackage();
+      writeTestFile('integration_test/app_test.dart', safeContent);
+
+      expect(pkg.hasTests, isFalse);
+      expect(pkg.bucketPlan, isNull);
+    }, args: {'experimental-bucket': true});
+
     bucketTest(
       'writes a generated bucket file with correct imports and groups',
       () {
@@ -740,10 +787,19 @@ Future<void> testExecutable(Future<void> Function() testMain) => testMain();
       bucketTest(
         'keeps files outside test/ away from test/flutter_test_config.dart',
         () {
-          final pkg = flutterPackage();
+          flutterPackage();
           writeConfig('test');
           writeTestFile('test/a_test.dart', safeContent);
           writeTestFile('integration_test/b_test.dart', safeContent);
+
+          // Only given files are found outside test/.
+          final pkg = Package(
+            '/project/pubspec.yaml',
+            only: {
+              '/project/test/a_test.dart',
+              '/project/integration_test/b_test.dart',
+            },
+          );
 
           final plan = pkg.bucketPlan!;
           final files = {
