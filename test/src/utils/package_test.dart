@@ -156,6 +156,16 @@ void main() {
 }
 ''';
 
+    const plainContent = '''
+import 'dart:io';
+
+void main() {
+  test('talks to a local server', () async {
+    await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+  });
+}
+''';
+
     setUp(() {
       bucketFs = MemoryFileSystem.test();
     });
@@ -420,6 +430,98 @@ void main() {
         );
       },
       args: {'experimental-bucket': true, 'bucket-count': 1},
+    );
+
+    String generatedBucket(Package pkg) {
+      final bucket = pkg.bucketPlan!.buckets.single;
+      return bucketFs.file('/project/${bucket.file}').readAsStringSync();
+    }
+
+    bucketTest(
+      'clears HttpOverrides around plain files bucketed with widget files',
+      () {
+        final pkg = flutterPackage();
+        writeTestFile('test/a_test.dart', plainContent);
+        writeTestFile('test/b_test.dart', safeContent);
+
+        final generated = generatedBucket(pkg);
+
+        expect(generated, contains("import 'dart:io' show HttpOverrides;"));
+        expect(generated, contains('show group, setUpAll, tearDownAll;'));
+        expect(
+          generated,
+          contains(
+            "group('test/a_test.dart', () { "
+            '_clearHttpOverrides(); _i0.main(); });',
+          ),
+        );
+        expect(
+          generated,
+          contains("group('test/b_test.dart', () { _i1.main(); });"),
+        );
+        expect(
+          generated,
+          contains('''
+void _clearHttpOverrides() {
+  HttpOverrides? saved;
+  setUpAll(() {
+    saved = HttpOverrides.current;
+    HttpOverrides.global = null;
+  });
+  tearDownAll(() => HttpOverrides.global = saved);
+}
+'''),
+        );
+      },
+      args: {'experimental-bucket': true, 'bucket-count': 1},
+    );
+
+    bucketTest(
+      'leaves HttpOverrides alone in a bucket of only widget files',
+      () {
+        final pkg = flutterPackage();
+        writeTestFile('test/a_test.dart', safeContent);
+        writeTestFile('test/b_test.dart', safeContent);
+
+        final generated = generatedBucket(pkg);
+
+        expect(generated, isNot(contains('HttpOverrides')));
+        expect(
+          generated,
+          contains(
+            "import 'package:flutter_test/flutter_test.dart' show group;",
+          ),
+        );
+      },
+      args: {'experimental-bucket': true, 'bucket-count': 1},
+    );
+
+    bucketTest(
+      'leaves HttpOverrides alone in a bucket of only plain files',
+      () {
+        final pkg = flutterPackage();
+        writeTestFile('test/a_test.dart', plainContent);
+        writeTestFile('test/b_test.dart', plainContent);
+
+        expect(generatedBucket(pkg), isNot(contains('HttpOverrides')));
+      },
+      args: {'experimental-bucket': true, 'bucket-count': 1},
+    );
+
+    bucketTest(
+      'leaves HttpOverrides alone when the tests are compiled for the web',
+      () {
+        final pkg = flutterPackage();
+        writeTestFile('test/a_test.dart', plainContent);
+        writeTestFile('test/b_test.dart', safeContent);
+
+        expect(generatedBucket(pkg), isNot(contains('dart:io')));
+      },
+      args: {
+        'experimental-bucket': true,
+        'bucket-count': 1,
+        'platform': 'chrome',
+      },
     );
 
     bucketTest(
