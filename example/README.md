@@ -478,7 +478,8 @@ sip test --json
     }
   ],
   "skipped": [],
-  "errors": []
+  "errors": [],
+  "combinedOnlyFailures": []
 }
 ```
 
@@ -486,6 +487,8 @@ sip test --json
 crashed runner, output sip could not parse. A run with an empty `failures`
 list and a non-empty `errors` list still failed, which is why `passed`
 exists rather than leaving it to be inferred from the counts.
+`combinedOnlyFailures` is only filled by `--bucket-retry-failures` (see
+[Flutter test bucketing](#experimental-flutter-test-bucketing)).
 
 ### Experimental: Flutter Test Bucketing
 
@@ -498,9 +501,13 @@ For large Flutter widget-test suites, `--experimental-bucket` combines test file
 sip test --experimental-bucket
 ```
 
+Files and directories given on the command line are bucketed the same way, so `sip test --experimental-bucket test/a_test.dart test/b_test.dart` runs both files in one combined runner.
+
 Files that can't be safely combined (an explicit non-default `TestWidgetsFlutterBinding` subtype, or a test-surface mutation like `tester.view.physicalSize` left unreset) always run in their own isolated wrapper, never sharing an isolate with anything else. If a bucket's combined run looks untrustworthy — a compile error or hard binding assertion cuts it short — just that bucket's files are automatically discarded and re-run individually, and this is logged clearly.
 
-This does **not** catch arbitrary test-state leakage between files sharing an isolate (e.g. an unreset image cache) — that class of bug can't be caught statically or by the fallback above, so treat a bucketed run as a strong signal, not a guarantee of unbucketed-equivalent results.
+A bucket that mixes files which initialize the Flutter test binding (`testWidgets`, `ensureInitialized`, …) with plain `test()` files clears `HttpOverrides.global` around each plain file's group, so the binding's mock `HttpClient`, which answers every request with 400, can't break their real HTTP calls.
+
+This does **not** catch arbitrary test-state leakage between files sharing an isolate (e.g. an unreset image cache) — that class of bug can't be caught statically or by the fallback above, so treat a bucketed run as a strong signal, not a guarantee of unbucketed-equivalent results. See [Shared-isolate state](#shared-isolate-state) for how to keep files from leaking into each other, and `--bucket-retry-failures` for telling a leak from a real failure.
 
 For CI matrix jobs, split the generated buckets across N jobs with `--bucket-shard-index`/`--bucket-shard-count` (entirely sip-side; distinct from `flutter test`'s own `--shard-index`/`--total-shards`, which isn't recommended for this since it still pays full test-graph discovery/compile cost per shard):
 
@@ -509,6 +516,56 @@ sip test --experimental-bucket --bucket-shard-index=0 --bucket-shard-count=4
 ```
 
 `--bucket-count` controls how many combined bucket files are generated (default: number of processors).
+
+To keep specific files out of the combined buckets — goldens, say, or a file whose state leaks in a way sip can't detect — give their globs with `--bucket-solo` (repeatable) or list them under `(test):` in `scripts.yaml`. Matching files run in their own wrapper, exactly like files sip detects as unsafe, and stay in sharding and `--json` output. Globs are relative to the package root; write `test/golden/**`, not an absolute path. Quote them on the command line so the shell doesn't expand them.
+
+```bash
+sip test --experimental-bucket --bucket-solo 'test/golden/**' --bucket-solo '**/*_leaky_test.dart'
+```
+
+```yaml
+# scripts.yaml
+(test):
+  bucket-solo:
+    - test/golden/**
+    - "**/*_leaky_test.dart"
+```
+
+Both sources are merged. `sip validate` reports a `(test)` section that isn't a map, an unknown setting, or a glob that doesn't parse.
+
+#### Shared-isolate state
+
+Every file in a bucket runs in the same isolate, one after another. Anything a file leaves behind in a global — a service locator registration, a singleton holding a fake, a static cache, `debugDefaultTargetPlatformOverride`, `HttpOverrides.global` — is still there when the next file starts. Run alone, each file gets a fresh isolate and never sees it, so a file can pass on its own and fail in a bucket, or worse, pass in a bucket only because an earlier file happened to set something up.
+
+Undo whatever a file changes in a `tearDown` (or `addTearDown` right where it is set), so the next file starts from the defaults:
+
+```dart
+setUp(() {
+  GetIt.I.registerSingleton<Api>(FakeApi());
+});
+
+tearDown(() async {
+  await GetIt.I.reset();
+  debugDefaultTargetPlatformOverride = null;
+  imageCache.clear();
+});
+```
+
+For state every test file touches, reset it once for the whole package in `test/flutter_test_config.dart`, which wraps every file, bucketed or not:
+
+```dart
+// test/flutter_test_config.dart
+Future<void> testExecutable(FutureOr<void> Function() testMain) async {
+  tearDown(() => GetIt.I.reset());
+  await testMain();
+}
+```
+
+When a failure only shows up with bucketing on, `--bucket-retry-failures` re-runs each file that had a failing test on its own once the bucketed run is done. A file that passes alone is reported as failing only when combined — a warning listing the file and its tests, and a `combinedOnlyFailures` list in `--json`. The run still fails: the leak is real and will bite again, so fix the reset or move the file out with `--bucket-solo`. A file that fails alone too stays an ordinary failure. Files that already ran on their own (solo files, or a bucket of one) are not re-run.
+
+```bash
+sip test --experimental-bucket --bucket-retry-failures
+```
 
 ## AI Coding Assistants
 
