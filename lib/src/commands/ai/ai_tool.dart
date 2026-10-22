@@ -1,5 +1,5 @@
-import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/commands/ai/ai_templates.dart';
+import 'package:sip_cli/src/deps/fs.dart';
 
 /// An AI coding assistant that `sip ai` can install a reference file for.
 enum AiTool {
@@ -29,10 +29,10 @@ enum AiTool {
     AiTool.claude => {'CLAUDE.md': claudeMd},
     AiTool.cursor => {
       for (final MapEntry(:key, :value) in cursorMdcFiles.entries)
-        path.join('.cursor', 'rules', key): value,
+        fs.path.join('.cursor', 'rules', key): value,
     },
     AiTool.copilot => {
-      path.join('.github', 'copilot-instructions.md'): copilotMd,
+      fs.path.join('.github', 'copilot-instructions.md'): copilotMd,
     },
     AiTool.windsurf => {'.windsurfrules': windsurfRules},
     AiTool.cline => {'.clinerules': clineRules},

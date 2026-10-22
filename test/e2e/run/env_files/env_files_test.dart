@@ -33,11 +33,13 @@ void main() {
         (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
       );
 
-      fs.file(path.join('packages', 'sip', 'infra', 'private', 'be.local.env'))
+      fs.file(
+          fs.path.join('packages', 'sip', 'infra', 'private', 'be.local.env'),
+        )
         ..createSync(recursive: true)
         ..writeAsStringSync('BE_ENV=local');
 
-      final cwd = fs.directory(path.join('packages', 'sip'))
+      final cwd = fs.directory(fs.path.join('packages', 'sip'))
         ..createSync(recursive: true);
       fs.currentDirectory = cwd;
     });

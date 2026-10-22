@@ -62,7 +62,7 @@ String posixShellOnWindows() {
 abstract final class ShellScript {
   static bool get _usesCmdShell => usesCmdShell(
     isWindows: platform.isWindows,
-    msystem: Platform.environment['MSYSTEM'],
+    msystem: platform.environment['MSYSTEM'],
   );
 
   /// Windows paths embedded in shell strings use forward slashes so

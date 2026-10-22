@@ -1,5 +1,4 @@
 import 'package:mason_logger/mason_logger.dart';
-import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/commands/ai/ai_tool.dart';
 import 'package:sip_cli/src/deps/analytics.dart';
 import 'package:sip_cli/src/deps/args.dart';
@@ -93,7 +92,7 @@ class AiCommand {
   /// Existing files are left alone unless [force] is set. Returns whether the
   /// file was written.
   bool _write(String filePath, String contents, {required bool force}) {
-    final file = fs.file(path.join(fs.currentDirectory.path, filePath));
+    final file = fs.file(fs.path.join(fs.currentDirectory.path, filePath));
 
     if (file.existsSync() && !force) {
       logger.info(

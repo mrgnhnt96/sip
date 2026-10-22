@@ -76,6 +76,7 @@ void main() {
     group('on unix', () {
       setUp(() {
         when(() => mockPlatform.isWindows).thenReturn(false);
+        when(() => mockPlatform.environment).thenReturn({});
       });
 
       test('changeDirectory uses bash cd', () async {
@@ -126,6 +127,7 @@ void main() {
     group('on windows', () {
       setUp(() {
         when(() => mockPlatform.isWindows).thenReturn(true);
+        when(() => mockPlatform.environment).thenReturn({});
       });
 
       test('changeDirectory uses cmd cd /d', () async {
@@ -197,6 +199,31 @@ void main() {
                   'dart pub get',
             ]),
             r'cd /d "C:/project" || exit /b 1 && cd packages\foo && dart pub get',
+          );
+        });
+      });
+    });
+
+    group('on windows under Git Bash', () {
+      setUp(() {
+        when(() => mockPlatform.isWindows).thenReturn(true);
+        when(() => mockPlatform.environment).thenReturn({'MSYSTEM': 'MINGW64'});
+      });
+
+      test('changeDirectory uses bash cd with forward slashes', () async {
+        await withPlatform(() {
+          expect(
+            ShellScript.changeDirectory(r'C:\project\packages\foo'),
+            'cd "C:/project/packages/foo" || exit 1',
+          );
+        });
+      });
+
+      test('setVariable uses export', () async {
+        await withPlatform(() {
+          expect(
+            ShellScript.setVariable('GITHUB_ACTIONS', 'true'),
+            'export GITHUB_ACTIONS=true',
           );
         });
       });

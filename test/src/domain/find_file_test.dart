@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
 import 'package:meta/meta.dart';
-import 'package:path/path.dart' as path;
 import 'package:sip_cli/src/domain/find_file.dart';
 import 'package:test/test.dart';
 
@@ -32,7 +31,7 @@ void main() {
         final nearest = findFile.nearest('pubspec.yaml');
 
         expect(nearest, isNotNull);
-        expect(nearest, '${path.separator}pubspec.yaml');
+        expect(nearest, '${fs.path.separator}pubspec.yaml');
       });
 
       test('finds file in parent directory', () {
@@ -44,7 +43,7 @@ void main() {
         final nearest = findFile.nearest('pubspec.yaml');
 
         expect(nearest, isNotNull);
-        expect(nearest, '${path.separator}pubspec.yaml');
+        expect(nearest, '${fs.path.separator}pubspec.yaml');
       });
 
       test('returns null when file not found', () {
@@ -55,23 +54,24 @@ void main() {
 
       test('returns first file found', () {
         fs.file('pubspec.yaml').createSync(recursive: true);
-        final sipPubspec = fs.file(path.join('packages', 'sip', 'pubspec.yaml'))
-          ..createSync(recursive: true);
+        final sipPubspec = fs.file(
+          fs.path.join('packages', 'sip', 'pubspec.yaml'),
+        )..createSync(recursive: true);
 
-        final nested = fs.directory(path.join('packages', 'sip', 'nested'))
+        final nested = fs.directory(fs.path.join('packages', 'sip', 'nested'))
           ..createSync(recursive: true);
         fs.currentDirectory = nested;
 
         final nearest = findFile.nearest('pubspec.yaml');
 
         expect(nearest, isNotNull);
-        expect(nearest, path.separator + sipPubspec.path);
+        expect(nearest, fs.path.separator + sipPubspec.path);
       });
     });
 
     group('#childrenOf', () {
       test('find all scripts.yaml of nested dirs', () async {
-        final nested = fs.directory(path.join('packages', 'sip', 'nested'))
+        final nested = fs.directory(fs.path.join('packages', 'sip', 'nested'))
           ..createSync(recursive: true);
 
         final nestedScripts = nested.childFile('scripts.yaml')
