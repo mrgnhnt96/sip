@@ -124,6 +124,29 @@ void main() {
         expect(all.first, endsWith('sub/pubspec.yaml'));
         expect(all.last, endsWith('pubspec.yaml'));
       });
+
+      for (final root in ['/x/.hidden/proj', '/home/build/proj']) {
+        test('should find packages when the root is under $root', () async {
+          fs.file('$root/pubspec.yaml').createSync(recursive: true);
+          fs.file('$root/sub/pubspec.yaml').createSync(recursive: true);
+          fs.file('$root/build/pubspec.yaml').createSync(recursive: true);
+          fs.file('$root/.dart_tool/pubspec.yaml').createSync(recursive: true);
+          fs.currentDirectory = root;
+
+          final all = await tester.all(recursive: true);
+
+          expect(all, ['$root/sub/pubspec.yaml', '$root/pubspec.yaml']);
+        });
+
+        test('should find the nearest package under $root', () async {
+          fs.file('$root/pubspec.yaml').createSync(recursive: true);
+          fs.currentDirectory = root;
+
+          final all = await tester.all(recursive: false);
+
+          expect(all, ['$root/pubspec.yaml']);
+        });
+      }
     });
   });
 }

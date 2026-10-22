@@ -45,12 +45,17 @@ class PubspecYaml extends FindYaml {
       }
     }
 
+    // Filter on the path relative to the search root, so a hidden or build
+    // directory *above* the project does not hide every package.
+    final root = recursive ? fs.currentDirectory.path : null;
+
     final sortedPubspecs = [...pubspecs]
       ..sort()
       ..sort((a, b) => fs.path.split(b).length - fs.path.split(a).length);
 
     return sortedPubspecs..removeWhere((e) {
-      final segments = fs.path.split(e);
+      final from = root ?? fs.path.dirname(e);
+      final segments = fs.path.split(fs.path.relative(e, from: from));
 
       if (segments.contains('build')) {
         return true;
