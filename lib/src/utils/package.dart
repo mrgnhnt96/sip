@@ -149,9 +149,17 @@ class Package {
     return true;
   }
 
+  /// The test files this package runs: the given ones when constructed with
+  /// `only`, otherwise every `*_test.dart` under `test/`. Like `flutter test`
+  /// and `dart test` without paths, discovery leaves out `integration_test/`,
+  /// `example/` and nested packages, which do not run on the host.
   List<String> get testFiles {
-    final glob = Glob('**/*_test.dart', recursive: true);
-    final results = glob.listFileSystemSync(fs, followLinks: false, root: path);
+    // Given files may sit anywhere in the package.
+    final root = _only == null ? fs.path.join(path, 'test') : path;
+    if (!fs.directory(root).existsSync()) return [];
+
+    final glob = Glob('**_test.dart', recursive: true);
+    final results = glob.listFileSystemSync(fs, followLinks: false, root: root);
 
     return [
       for (final file in results.whereType<File>())
