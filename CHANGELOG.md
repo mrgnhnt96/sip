@@ -1,3 +1,22 @@
+# 0.20.0 | 10.22.2026
+
+## Features
+
+- Add `--bucket-solo <glob>` (repeatable) to `sip test --experimental-bucket`, and a reserved `(test): bucket-solo:` key in `scripts.yaml`. Matching files run in their own wrapper instead of a combined bucket, and still take part in sharding and `--json` output. Globs are relative to the package root. An invalid glob exits `64` before anything runs, and `sip validate` checks the `(test)` section.
+- Add `--bucket-retry-failures` to `sip test --experimental-bucket`. Once the bucketed run finishes, each file with a failing test runs again on its own. A file that passes alone is reported as failing only when combined: a warning naming the file and its tests in pretty output, and a `combinedOnlyFailures` list in `--json`. The run still fails.
+- `sip test --experimental-bucket` now buckets the files and directories you name, not just discovered tests. They are grouped by the package that owns them, so the bucket plan, safety checks, `--bucket-solo`, fallbacks, retries and `--json` work exactly as they do on a discovered run.
+
+## Fixes
+
+- Bucketed files keep their library annotations. `@Tags`, `@Skip`, `@TestOn`, `@Timeout`, `@OnPlatform` and `@Retry` were lost when a file ran inside a generated wrapper, so tag config, `--exclude-tags`, skips and timeouts stopped applying.
+- Bucketed files keep their nearest `flutter_test_config.dart`. Every wrapper used to be written to `test/`, so a file under `test/feature/` lost `test/feature/flutter_test_config.dart`. Files are now combined only with files that share their config, and each wrapper is written in that config's directory.
+- The test binding's mock `HttpOverrides`, which answers every request with `400`, no longer leaks from `testWidgets` files into plain `test()` files that share their bucket.
+- With `--experimental-bucket` and no paths, tests are discovered only under `test/`, matching `flutter test` and `dart test`. `integration_test/`, `example/` and nested packages' tests used to be bucketed and run on the host.
+- The `sip test --json` summary now agrees with the exit code. A runner that exited non-zero with no parsed output reported `passed: true` while sip exited `70`.
+- Packages under hidden or `build` parent folders are found again. The filter checked absolute path segments instead of paths relative to the search root.
+- Concurrent output: spinner redraws no longer flood scrollback, truncated progress stays visible, and errors print immediately and in full.
+- The test suite passes on Windows. Shell detection reads the injected platform's environment instead of `dart:io`, and `sip ai` builds paths with the file system's path context.
+
 # 0.19.0 | 8.13.2026
 
 ## Features
