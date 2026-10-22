@@ -14,6 +14,7 @@ import 'package:sip_cli/src/domain/test_bucket_plan.dart';
 import 'package:sip_cli/src/domain/test_config.dart';
 import 'package:sip_cli/src/utils/flutter_test_safety.dart';
 import 'package:sip_cli/src/utils/list_ext.dart';
+import 'package:sip_cli/src/utils/test_library_annotations.dart';
 import 'package:yaml/yaml.dart';
 
 class Package {
@@ -302,6 +303,7 @@ class Package {
     final solo = <String>[];
     final soloReasons = <String, String>{};
     final bindingFiles = <String>{};
+    final annotations = <String, TestLibraryAnnotations>{};
 
     final soloGlobs = [
       for (final pattern in bucketSoloGlobs) Glob(pattern, context: p.posix),
@@ -310,6 +312,12 @@ class Package {
     for (final filePath in files) {
       final relativeToPackage = fs.path.relative(filePath, from: path);
       final posixPath = relativeToPackage.replaceAll(fs.path.separator, '/');
+      final content = fs.file(filePath).readAsStringSync();
+
+      if (TestLibraryAnnotations.parse(content) case final found
+          when !found.isEmpty) {
+        annotations[relativeToPackage] = found;
+      }
 
       final soloGlob = soloGlobs.where((e) => e.matches(posixPath)).firstOrNull;
 
@@ -319,8 +327,6 @@ class Package {
             'matches bucket-solo "${soloGlob.pattern}"';
         continue;
       }
-
-      final content = fs.file(filePath).readAsStringSync();
 
       if (FlutterTestSafety.mayInitializeTestBinding(content)) {
         bindingFiles.add(relativeToPackage);
@@ -371,6 +377,7 @@ class Package {
           fileName: _bucketFileName(b),
           originalFiles: originalFiles,
           bindingFiles: bindingFiles,
+          annotations: annotations,
         ),
       for (final (s, soloFile) in solo.indexed)
         _writeWrapperFile(
@@ -378,6 +385,7 @@ class Package {
           fileName: _soloWrapperFileName(s),
           originalFiles: [soloFile],
           bindingFiles: bindingFiles,
+          annotations: annotations,
         ),
     ];
 
@@ -436,6 +444,7 @@ class Package {
     required String fileName,
     required List<String> originalFiles,
     required Set<String> bindingFiles,
+    required Map<String, TestLibraryAnnotations> annotations,
   }) {
     // The flutter test binding replaces HttpOverrides.global with a mock that
     // answers every request with 400 (see
@@ -459,25 +468,62 @@ class Package {
       return "import '$importPath' as _i$index;";
     }
 
+    // The wrapper is the library `package:test` reads a file's library
+    // annotations from, so they go on the file's group instead. flutter_test's
+    // group takes none of them, hence test_api's.
+    final annotated = [
+      for (final file in originalFiles)
+        if (annotations[file] case final found?) found,
+    ];
+
     String group((int index, String file) data) {
       final (index, file) = data;
       final groupName = file.replaceAll(fs.path.separator, '/');
-      if (isolateHttpOverrides && !bindingFiles.contains(file)) {
-        return "group('$groupName', () { "
-            '_clearHttpOverrides(); '
-            '_i$index.main(); });';
+      final body = isolateHttpOverrides && !bindingFiles.contains(file)
+          ? '_clearHttpOverrides(); _i$index.main();'
+          : '_i$index.main();';
+
+      if (annotations[file] case final found?) {
+        return "_test.group('$groupName', () { $body }${found.source});";
       }
 
-      return "group('$groupName', () { _i$index.main(); });";
+      return "group('$groupName', () { $body });";
     }
 
-    final header = isolateHttpOverrides
-        ? """
-import 'dart:io' show HttpOverrides;
+    final flutterTestNames = [
+      if (annotated.length < originalFiles.length) 'group',
+      if (annotated.isNotEmpty) 'setUp',
+      if (isolateHttpOverrides) ...['setUpAll', 'tearDownAll'],
+    ];
 
-import 'package:flutter_test/flutter_test.dart'
-    show group, setUpAll, tearDownAll;"""
-        : "import 'package:flutter_test/flutter_test.dart' show group;";
+    final testApiNames = [
+      for (final name in ['Skip', 'Timeout'])
+        if (annotated.any(
+          (e) => e.arguments.values.any((v) => v.contains(name)),
+        ))
+          name,
+    ];
+
+    final flutterTestImport =
+        "import 'package:flutter_test/flutter_test.dart'"
+        '${isolateHttpOverrides ? '\n   ' : ''} '
+        'show ${flutterTestNames.join(', ')};';
+
+    final header = [
+      if (annotated.isNotEmpty)
+        '// ignore_for_file: depend_on_referenced_packages\n',
+      if (isolateHttpOverrides) "import 'dart:io' show HttpOverrides;\n",
+      flutterTestImport,
+      if (annotated.isNotEmpty)
+        "import 'package:test_api/scaffolding.dart' as _test show group;",
+      if (testApiNames.isNotEmpty)
+        "import 'package:test_api/scaffolding.dart' show ${testApiNames.join(', ')};",
+    ].join('\n');
+
+    // flutter_test registers its end-of-file teardown (leak tracking) in the
+    // group it is first called in, so call it at the top level first, as an
+    // unannotated file's group() would.
+    final topLevelSetUp = annotated.isEmpty ? '' : 'setUp(() {});\n  ';
 
     const clearHttpOverrides = '''
 
@@ -501,7 +547,7 @@ $header
 ${originalFiles.indexed.map(import).join('\n')}
 
 void main() {
-  ${originalFiles.indexed.map(group).join('\n  ')}
+  $topLevelSetUp${originalFiles.indexed.map(group).join('\n  ')}
 }
 ${isolateHttpOverrides ? clearHttpOverrides : ''}''';
 
