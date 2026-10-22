@@ -1,7 +1,9 @@
+import 'package:glob/glob.dart';
 import 'package:sip_cli/src/domain/diagnostic.dart';
 import 'package:sip_cli/src/domain/script.dart';
 import 'package:sip_cli/src/domain/script_locations.dart';
 import 'package:sip_cli/src/domain/scripts_config.dart';
+import 'package:sip_cli/src/domain/test_config.dart';
 import 'package:sip_cli/src/domain/variables.dart';
 import 'package:sip_cli/src/utils/constants.dart';
 import 'package:yaml/yaml.dart';
@@ -285,6 +287,11 @@ ValidationResult validateScripts({
     if (key is! YamlScalar) continue;
 
     final name = '${key.value}';
+    if (name == Keys.test) {
+      _checkTestConfig(value, at, diagnostics);
+      continue;
+    }
+
     if (_reservedTopLevelKeys.contains(name)) continue;
 
     if (name.startsWith('(') || name.endsWith(')')) {
@@ -321,6 +328,83 @@ ValidationResult validateScripts({
     });
 
   return ValidationResult(diagnostics);
+}
+
+/// Checks the `(test)` section, which configures `sip test` rather than
+/// naming a script.
+void _checkTestConfig(
+  YamlNode node,
+  ScriptLocation? Function(List<String>) at,
+  List<Diagnostic> diagnostics,
+) {
+  if (node is! YamlMap) {
+    // An empty `(test):` parses as null and configures nothing.
+    if (node case YamlScalar(value: null)) return;
+
+    diagnostics.add(
+      Diagnostic.error(
+        code: 'invalid-test-config',
+        message: '${Keys.test} must be a map of sip test settings.',
+        location: at(const [Keys.test]),
+      ),
+    );
+    return;
+  }
+
+  for (final MapEntry(:key, :value) in node.nodes.entries) {
+    if (key is! YamlScalar) continue;
+
+    final name = '${key.value}';
+    final path = [Keys.test, name];
+
+    if (name != TestConfig.bucketSoloKey) {
+      diagnostics.add(
+        Diagnostic.warning(
+          code: 'unknown-test-key',
+          message: '"$name" is not a ${Keys.test} setting, so it is ignored.',
+          location: at(path),
+          help: 'The ${Keys.test} settings are ${TestConfig.bucketSoloKey}.',
+        ),
+      );
+      continue;
+    }
+
+    final globs = switch (value) {
+      YamlScalar(value: null) => const <(YamlNode, List<String>)>[],
+      final YamlList list => [
+        for (final (index, item) in list.nodes.indexed)
+          (item, [...path, ScriptLocations.indexKey(index)]),
+      ],
+      _ => [(value, path)],
+    };
+
+    for (final (glob, globPath) in globs) {
+      if (glob case YamlScalar(value: final String pattern)) {
+        try {
+          Glob(pattern);
+        } on FormatException catch (e) {
+          diagnostics.add(
+            Diagnostic.error(
+              code: 'invalid-glob',
+              message: '"$pattern" is not a valid glob: ${e.message}',
+              location: at(globPath),
+            ),
+          );
+        }
+        continue;
+      }
+
+      diagnostics.add(
+        Diagnostic.error(
+          code: 'invalid-test-config',
+          message:
+              '${TestConfig.bucketSoloKey} must be a glob or a list of '
+              'globs.',
+          location: at(globPath),
+        ),
+      );
+    }
+  }
 }
 
 void _checkKey(

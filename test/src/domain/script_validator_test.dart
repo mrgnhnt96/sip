@@ -155,6 +155,70 @@ a:
       expect(diagnostic.location?.line, 2);
     });
 
+    group('(test)', () {
+      test('accepts a list of bucket-solo globs', () {
+        final result = validate(
+          '''
+(test):
+  bucket-solo:
+    - test/golden/**
+    - "**/*_golden_test.dart"
+a: echo a
+''',
+          scripts: {'a': 'echo a'},
+        );
+
+        expect(result.diagnostics, isEmpty);
+      });
+
+      test('accepts a single bucket-solo glob and an empty section', () {
+        expect(
+          validate('(test):\n  bucket-solo: test/golden/**\n').diagnostics,
+          isEmpty,
+        );
+        expect(validate('(test):\n').diagnostics, isEmpty);
+      });
+
+      test('flags a (test) that is not a map', () {
+        final diagnostic = only(
+          validate('(test): test/golden/**\n'),
+          'invalid-test-config',
+        );
+        expect(diagnostic.severity, Severity.error);
+        expect(diagnostic.location?.line, 1);
+      });
+
+      test('flags an unknown setting', () {
+        final diagnostic = only(
+          validate('(test):\n  bucket-sol: test/a_test.dart\n'),
+          'unknown-test-key',
+        );
+        expect(diagnostic.severity, Severity.warning);
+        expect(diagnostic.location?.line, 2);
+        expect(diagnostic.message, contains('bucket-sol'));
+      });
+
+      test('flags a bucket-solo entry that is not a glob', () {
+        final diagnostic = only(
+          validate(
+            '(test):\n  bucket-solo:\n    - test/a_test.dart\n    - a: b\n',
+          ),
+          'invalid-test-config',
+        );
+        expect(diagnostic.location?.line, 4);
+      });
+
+      test('flags a glob that does not parse', () {
+        final diagnostic = only(
+          validate('(test):\n  bucket-solo:\n    - test/[\n'),
+          'invalid-glob',
+        );
+        expect(diagnostic.severity, Severity.error);
+        expect(diagnostic.location?.line, 3);
+        expect(diagnostic.message, contains('test/['));
+      });
+    });
+
     test('flags a script with nothing to run', () {
       final result = validate(
         '''

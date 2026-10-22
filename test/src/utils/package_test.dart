@@ -30,6 +30,7 @@ void main() {
     when(() => findFile.retrieveContent(any())).thenReturn(null);
     when(() => pubspecLock.findIn(any())).thenReturn(null);
     when(() => scriptsYaml.executables()).thenReturn(null);
+    when(() => scriptsYaml.test()).thenReturn(null);
   });
 
   @isTest
@@ -166,23 +167,19 @@ void main() {
       expect(pkg.bucketPlan, isNull);
     });
 
-    bucketTest(
-      'is null for dart packages even when the flag is set',
-      () {
-        bucketFs.file('/project/pubspec.yaml')
-          ..createSync(recursive: true)
-          ..writeAsStringSync('name: project');
-        when(
-          () => findFile.retrieveContent('/project/pubspec.yaml'),
-        ).thenReturn(null);
-        final pkg = Package('/project/pubspec.yaml');
-        writeTestFile('test/foo_test.dart', safeContent);
+    bucketTest('is null for dart packages even when the flag is set', () {
+      bucketFs.file('/project/pubspec.yaml')
+        ..createSync(recursive: true)
+        ..writeAsStringSync('name: project');
+      when(
+        () => findFile.retrieveContent('/project/pubspec.yaml'),
+      ).thenReturn(null);
+      final pkg = Package('/project/pubspec.yaml');
+      writeTestFile('test/foo_test.dart', safeContent);
 
-        expect(pkg.experimentalBucketEnabled, isFalse);
-        expect(pkg.bucketPlan, isNull);
-      },
-      args: {'experimental-bucket': true},
-    );
+      expect(pkg.experimentalBucketEnabled, isFalse);
+      expect(pkg.bucketPlan, isNull);
+    }, args: {'experimental-bucket': true});
 
     bucketTest('is null when there are no test files', () {
       final pkg = flutterPackage();
@@ -190,30 +187,26 @@ void main() {
       expect(pkg.bucketPlan, isNull);
     }, args: {'experimental-bucket': true});
 
-    bucketTest(
-      'round-robins combinable files across bucket-count buckets',
-      () {
-        final pkg = flutterPackage();
-        writeTestFile('test/a_test.dart', safeContent);
-        writeTestFile('test/b_test.dart', safeContent);
-        writeTestFile('test/c_test.dart', safeContent);
-        writeTestFile('test/d_test.dart', safeContent);
+    bucketTest('round-robins combinable files across bucket-count buckets', () {
+      final pkg = flutterPackage();
+      writeTestFile('test/a_test.dart', safeContent);
+      writeTestFile('test/b_test.dart', safeContent);
+      writeTestFile('test/c_test.dart', safeContent);
+      writeTestFile('test/d_test.dart', safeContent);
 
-        final plan = pkg.bucketPlan!;
+      final plan = pkg.bucketPlan!;
 
-        expect(plan.buckets, hasLength(2));
-        expect(plan.buckets[0].originalFiles, [
-          'test/a_test.dart',
-          'test/c_test.dart',
-        ]);
-        expect(plan.buckets[1].originalFiles, [
-          'test/b_test.dart',
-          'test/d_test.dart',
-        ]);
-        expect(plan.soloFiles, isEmpty);
-      },
-      args: {'experimental-bucket': true, 'bucket-count': 2},
-    );
+      expect(plan.buckets, hasLength(2));
+      expect(plan.buckets[0].originalFiles, [
+        'test/a_test.dart',
+        'test/c_test.dart',
+      ]);
+      expect(plan.buckets[1].originalFiles, [
+        'test/b_test.dart',
+        'test/d_test.dart',
+      ]);
+      expect(plan.soloFiles, isEmpty);
+    }, args: {'experimental-bucket': true, 'bucket-count': 2});
 
     bucketTest(
       'clamps bucket count down to the number of combinable files',
@@ -273,25 +266,133 @@ void main() {
     }, args: {'experimental-bucket': true, 'bucket-count': 1});
 
     bucketTest(
-      'routes an unreset surface-mutating file to solo',
+      'routes a file matching --bucket-solo to solo, even when it is safe',
       () {
         final pkg = flutterPackage();
         writeTestFile('test/a_test.dart', safeContent);
-        writeTestFile('test/bad_test.dart', unsafeSurfaceContent);
+        writeTestFile('test/golden_test.dart', safeContent);
 
         final plan = pkg.bucketPlan!;
 
-        expect(plan.soloFiles, ['test/bad_test.dart']);
+        expect(plan.soloFiles, ['test/golden_test.dart']);
+        expect(
+          plan.soloReasons['test/golden_test.dart'],
+          'matches bucket-solo "test/golden_test.dart"',
+        );
         expect(
           plan.buckets.map((b) => b.originalFiles),
           containsAll([
             ['test/a_test.dart'],
-            ['test/bad_test.dart'],
+            ['test/golden_test.dart'],
           ]),
         );
       },
-      args: {'experimental-bucket': true, 'bucket-count': 1},
+      args: {
+        'experimental-bucket': true,
+        'bucket-count': 1,
+        'bucket-solo': 'test/golden_test.dart',
+      },
     );
+
+    bucketTest(
+      'reads every glob from a repeated --bucket-solo flag',
+      () {
+        final pkg = flutterPackage();
+        writeTestFile('test/a_test.dart', safeContent);
+        writeTestFile('test/golden/b_test.dart', safeContent);
+        writeTestFile('test/c_test.dart', safeContent);
+
+        final plan = pkg.bucketPlan!;
+
+        expect(plan.soloFiles, ['test/c_test.dart', 'test/golden/b_test.dart']);
+        expect(plan.buckets, hasLength(3));
+      },
+      args: Args.parse([
+        '--experimental-bucket',
+        '--bucket-solo',
+        'test/golden/**',
+        '--bucket-solo',
+        './test/c_test.dart',
+      ]).values,
+    );
+
+    bucketTest(
+      'merges (test): bucket-solo: from scripts.yaml with the flag',
+      () {
+        when(() => scriptsYaml.test()).thenReturn({
+          'bucket-solo': ['**/golden_test.dart'],
+        });
+        final pkg = flutterPackage();
+        writeTestFile('test/a_test.dart', safeContent);
+        writeTestFile('test/feature/golden_test.dart', safeContent);
+        writeTestFile('test/flag_test.dart', safeContent);
+
+        final plan = pkg.bucketPlan!;
+
+        expect(plan.soloFiles, [
+          'test/feature/golden_test.dart',
+          'test/flag_test.dart',
+        ]);
+        expect(
+          plan.soloReasons['test/feature/golden_test.dart'],
+          'matches bucket-solo "**/golden_test.dart"',
+        );
+        expect(
+          plan.buckets.map((b) => b.originalFiles),
+          contains(equals(['test/a_test.dart'])),
+        );
+      },
+      args: {
+        'experimental-bucket': true,
+        'bucket-count': 1,
+        'bucket-solo': 'test/flag_test.dart',
+      },
+    );
+
+    for (final (index, expected) in [
+      (0, ['test/a_test.dart']),
+      (1, ['test/golden_test.dart']),
+    ]) {
+      bucketTest(
+        'keeps --bucket-solo files in sharding (shard $index of 2)',
+        () {
+          final pkg = flutterPackage();
+          writeTestFile('test/a_test.dart', safeContent);
+          writeTestFile('test/golden_test.dart', safeContent);
+
+          final groups = [
+            for (final group in pkg.testGroups)
+              ...pkg.bucketFileGroupsFor(group),
+          ];
+
+          expect(groups, [expected]);
+        },
+        args: {
+          'experimental-bucket': true,
+          'bucket-count': 1,
+          'bucket-shard-index': index,
+          'bucket-shard-count': 2,
+          'bucket-solo': '**/golden_test.dart',
+        },
+      );
+    }
+
+    bucketTest('routes an unreset surface-mutating file to solo', () {
+      final pkg = flutterPackage();
+      writeTestFile('test/a_test.dart', safeContent);
+      writeTestFile('test/bad_test.dart', unsafeSurfaceContent);
+
+      final plan = pkg.bucketPlan!;
+
+      expect(plan.soloFiles, ['test/bad_test.dart']);
+      expect(
+        plan.buckets.map((b) => b.originalFiles),
+        containsAll([
+          ['test/a_test.dart'],
+          ['test/bad_test.dart'],
+        ]),
+      );
+    }, args: {'experimental-bucket': true, 'bucket-count': 1});
 
     bucketTest(
       'writes a generated bucket file with correct imports and groups',
@@ -369,17 +470,13 @@ void main() {
       },
     );
 
-    bucketTest(
-      'bucketOriginalFilesFor returns null for unknown files',
-      () {
-        final pkg = flutterPackage();
-        writeTestFile('test/a_test.dart', safeContent);
+    bucketTest('bucketOriginalFilesFor returns null for unknown files', () {
+      final pkg = flutterPackage();
+      writeTestFile('test/a_test.dart', safeContent);
 
-        expect(pkg.bucketPlan, isNotNull);
-        expect(pkg.bucketOriginalFilesFor('test/not_a_bucket.dart'), isNull);
-      },
-      args: {'experimental-bucket': true, 'bucket-count': 1},
-    );
+      expect(pkg.bucketPlan, isNotNull);
+      expect(pkg.bucketOriginalFilesFor('test/not_a_bucket.dart'), isNull);
+    }, args: {'experimental-bucket': true, 'bucket-count': 1});
 
     bucketTest(
       'bucketOriginalFilesFor resolves a generated bucket to its files',
@@ -439,23 +536,19 @@ void main() {
       );
     }, args: {'experimental-bucket': true, 'bucket-count': 1});
 
-    bucketTest(
-      'deleteOptimizedTestFile removes generated bucket files',
-      () {
-        final pkg = flutterPackage();
-        writeTestFile('test/a_test.dart', safeContent);
-        writeTestFile('test/b_test.dart', safeContent);
+    bucketTest('deleteOptimizedTestFile removes generated bucket files', () {
+      final pkg = flutterPackage();
+      writeTestFile('test/a_test.dart', safeContent);
+      writeTestFile('test/b_test.dart', safeContent);
 
-        final bucket = pkg.bucketPlan!.buckets.single;
-        expect(bucketFs.file('/project/${bucket.file}').existsSync(), isTrue);
+      final bucket = pkg.bucketPlan!.buckets.single;
+      expect(bucketFs.file('/project/${bucket.file}').existsSync(), isTrue);
 
-        pkg.deleteOptimizedTestFile();
+      pkg.deleteOptimizedTestFile();
 
-        expect(bucketFs.file('/project/${bucket.file}').existsSync(), isFalse);
-        expect(bucketFs.file('/project/test/a_test.dart').existsSync(), isTrue);
-      },
-      args: {'experimental-bucket': true, 'bucket-count': 1},
-    );
+      expect(bucketFs.file('/project/${bucket.file}').existsSync(), isFalse);
+      expect(bucketFs.file('/project/test/a_test.dart').existsSync(), isTrue);
+    }, args: {'experimental-bucket': true, 'bucket-count': 1});
   });
 }
 

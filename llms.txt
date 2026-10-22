@@ -49,6 +49,6 @@ Every command that reports something has a `--json` form, and JSON is written to
 
 ## Optional
 
-- [Experimental Flutter test bucketing](https://github.com/mrgnhnt96/sip/blob/main/README.md#experimental-flutter-test-bucketing): Combine widget-test files into shards to cut isolate startup cost. Opt-in and unstable.
+- [Experimental Flutter test bucketing](https://github.com/mrgnhnt96/sip/blob/main/README.md#experimental-flutter-test-bucketing): Combine widget-test files into shards to cut isolate startup cost. Opt-in and unstable. Keep files out of the buckets with `--bucket-solo <glob>` or `(test): bucket-solo:` in `scripts.yaml`.
 - [Contributor and agent guide](https://github.com/mrgnhnt96/sip/blob/main/AGENTS.md): Repo layout, command/provider conventions, known bugs, release flow.
 - [Changelog](https://github.com/mrgnhnt96/sip/blob/main/CHANGELOG.md): Release history.

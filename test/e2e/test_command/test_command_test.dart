@@ -114,6 +114,64 @@ dart test test/.test_optimizer.dart''',
       },
     );
   });
+
+  group('--bucket-solo', () {
+    late FileSystem fs;
+    late Logger logger;
+
+    setUp(() {
+      fs = MemoryFileSystem.test();
+      logger = _MockLogger();
+      when(() => logger.level).thenReturn(Level.quiet);
+      when(() => logger.progress(any())).thenReturn(_MockProgress());
+    });
+
+    @isTest
+    void test(
+      String description,
+      List<String> argv,
+      Future<void> Function() fn,
+    ) {
+      testScoped(
+        description,
+        fn,
+        fileSystem: () => fs,
+        args: () => Args.parse(argv),
+        logger: () => logger,
+      );
+    }
+
+    test(
+      'rejects a glob that does not parse',
+      ['--experimental-bucket', '--bucket-solo', 'test/['],
+      () async {
+        final result = await const TestRunCommand().run([]);
+
+        expect(result.code, ExitCode.usage.code);
+        verify(
+          () => logger.err(any(that: contains('Invalid --bucket-solo glob'))),
+        ).called(1);
+      },
+    );
+
+    test(
+      'warns that it does nothing without --experimental-bucket',
+      ['--bucket-solo', 'test/a_test.dart'],
+      () async {
+        await const TestRunCommand().run([]);
+
+        verify(
+          () => logger.warn(
+            '--bucket-solo has no effect without --experimental-bucket',
+          ),
+        ).called(1);
+      },
+    );
+  });
 }
 
 class _MockBindings extends Mock implements Bindings {}
+
+class _MockLogger extends Mock implements Logger {}
+
+class _MockProgress extends Mock implements Progress {}

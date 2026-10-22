@@ -64,6 +64,7 @@ parentheses that sip understands.
 | `(env)` | script | Environment variables to load before running. |
 | `(variables)` | top level only | User-defined string variables. |
 | `(executables)` | top level only | Override the `dart` / `flutter` executables. |
+| `(test)` | top level only | Settings for `sip test`: `bucket-solo:` globs. |
 
 A script is either a plain command or a map. When it is a map, `(command)` is
 what the script itself runs, and any non-reserved key is a nested subscript:
@@ -290,8 +291,19 @@ sip test path/to/a_test.dart
 | `--slice [count]` | Split test files into chunks and run them concurrently |
 | `--omit-errors` | Show failures only |
 | `--json` | Report counts and structured failures instead of prose |
+| `--experimental-bucket` | Flutter only, opt-in: combine test files into a few generated buckets |
+| `--bucket-solo <glob>` | Keep matching files out of the buckets; repeatable, quote the glob |
 
 Unrecognized flags are forwarded to `dart test` / `flutter test`.
+
+`--bucket-solo` globs are relative to the package root and merge with the
+`(test)` section of `scripts.yaml`:
+
+```yaml
+(test):
+  bucket-solo:
+    - test/golden/**
+```
 
 `sip test` fails the run both when a test reports a failure and when the test
 process exits non-zero, so a failure it cannot parse still fails the run. It
@@ -436,6 +448,7 @@ test:
 | `(env)` | script | Env vars to load first |
 | `(variables)` | top level | User-defined string variables |
 | `(executables)` | top level | Override `dart` / `flutter` |
+| `(test)` | top level | `sip test` settings: `bucket-solo:` globs |
 
 ## Key rules
 

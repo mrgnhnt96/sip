@@ -11,6 +11,7 @@ class Keys {
   static const String command = '(command)';
   static const String variables = '(variables)';
   static const String executables = '(executables)';
+  static const String test = '(test)';
 
   static const List<String> scriptParameters = [
     aliases,
@@ -20,7 +21,7 @@ class Keys {
     env,
   ];
 
-  static const Set<String> nonScriptKeys = {variables, executables};
+  static const Set<String> nonScriptKeys = {variables, executables, test};
 }
 
 /// The variables that can be used in the scripts
