@@ -45,6 +45,15 @@ class TestData {
     }
   }
 
+  final _exitFailures = <String>[];
+
+  /// Records a command that exited with [exitCode] without the parser having
+  /// seen a failure, so the run is reported as failed everywhere -- the
+  /// summary, the JSON payload and the exit code.
+  void addExitFailure(String label, int exitCode) {
+    _exitFailures.add('$label exited with code $exitCode');
+  }
+
   List<Object> get allFailures {
     Iterable<Object> items(TestData data) sync* {
       if (data._error case final Object e) {
@@ -58,7 +67,7 @@ class TestData {
       }
     }
 
-    return items(this).toList();
+    return [...items(this), ..._exitFailures];
   }
 
   final _data = <int, TestData>{};

@@ -454,14 +454,11 @@ class ScriptRunner {
   }
 }
 
-/// Renders a batch of concurrently-running scripts as one animated row per
-/// script, redrawing all rows in place on each tick.
+/// Renders concurrent scripts as single-line, truncated progress rows.
 ///
-/// Each row is either spinning (still running) or frozen with its final
-/// ✓/✗ and elapsed time. Rows can only be appended, never removed, so the
-/// cursor math in [_render] (move up by the previously-rendered physical
-/// line count, accounting for terminal-width wrapping) stays correct
-/// across ticks.
+/// Large batches show a screenful of active rows and a progress count. The
+/// complete results remain available when the batch ends. Failures are printed
+/// immediately above the live rows, with their full labels and error details.
 class _ConcurrentRows {
   _ConcurrentRows(this._logger);
 
@@ -492,59 +489,95 @@ class _ConcurrentRows {
     _rows[index]
       ..done = true
       ..success = success
-      ..time = time
-      ..details = details;
+      ..time = time;
+
+    if (!success) {
+      final buffer = StringBuffer(_clearRenderedRows())
+        ..writeln('${red.wrap('✗')} ${_rows[index].label} ($time)');
+      for (final line in details) {
+        buffer.writeln(line);
+      }
+      // Start the next progress frame below this permanent error block.
+      _logger.write(buffer.toString());
+    }
   }
 
   void dispose() {
     _timer?.cancel();
     _timer = null;
-    _render();
+    _render(finalRender: true);
   }
 
-  void _render() {
-    // A logical row's content can be wider than the terminal, in which case
-    // the terminal itself wraps it onto extra physical lines the cursor
-    // math below doesn't know about unless it's accounted for here.
+  String _clearRenderedRows() {
+    final height = io.stdout.hasTerminal ? io.stdout.terminalLines : 24;
+    // Resizing can leave old rows in scrollback, beyond the cursor's reach.
+    final reachable = _rendered.clamp(0, height > 0 ? height - 1 : 0);
+    _rendered = 0;
+    return '${reachable > 0 ? '\x1b[${reachable}A' : ''}\r\x1b[J';
+  }
+
+  void _render({bool finalRender = false}) {
     final columns = io.stdout.hasTerminal ? io.stdout.terminalColumns : 80;
     final width = columns > 1 ? columns - 1 : 1;
+    final height = io.stdout.hasTerminal ? io.stdout.terminalLines : 24;
 
-    final buffer = StringBuffer();
-
-    if (_rendered > 0) {
-      buffer.write('\x1b[${_rendered}A');
-    }
-
+    final buffer = StringBuffer(_clearRenderedRows());
     var lineCount = 0;
 
     void writeContent(String content) {
-      for (final physicalLine in _wrapVisible(content, width)) {
-        buffer
-          ..write('\x1b[2K\r')
-          ..write(physicalLine)
-          ..write('\n');
-        lineCount++;
-      }
+      buffer
+        ..write('\x1b[2K\r')
+        ..write(_truncateVisible(content, width))
+        ..write('\n');
+      lineCount++;
     }
 
-    for (final row in _rows) {
+    // Leave one screen line for the cursor after the final newline.
+    final available = height > 0 ? height - 1 : 0;
+    if (!finalRender && available == 0) return;
+    final limited = !finalRender && _rows.length > available;
+    final visibleRows = limited
+        ? [
+            ..._rows.where((row) => !row.done),
+            ..._rows.where((row) => row.done),
+          ].take(available - 1)
+        : _rows;
+
+    for (final row in visibleRows) {
       if (row case _ConcurrentRow(done: true, :final success?, :final time?)) {
         final icon = success ? lightGreen.wrap('✓') : red.wrap('✗');
-        writeContent('$icon ${row.label} ${darkGray.wrap('($time)')}');
+        final suffix = ' ($time)';
+        final label = _truncateVisible(row.label, width - 2 - suffix.length);
+        writeContent('$icon $label${darkGray.wrap(suffix)}');
       } else {
         final char = _frames[_frame % _frames.length];
         writeContent('${lightGreen.wrap(char)} ${row.label}');
       }
+    }
 
-      for (final line in row.details) {
-        writeContent(darkGray.wrap(line) ?? line);
-      }
+    if (limited) {
+      final completed = _rows.where((row) => row.done).length;
+      final failed = _rows.where((row) => row.success == false).length;
+      writeContent(
+        '$completed/${_rows.length} done, $failed failed '
+        '· ${_rows.length - visibleRows.length} more rows',
+      );
     }
 
     _rendered = lineCount;
     _frame++;
     _logger.write(buffer.toString());
   }
+}
+
+/// Truncates a single line, preserving ANSI colors and marking omitted text.
+String _truncateVisible(String text, int width) {
+  if (width <= 0) return '';
+  final singleLine = text.replaceAll(RegExp(r'[\r\n]'), ' ');
+  if (_wrapVisible(singleLine, width).length == 1) return singleLine;
+  final prefix = width == 1 ? '' : _wrapVisible(singleLine, width - 1).first;
+  final reset = prefix.contains('\x1b') ? '\x1b[0m' : '';
+  return '$prefix…$reset';
 }
 
 /// Splits [text] into chunks no wider than [width] visible characters,
@@ -590,5 +623,4 @@ class _ConcurrentRow {
   bool done = false;
   bool? success;
   String? time;
-  List<String> details = const [];
 }

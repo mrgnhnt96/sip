@@ -23,6 +23,30 @@ test/a_test.dart 4:23  main.<fn>
 ::endgroup::''';
 
     testScoped(
+      'a non-zero exit with nothing parsed is reported as failed in json',
+      fileSystem: MemoryFileSystem.test,
+      () {
+        final data = TestData(quiet: true)..addExitFailure('pkg_a', 70);
+
+        final json = data.toJson();
+
+        expect(json['passed'], isFalse);
+        expect(json['errors'], ['pkg_a exited with code 70']);
+      },
+    );
+
+    testScoped(
+      'json passes when nothing failed and no command exited non-zero',
+      fileSystem: MemoryFileSystem.test,
+      () {
+        final json = TestData(quiet: true).toJson();
+
+        expect(json['passed'], isTrue);
+        expect(json['errors'], isEmpty);
+      },
+    );
+
+    testScoped(
       'counts a failure that arrives after ::endgroup::',
       fileSystem: MemoryFileSystem.test,
       () {
