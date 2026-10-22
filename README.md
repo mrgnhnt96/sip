@@ -500,6 +500,8 @@ sip test --experimental-bucket
 
 Files that can't be safely combined (an explicit non-default `TestWidgetsFlutterBinding` subtype, or a test-surface mutation like `tester.view.physicalSize` left unreset) always run in their own isolated wrapper, never sharing an isolate with anything else. If a bucket's combined run looks untrustworthy — a compile error or hard binding assertion cuts it short — just that bucket's files are automatically discarded and re-run individually, and this is logged clearly.
 
+A bucket that mixes files which initialize the Flutter test binding (`testWidgets`, `ensureInitialized`, …) with plain `test()` files clears `HttpOverrides.global` around each plain file's group, so the binding's mock `HttpClient`, which answers every request with 400, can't break their real HTTP calls.
+
 This does **not** catch arbitrary test-state leakage between files sharing an isolate (e.g. an unreset image cache) — that class of bug can't be caught statically or by the fallback above, so treat a bucketed run as a strong signal, not a guarantee of unbucketed-equivalent results.
 
 For CI matrix jobs, split the generated buckets across N jobs with `--bucket-shard-index`/`--bucket-shard-count` (entirely sip-side; distinct from `flutter test`'s own `--shard-index`/`--total-shards`, which isn't recommended for this since it still pays full test-graph discovery/compile cost per shard):

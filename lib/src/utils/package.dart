@@ -246,6 +246,13 @@ class Package {
   int? get bucketShardIndex => args.getOrNull<int>('bucket-shard-index');
   int? get bucketShardCount => args.getOrNull<int>('bucket-shard-count');
 
+  /// Whether the tests are compiled for the web (`--platform chrome`), where
+  /// a generated wrapper cannot import `dart:io`.
+  bool get _targetsWeb => switch (args.getOrNull<String>('platform')) {
+    null || 'tester' || 'vm' => false,
+    _ => true,
+  };
+
   TestBucketPlan? _bucketPlan;
 
   /// Plans (and generates on disk) how this package's Flutter test files
@@ -281,6 +288,7 @@ class Package {
     final combinable = <String>[];
     final solo = <String>[];
     final soloReasons = <String, String>{};
+    final bindingFiles = <String>{};
 
     final soloGlobs = [
       for (final pattern in bucketSoloGlobs) Glob(pattern, context: p.posix),
@@ -300,6 +308,10 @@ class Package {
       }
 
       final content = fs.file(filePath).readAsStringSync();
+
+      if (FlutterTestSafety.mayInitializeTestBinding(content)) {
+        bindingFiles.add(relativeToPackage);
+      }
 
       if (FlutterTestSafety.isCombinable(content)) {
         combinable.add(relativeToPackage);
@@ -328,12 +340,14 @@ class Package {
             testDirPath: testDirPath,
             fileName: _bucketFileName(b),
             originalFiles: originalFiles,
+            bindingFiles: bindingFiles,
           ),
       for (final (s, soloFile) in solo.indexed)
         _writeWrapperFile(
           testDirPath: testDirPath,
           fileName: _soloWrapperFileName(s),
           originalFiles: [soloFile],
+          bindingFiles: bindingFiles,
         ),
     ];
 
@@ -348,7 +362,19 @@ class Package {
     required String testDirPath,
     required String fileName,
     required List<String> originalFiles,
+    required Set<String> bindingFiles,
   }) {
+    // The flutter test binding replaces HttpOverrides.global with a mock that
+    // answers every request with 400 (see
+    // FlutterTestSafety.mayInitializeTestBinding). When a wrapper combines a
+    // file that initializes the binding with one that doesn't, the latter's
+    // groups run with the override cleared, as they would alone. `dart:io`
+    // doesn't compile for the web, where HttpOverrides doesn't exist anyway.
+    final isolateHttpOverrides =
+        !_targetsWeb &&
+        originalFiles.any(bindingFiles.contains) &&
+        !originalFiles.every(bindingFiles.contains);
+
     final wrapperFile = fs.file(fs.path.join(testDirPath, fileName))
       ..createSync(recursive: true);
 
@@ -363,20 +389,48 @@ class Package {
     String group((int index, String file) data) {
       final (index, file) = data;
       final groupName = file.replaceAll(fs.path.separator, '/');
+      if (isolateHttpOverrides && !bindingFiles.contains(file)) {
+        return "group('$groupName', () { "
+            '_clearHttpOverrides(); '
+            '_i$index.main(); });';
+      }
+
       return "group('$groupName', () { _i$index.main(); });";
     }
+
+    final header = isolateHttpOverrides
+        ? """
+import 'dart:io' show HttpOverrides;
+
+import 'package:flutter_test/flutter_test.dart'
+    show group, setUpAll, tearDownAll;"""
+        : "import 'package:flutter_test/flutter_test.dart' show group;";
+
+    const clearHttpOverrides = '''
+
+/// Runs the enclosing group without the flutter test binding's mock
+/// HttpOverrides, which another file in this bucket may have installed.
+void _clearHttpOverrides() {
+  HttpOverrides? saved;
+  setUpAll(() {
+    saved = HttpOverrides.current;
+    HttpOverrides.global = null;
+  });
+  tearDownAll(() => HttpOverrides.global = saved);
+}
+''';
 
     final content =
         '''
 // GENERATED FILE. DO NOT COMMIT.
 // Produced by sip's --experimental-bucket flutter test optimizer.
-import 'package:flutter_test/flutter_test.dart' show group;
+$header
 ${originalFiles.indexed.map(import).join('\n')}
 
 void main() {
   ${originalFiles.indexed.map(group).join('\n  ')}
 }
-''';
+${isolateHttpOverrides ? clearHttpOverrides : ''}''';
 
     wrapperFile.writeAsStringSync(content);
 

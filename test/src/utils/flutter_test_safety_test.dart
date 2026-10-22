@@ -170,5 +170,42 @@ void main() {}
         expect(FlutterTestSafety.soloReason(content), 'unknown');
       });
     });
+
+    group('#mayInitializeTestBinding', () {
+      test('is true for a file that declares widget tests', () {
+        const content = '''
+void main() {
+  testWidgets('renders', (tester) async {});
+}
+''';
+
+        expect(FlutterTestSafety.mayInitializeTestBinding(content), isTrue);
+      });
+
+      test('is true for a file that initializes the binding itself', () {
+        const content = '''
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  test('reads a platform channel', () {});
+}
+''';
+
+        expect(FlutterTestSafety.mayInitializeTestBinding(content), isTrue);
+      });
+
+      test('is false for a file with only plain tests', () {
+        const content = '''
+import 'dart:io';
+
+void main() {
+  test('talks to a local server', () async {
+    await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+  });
+}
+''';
+
+        expect(FlutterTestSafety.mayInitializeTestBinding(content), isFalse);
+      });
+    });
   });
 }

@@ -58,6 +58,30 @@ abstract final class FlutterTestSafety {
     return true;
   }
 
+  /// Markers of a file that may initialize the flutter test binding, either
+  /// by declaring widget tests or by calling `ensureInitialized` itself.
+  static const _testBindingMarkers = <String>[
+    'testWidgets',
+    'testGoldens',
+    'WidgetTester',
+    'pumpWidget',
+    'ensureInitialized',
+  ];
+
+  /// Returns true if [content] may initialize the flutter test binding.
+  ///
+  /// The binding sets `HttpOverrides.global` to a mock that answers every
+  /// request with 400. It does so as soon as it is initialized, which for
+  /// `testWidgets` is when the test is declared, so in a combined bucket
+  /// the mock reaches every other file's `HttpClient` too.
+  ///
+  /// This is a plain substring check that errs towards true: a file wrongly
+  /// reported as initializing the binding keeps the mock, exactly as it would
+  /// when run alone.
+  static bool mayInitializeTestBinding(String content) {
+    return _testBindingMarkers.any(content.contains);
+  }
+
   /// Human-readable reason [content] was routed to solo execution, for
   /// reporting purposes. Only meaningful when [isCombinable] is false.
   static String soloReason(String content) {
