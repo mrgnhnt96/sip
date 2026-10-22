@@ -588,6 +588,195 @@ void _clearHttpOverrides() {
       },
     );
 
+    group('library annotations', () {
+      const annotatedContent = """
+@Tags(['slow'])
+@Timeout(Duration(seconds: 45))
+@OnPlatform({'windows': Skip('no symlinks')})
+library;
+
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  testWidgets('renders', (tester) async {});
+}
+""";
+
+      bucketTest("passes a file's library annotations to its group", () {
+        final pkg = flutterPackage();
+        writeTestFile('test/a_test.dart', annotatedContent);
+        writeTestFile('test/b_test.dart', safeContent);
+
+        final generated = generatedBucket(pkg);
+
+        expect(
+          generated,
+          contains(
+            "_test.group('test/a_test.dart', () { _i0.main(); }, "
+            "tags: ['slow'], "
+            'timeout: Timeout(Duration(seconds: 45)), '
+            "onPlatform: {'windows': Skip('no symlinks')});",
+          ),
+        );
+        expect(
+          generated,
+          contains("group('test/b_test.dart', () { _i1.main(); });"),
+        );
+        expect(
+          generated,
+          contains(
+            "import 'package:flutter_test/flutter_test.dart' "
+            'show group, setUp;',
+          ),
+        );
+        expect(
+          generated,
+          contains(
+            "import 'package:test_api/scaffolding.dart' as _test show group;",
+          ),
+        );
+        expect(
+          generated,
+          contains(
+            "import 'package:test_api/scaffolding.dart' show Skip, Timeout;",
+          ),
+        );
+        expect(
+          generated,
+          contains('// ignore_for_file: depend_on_referenced_packages'),
+        );
+        expect(generated, contains('void main() {\n  setUp(() {});\n'));
+      }, args: {'experimental-bucket': true, 'bucket-count': 1});
+
+      bucketTest(
+        'passes @TestOn, @Skip and @Retry, and imports only what they use',
+        () {
+          final pkg = flutterPackage();
+          writeTestFile('test/a_test.dart', """
+@TestOn('vm')
+@Skip()
+@Retry(2)
+library;
+
+$safeContent""");
+
+          final generated = generatedBucket(pkg);
+
+          expect(
+            generated,
+            contains(
+              "_test.group('test/a_test.dart', () { _i0.main(); }, "
+              "testOn: 'vm', skip: true, retry: 2);",
+            ),
+          );
+          expect(
+            generated,
+            contains(
+              "import 'package:flutter_test/flutter_test.dart' show setUp;",
+            ),
+          );
+          expect(generated, isNot(contains('show Skip')));
+          expect(generated, isNot(contains('Timeout')));
+        },
+        args: {'experimental-bucket': true, 'bucket-count': 1},
+      );
+
+      bucketTest('passes annotations in a solo wrapper too', () {
+        final pkg = flutterPackage();
+        writeTestFile('test/bad_test.dart', """
+@Tags(['live'])
+library;
+
+$unsafeBindingContent""");
+
+        final solo = pkg.bucketPlan!.buckets.single;
+        final generated = bucketFs
+            .file('/project/${solo.file}')
+            .readAsStringSync();
+
+        expect(
+          generated,
+          contains(
+            "_test.group('test/bad_test.dart', () { _i0.main(); }, "
+            "tags: ['live']);",
+          ),
+        );
+      }, args: {'experimental-bucket': true, 'bucket-count': 1});
+
+      bucketTest(
+        'passes annotations of a file matching --bucket-solo',
+        () {
+          final pkg = flutterPackage();
+          writeTestFile('test/a_test.dart', annotatedContent);
+
+          final solo = pkg.bucketPlan!.buckets.single;
+          final generated = bucketFs
+              .file('/project/${solo.file}')
+              .readAsStringSync();
+
+          expect(pkg.bucketPlan!.soloFiles, ['test/a_test.dart']);
+          expect(generated, contains("tags: ['slow']"));
+        },
+        args: {
+          'experimental-bucket': true,
+          'bucket-count': 1,
+          'bucket-solo': 'test/a_test.dart',
+        },
+      );
+
+      bucketTest('keeps annotations alongside cleared HttpOverrides', () {
+        final pkg = flutterPackage();
+        writeTestFile('test/a_test.dart', """
+@Tags(['net'])
+library;
+
+$plainContent""");
+        writeTestFile('test/b_test.dart', safeContent);
+
+        final generated = generatedBucket(pkg);
+
+        expect(
+          generated,
+          contains(
+            "_test.group('test/a_test.dart', () { "
+            '_clearHttpOverrides(); _i0.main(); }, '
+            "tags: ['net']);",
+          ),
+        );
+        expect(
+          generated,
+          contains('show group, setUp, setUpAll, tearDownAll;'),
+        );
+      }, args: {'experimental-bucket': true, 'bucket-count': 1});
+
+      bucketTest(
+        'leaves the wrapper unchanged when no file has annotations',
+        () {
+          final pkg = flutterPackage();
+          writeTestFile('test/a_test.dart', """
+import 'package:flutter_test/flutter_test.dart';
+
+@Tags(['not-library'])
+void main() {
+  testWidgets('renders', (tester) async {});
+}
+""");
+
+          final generated = generatedBucket(pkg);
+
+          expect(generated, isNot(contains('test_api')));
+          expect(generated, isNot(contains('setUp')));
+          expect(
+            generated,
+            contains(
+              "import 'package:flutter_test/flutter_test.dart' show group;",
+            ),
+          );
+        },
+        args: {'experimental-bucket': true, 'bucket-count': 1},
+      );
+    });
+
     bucketTest(
       'testGroups combines every bucket and solo file into one invocation',
       () {
