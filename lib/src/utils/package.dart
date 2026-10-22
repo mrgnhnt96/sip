@@ -260,10 +260,15 @@ class Package {
   /// false or there are no test files.
   ///
   /// Every combinable file is round-robin distributed across [bucketCount]
-  /// generated combined-bucket files under `test/`. Files that match one of
-  /// [bucketSoloGlobs], or fail either [FlutterTestSafety] pre-check, are
-  /// quarantined -- reported via
-  /// [TestBucketPlan.soloFiles]/[TestBucketPlan.soloReasons] -- but are
+  /// generated combined-bucket files. `flutter test` applies the
+  /// `flutter_test_config.dart` nearest to the file it runs, so files are
+  /// only combined with files that share theirs, and each wrapper is written
+  /// in that config's directory (`test/` for files without one).
+  ///
+  /// Files that match one of [bucketSoloGlobs], or fail either
+  /// [FlutterTestSafety] pre-check, are quarantined -- reported via
+  /// [TestBucketPlan.soloFiles]/[TestBucketPlan.soloReasons], and placed by
+  /// the same config rule -- but are
   /// still generated as their own trivial single-file wrapper (a "bucket of
   /// one") alongside the real combined buckets in [TestBucketPlan.buckets],
   /// rather than being dispatched via their raw original path. This keeps
@@ -326,25 +331,42 @@ class Package {
 
     final k = combinable.isEmpty ? 0 : bucketCount.clamp(1, combinable.length);
 
-    final bucketedFiles = List.generate(k, (_) => <String>[]);
-    for (var i = 0; i < combinable.length; i++) {
-      bucketedFiles[i % k].add(combinable[i]);
+    // A wrapper must sit where `flutter test` picks the same
+    // flutter_test_config.dart as the files it combines, so only files
+    // sharing a wrapper directory are combined. Each directory gets its
+    // share of the k buckets, and at least one.
+    final combinableByDir = <String, List<String>>{};
+    for (final file in combinable) {
+      combinableByDir.putIfAbsent(_wrapperDirFor(file), () => []).add(file);
     }
 
-    final testDirPath = fs.path.join(path, 'test');
+    final bucketedFiles = <(String, List<String>)>[];
+    for (final dir in combinableByDir.keys.toList()..sort()) {
+      final dirFiles = combinableByDir[dir]!;
+      final dirK = (k * dirFiles.length / combinable.length).ceil().clamp(
+        1,
+        dirFiles.length,
+      );
+
+      final dirBuckets = List.generate(dirK, (_) => <String>[]);
+      for (var i = 0; i < dirFiles.length; i++) {
+        dirBuckets[i % dirK].add(dirFiles[i]);
+      }
+
+      bucketedFiles.addAll([for (final files in dirBuckets) (dir, files)]);
+    }
 
     final buckets = <TestBucket>[
-      for (final (b, originalFiles) in bucketedFiles.indexed)
-        if (originalFiles.isNotEmpty)
-          _writeWrapperFile(
-            testDirPath: testDirPath,
-            fileName: _bucketFileName(b),
-            originalFiles: originalFiles,
-            bindingFiles: bindingFiles,
-          ),
+      for (final (b, (dir, originalFiles)) in bucketedFiles.indexed)
+        _writeWrapperFile(
+          wrapperDirPath: dir,
+          fileName: _bucketFileName(b),
+          originalFiles: originalFiles,
+          bindingFiles: bindingFiles,
+        ),
       for (final (s, soloFile) in solo.indexed)
         _writeWrapperFile(
-          testDirPath: testDirPath,
+          wrapperDirPath: _wrapperDirFor(soloFile),
           fileName: _soloWrapperFileName(s),
           originalFiles: [soloFile],
           bindingFiles: bindingFiles,
@@ -358,8 +380,51 @@ class Package {
     );
   }
 
+  static const _testConfigFileName = 'flutter_test_config.dart';
+
+  final _testConfigDirs = <String, String?>{};
+
+  /// The directory of the `flutter_test_config.dart` that `flutter test`
+  /// applies to a test file in [dir], or `null` when none applies.
+  ///
+  /// This mirrors flutter_tools: it walks up from the file's directory and
+  /// stops at the first config, or at the first directory holding a
+  /// `pubspec.yaml`, whichever comes first.
+  String? _testConfigDirFor(String dir) {
+    if (_testConfigDirs.containsKey(dir)) return _testConfigDirs[dir];
+
+    final String? configDir;
+    if (fs.file(fs.path.join(dir, _testConfigFileName)).existsSync()) {
+      configDir = dir;
+    } else if (fs.file(fs.path.join(dir, 'pubspec.yaml')).existsSync() ||
+        fs.path.dirname(dir) == dir) {
+      configDir = null;
+    } else {
+      configDir = _testConfigDirFor(fs.path.dirname(dir));
+    }
+
+    return _testConfigDirs[dir] = configDir;
+  }
+
+  /// The directory to write a wrapper for the package-relative test [file]
+  /// in, chosen so that `flutter test` applies the same
+  /// `flutter_test_config.dart` to the wrapper as it would to [file].
+  ///
+  /// That is the config's own directory. When no config applies, it is
+  /// `test/`, or the package root if `test/` has a config of its own.
+  String _wrapperDirFor(String file) {
+    final fileDir = fs.path.dirname(fs.path.join(path, file));
+
+    if (_testConfigDirFor(fileDir) case final configDir?) return configDir;
+
+    final testDirPath = fs.path.join(path, 'test');
+    if (_testConfigDirFor(testDirPath) == null) return testDirPath;
+
+    return path;
+  }
+
   TestBucket _writeWrapperFile({
-    required String testDirPath,
+    required String wrapperDirPath,
     required String fileName,
     required List<String> originalFiles,
     required Set<String> bindingFiles,
@@ -375,13 +440,13 @@ class Package {
         originalFiles.any(bindingFiles.contains) &&
         !originalFiles.every(bindingFiles.contains);
 
-    final wrapperFile = fs.file(fs.path.join(testDirPath, fileName))
+    final wrapperFile = fs.file(fs.path.join(wrapperDirPath, fileName))
       ..createSync(recursive: true);
 
     String import((int index, String file) data) {
       final (index, file) = data;
       final importPath = fs.path
-          .relative(fs.path.join(path, file), from: testDirPath)
+          .relative(fs.path.join(path, file), from: wrapperDirPath)
           .replaceAll(fs.path.separator, '/');
       return "import '$importPath' as _i$index;";
     }
@@ -506,17 +571,32 @@ void main() {
     return _optimizedFile = file.path;
   }
 
+  /// Deletes every file sip generated for this package's tests: the
+  /// optimized file and the bucket wrappers, which may sit in any directory
+  /// holding a `flutter_test_config.dart` (see [bucketPlan]).
+  ///
+  /// Directories of nested packages are left alone; their own [Package]
+  /// cleans them.
   void deleteOptimizedTestFile() {
     _bucketPlan = null;
 
-    final testDir = fs.directory(fs.path.join(path, 'test'));
-    if (!testDir.existsSync()) return;
-
-    for (final entity in testDir.listSync(followLinks: false).toList()) {
-      if (entity is! File) continue;
-      if (!entity.basename.startsWith(_optimizedFilePrefix)) continue;
-
-      entity.deleteSync();
+    void clean(Directory dir) {
+      for (final entity in dir.listSync(followLinks: false)) {
+        switch (entity) {
+          case File() when entity.basename.startsWith(_optimizedFilePrefix):
+            entity.deleteSync();
+          case Directory()
+              when !fs
+                  .file(fs.path.join(entity.path, 'pubspec.yaml'))
+                  .existsSync():
+            clean(entity);
+        }
+      }
     }
+
+    final root = fs.directory(path);
+    if (!root.existsSync()) return;
+
+    clean(root);
   }
 }
