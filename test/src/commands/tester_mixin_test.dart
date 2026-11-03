@@ -499,6 +499,116 @@ void main() {
         verifyNever(() => logger.warn(any(that: contains('re-running'))));
       });
 
+      test(
+        'merges --file-reporter into one report, leaving out what a '
+        'fallback re-ran',
+        args: () => const Args(args: {'file-reporter': 'json:report.json'}),
+        () async {
+          fs.currentDirectory = fs.directory('/project')
+            ..createSync(recursive: true);
+
+          // Each simulated run writes the report a real one would, to the
+          // file sip passed it.
+          void writeReport(String script, List<String> tests) {
+            final path = RegExp(
+              r'--file-reporter json:(\S+)',
+            ).firstMatch(script)!.group(1)!;
+            var id = 1;
+            fs
+                .file(path)
+                .writeAsStringSync(
+                  [
+                    {'type': 'start', 'time': 0},
+                    {'type': 'allSuites', 'count': 1, 'time': 0},
+                    {
+                      'type': 'suite',
+                      'suite': {'id': 0},
+                      'time': 0,
+                    },
+                    for (final name in tests) ...[
+                      {
+                        'type': 'testStart',
+                        'test': {'id': id, 'name': name, 'suiteID': 0},
+                        'time': 1,
+                      },
+                      {
+                        'type': 'testDone',
+                        'testID': id++,
+                        'result': 'success',
+                        'time': 2,
+                      },
+                    ],
+                    {'type': 'done', 'success': true, 'time': 3},
+                  ].map(jsonEncode).join('\n'),
+                );
+          }
+
+          mockRunScriptWithOutput((script, onOutput) async {
+            if (script.contains('.test_optimizer_bucket_0.dart')) {
+              // Bucket 0 is cut short after a_test; bucket 1 is healthy.
+              writeReport(script, [
+                'test/a_test.dart a passes',
+                'test/c_test.dart c passes',
+              ]);
+              onOutput(
+                const Message(
+                  '✅ test/.test_optimizer_bucket_0.dart: '
+                  'test/a_test.dart a passes',
+                ),
+              );
+              onOutput(
+                const Message(
+                  '✅ test/.test_optimizer_bucket_1.dart: '
+                  'test/c_test.dart c passes',
+                ),
+              );
+              return const CommandResult(exitCode: 1, output: '', error: '');
+            }
+
+            writeReport(script, ['a passes', 'b passes']);
+            onOutput(const Message('✅ test/a_test.dart a passes'));
+            onOutput(const Message('✅ test/b_test.dart b passes'));
+            return success;
+          });
+
+          final pkg = bucketPackage();
+          final shardCommand = tester.createTestCommand(
+            pkg: pkg,
+            tests: [
+              'test/.test_optimizer_bucket_0.dart',
+              'test/.test_optimizer_bucket_1.dart',
+            ],
+            bail: false,
+            bucketFileGroups: [
+              ['test/a_test.dart', 'test/b_test.dart'],
+              ['test/c_test.dart'],
+            ],
+          );
+
+          final exitCode = await tester.runCommands(
+            [shardCommand],
+            bail: false,
+            showOutput: false,
+          );
+
+          expect(exitCode, ExitCode.success);
+
+          final report = fs.file('/project/report.json');
+          expect(report.existsSync(), isTrue);
+          final events = [
+            for (final line in report.readAsLinesSync())
+              jsonDecode(line) as Map<String, Object?>,
+          ];
+          final names = [
+            for (final e in events)
+              if (e case {'type': 'testStart', 'test': {'name': final n}}) n,
+          ];
+
+          expect(names, ['test/c_test.dart c passes', 'a passes', 'b passes']);
+          expect(events.last, containsPair('success', true));
+        },
+      );
+
       test('does not fall back when the bucket runs cleanly', () async {
         mockRunScriptWithOutput((script, onOutput) async {
           onOutput(
@@ -777,7 +887,7 @@ void main() {
 
     group('#createTestCommand', () {
       test(
-        'forwards --file-reporter, giving each run its own file (#28)',
+        'forwards --file-reporter, each run to a file of its own',
         args: () => const Args(args: {'file-reporter': 'json:results.json'}),
         () {
           fs.currentDirectory = fs.directory('/project')
@@ -785,18 +895,27 @@ void main() {
           fs.file('/project/pubspec.yaml').writeAsStringSync('name: project');
           final pkg = Package('/project/pubspec.yaml');
 
-          String script() =>
-              (tester.createTestCommand(pkg: pkg, tests: [], bail: false)
-                      as ScriptToRun)
-                  .exe;
+          ScriptToRun command({bool writeReport = true}) =>
+              tester.createTestCommand(
+                    pkg: pkg,
+                    tests: [],
+                    bail: false,
+                    writeReport: writeReport,
+                  )
+                  as ScriptToRun;
 
+          final first = command();
+          final second = command();
+
+          expect(first.reportFile, isNotNull);
           expect(
-            script(),
-            contains('--file-reporter json:/project/results.json'),
+            first.exe,
+            contains('--file-reporter json:${first.reportFile}'),
           );
+          expect(second.reportFile, isNot(first.reportFile));
           expect(
-            script(),
-            contains('--file-reporter json:/project/results.1.json'),
+            command(writeReport: false).exe,
+            isNot(contains('--file-reporter')),
           );
         },
       );

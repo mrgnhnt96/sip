@@ -9,7 +9,8 @@ class FlutterAndDartArgs {
   int? get concurrent => args.getOrNull<int>('concurrency', abbr: 'j');
   String? get excludeTags => args.getOrNull<String>('exclude-tags', abbr: 'x');
 
-  /// Not in [arguments]: each run gets its own file (see `TestReports`).
+  /// Not in [arguments]: each run writes its own file, merged at the end
+  /// (see `TestReports`).
   String? get fileReporter => args.getOrNull<String>('file-reporter');
   List<String>? get name => args.getOrNull<List<String>>('name', abbr: 'n');
   List<String>? get plainName => args.getOrNull<List<String>>('plain-name', abbr: 'N');
