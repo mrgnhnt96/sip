@@ -167,6 +167,11 @@ class TestRunCommand with TesterMixin {
       }
     }
 
+    if (slice != null && slice < 1) {
+      logger.err('--slice must be at least 1');
+      return ExitCode.usage;
+    }
+
     if ((bucketShardIndex == null) != (bucketShardCount == null)) {
       logger.err(
         '--bucket-shard-index and --bucket-shard-count must be used together',
@@ -278,15 +283,17 @@ class TestRunCommand with TesterMixin {
     } else if (testsToRun != null) {
       final pkg = Package.nearest();
 
-      // If original paths were '.', 'test', or empty,
-      // don't pass test directories
-      // to the command - just run tests without path arguments
-      final shouldSkipPaths = shouldSkipTestPaths(originalProvidedPaths);
-      final testsForCommand = shouldSkipPaths ? <String>[] : testsToRun;
-
+      // '.' or 'test' means the whole package, which runs without path
+      // arguments. A slice is a list of files, so slicing always passes them:
+      // dropping them left nothing to chunk, and the run passed having run
+      // no tests. Directories are not sliced, since `test` would overlap its
+      // own subdirectories.
       final testGroups = switch (slice) {
-        null => [testsForCommand],
-        final int count => testsForCommand.chunked(count),
+        null when shouldSkipTestPaths(originalProvidedPaths) => [<String>[]],
+        null => [testsToRun],
+        final int count => getTestFilesFromProvided(
+          providedTests,
+        ).chunked(count),
       };
 
       for (final group in testGroups) {
@@ -295,6 +302,7 @@ class TestRunCommand with TesterMixin {
           tests: group,
           bail: bail,
           providedPaths: originalProvidedPaths,
+          keepTests: slice != null,
         );
 
         commandsToRun.add(command);
