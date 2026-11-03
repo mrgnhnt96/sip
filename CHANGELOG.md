@@ -1,3 +1,13 @@
+# 0.20.1 | 11.3.2026
+
+## Fixes
+
+- `sip test --file-reporter <reporter>:<path>` writes its report. The option was read but never passed to `flutter test`/`dart test`. When one `sip test` starts several runs (packages, `--slice`, bucket fallbacks), they are merged into the one file: a `json` report becomes one event stream, tests a bucket fallback re-ran appear once, and `--bucket-retry-failures` retries are left out, matching sip's own result. A relative path resolves against the directory sip was started in.
+- With `--experimental-bucket`, a file whose suite is skipped by tag (`dart_test.yaml` `tags: <tag>: skip:`) no longer makes its bucket re-run every file individually. Skipped results (`⏭️`, `❎`) were read as error text on the previous test, so the file never counted as reported.
+- The passed count no longer comes out one high on newer test runners. Their `✅ Passing tests` group header was counted as a passing test when it arrived in the same output chunk as the previous `::endgroup::`.
+- `sip test test --slice <n>` (or `.`) runs the tests again. It used to start no runs and pass with `✅ 0 ❌ 0`.
+- A `flutter test` run that loses Flutter's startup race to a concurrent run in the same package (it exits before running a test) is re-run once on its own, instead of silently missing from the count. Outside CI, the summary now lists every reason a run failed to finish.
+
 # 0.20.0 | 10.22.2026
 
 ## Features
