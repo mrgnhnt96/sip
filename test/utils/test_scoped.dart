@@ -24,6 +24,7 @@ import 'package:sip_cli/src/deps/pubspec_yaml.dart';
 import 'package:sip_cli/src/deps/script_runner.dart';
 import 'package:sip_cli/src/deps/scripts_yaml.dart';
 import 'package:sip_cli/src/deps/terminal.dart';
+import 'package:sip_cli/src/deps/test_reports.dart';
 import 'package:sip_cli/src/deps/time.dart';
 import 'package:sip_cli/src/deps/variables.dart';
 import 'package:sip_cli/src/domain/analytics.dart';
@@ -88,6 +89,7 @@ void testScoped(
       pubUpdaterProvider,
       variablesProvider,
       onDeathProvider,
+      testReportsProvider,
 
       // Tests are never attached to a terminal, and a default of "no
       // terminal" would silently turn colour off for every existing

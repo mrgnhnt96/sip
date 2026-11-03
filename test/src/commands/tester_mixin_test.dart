@@ -7,6 +7,7 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:meta/meta.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:sip_cli/src/commands/test_command/tester_mixin.dart';
+import 'package:sip_cli/src/domain/args.dart';
 import 'package:sip_cli/src/domain/bindings.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
 import 'package:sip_cli/src/domain/find_file.dart';
@@ -59,10 +60,12 @@ void main() {
       String description,
       FutureOr<void> Function() fn, {
       Object? skip,
+      Args Function()? args,
     }) {
       testScoped(
         description,
         fn,
+        args: args,
         fileSystem: () => fs,
         bindings: () => bindings,
         logger: () => logger,
@@ -773,6 +776,31 @@ void main() {
     });
 
     group('#createTestCommand', () {
+      test(
+        'forwards --file-reporter, giving each run its own file (#28)',
+        args: () => const Args(args: {'file-reporter': 'json:results.json'}),
+        () {
+          fs.currentDirectory = fs.directory('/project')
+            ..createSync(recursive: true);
+          fs.file('/project/pubspec.yaml').writeAsStringSync('name: project');
+          final pkg = Package('/project/pubspec.yaml');
+
+          String script() =>
+              (tester.createTestCommand(pkg: pkg, tests: [], bail: false)
+                      as ScriptToRun)
+                  .exe;
+
+          expect(
+            script(),
+            contains('--file-reporter json:/project/results.json'),
+          );
+          expect(
+            script(),
+            contains('--file-reporter json:/project/results.1.json'),
+          );
+        },
+      );
+
       test('should show root directory when no tests provided and at root', () {
         // Set up root directory with pubspec.yaml
         fs.currentDirectory = fs.directory('/project')
