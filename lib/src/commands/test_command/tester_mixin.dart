@@ -67,6 +67,7 @@ abstract mixin class TesterMixin {
     required bool bail,
     List<String>? providedPaths,
     List<List<String>>? bucketFileGroups,
+    bool keepTests = false,
   }) {
     final toolArgs = switch (pkg) {
       Package(isFlutter: true) => const FlutterTestArgs().arguments,
@@ -84,7 +85,8 @@ abstract mixin class TesterMixin {
     // generated bucket files and/or specific solo (quarantined) files, not
     // "run the whole package", and a solo file's own name won't match
     // optimizedTestBasename the way a generated bucket file's does.
-    final shouldSkipPaths = shouldSkipTestPaths(providedPaths);
+    // [keepTests] does the same for a `--slice` chunk of given files.
+    final shouldSkipPaths = !keepTests && shouldSkipTestPaths(providedPaths);
     final hasOptimizedTestFile = tests.any(
       (test) => test.contains(optimizedTestBasename),
     );

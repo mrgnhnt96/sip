@@ -99,6 +99,152 @@ environment:
     ]);
   });
 
+  group('sip test with --slice and given paths', () {
+    late FileSystem fs;
+    late Bindings bindings;
+
+    const files = [
+      '/pkg/test/a/one_test.dart',
+      '/pkg/test/b/two_test.dart',
+      '/pkg/test/three_test.dart',
+    ];
+
+    setUp(() {
+      bindings = _MockBindings();
+      fs = MemoryFileSystem.test();
+
+      when(
+        () => bindings.runScriptWithOutput(
+          any(),
+          onOutput: any(named: 'onOutput'),
+          bail: any(named: 'bail'),
+        ),
+      ).thenAnswer(
+        (_) async => const CommandResult(exitCode: 0, output: '', error: ''),
+      );
+
+      fs.file('/pkg/pubspec.yaml')
+        ..createSync(recursive: true)
+        ..writeAsStringSync('''
+name: pkg
+
+environment:
+  sdk: ">=3.6.0 <4.0.0"
+''');
+      for (final file in files) {
+        fs.file(file)
+          ..createSync(recursive: true)
+          ..writeAsStringSync('void main() {}');
+      }
+      fs.currentDirectory = fs.directory('/pkg');
+    });
+
+    @isTest
+    void test(
+      String description,
+      List<String> argv,
+      void Function(List<String> scripts) expectations,
+    ) {
+      late Args args;
+
+      testScoped(
+        description,
+        () async {
+          final result = await const TestCommand().run(
+            args.path.skip(1).toList(),
+          );
+
+          expect(result.code, ExitCode.success.code);
+
+          final scripts = verify(
+            () => bindings.runScriptWithOutput(
+              captureAny(),
+              onOutput: any(named: 'onOutput'),
+              bail: any(named: 'bail'),
+            ),
+          ).captured.cast<String>();
+
+          expectations(scripts);
+        },
+        fileSystem: () => fs,
+        bindings: () => bindings,
+        args: () => args = Args.parse(argv),
+      );
+    }
+
+    void expectEachFileOnce(List<String> scripts) {
+      for (final file in files) {
+        expect(
+          scripts.where((script) => script.contains(file)),
+          hasLength(1),
+          reason: '$file should run in exactly one slice',
+        );
+      }
+    }
+
+    for (final path in ['test', '.']) {
+      test(
+        'runs every file when the path is $path',
+        ['test', 'test', if (path == '.') '.', '--slice', '1'],
+        (scripts) {
+          expect(scripts, hasLength(3));
+          expectEachFileOnce(scripts);
+        },
+      );
+    }
+
+    test(
+      'chunks the files, not their directories',
+      ['test', 'test', '--slice', '2'],
+      (scripts) {
+        expect(scripts, hasLength(2));
+        expectEachFileOnce(scripts);
+      },
+    );
+
+    test(
+      'chunks the files inside a given directory',
+      ['test', 'test/a', 'test/b', '--slice', '1'],
+      (scripts) {
+        expect(scripts, hasLength(2));
+        expect(scripts.first, contains('/pkg/test/a/one_test.dart'));
+        expect(scripts.last, contains('/pkg/test/b/two_test.dart'));
+      },
+    );
+
+    test(
+      'still runs the whole package bare without --slice',
+      ['test', 'test'],
+      (scripts) {
+        expect(scripts, hasLength(1));
+        expect(scripts.single, isNot(contains('/pkg/test')));
+      },
+    );
+
+    late Args args;
+
+    testScoped(
+      'rejects --slice 0 instead of hanging',
+      () async {
+        final result = await const TestCommand().run(
+          args.path.skip(1).toList(),
+        );
+
+        expect(result.code, ExitCode.usage.code);
+        verifyNever(
+          () => bindings.runScriptWithOutput(
+            any(),
+            onOutput: any(named: 'onOutput'),
+            bail: any(named: 'bail'),
+          ),
+        );
+      },
+      fileSystem: () => fs,
+      bindings: () => bindings,
+      args: () => args = Args.parse(['test', 'test', '--slice', '0']),
+    );
+  });
+
   // https://github.com/mrgnhnt96/sip/issues/18
   group('sip test --experimental-bucket with given paths', () {
     late FileSystem fs;
