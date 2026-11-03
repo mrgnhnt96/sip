@@ -450,6 +450,52 @@ void main() {
         },
       );
 
+      test('does not fall back when a file in the bucket is skipped by tag '
+          '(#29)', () async {
+        // What `flutter test` printed for a bucket holding a file whose
+        // tag is configured `skip:` in dart_test.yaml: its test is reported
+        // in a trailing "Skipped tests" section, after the passes.
+        mockRunScriptWithOutput((script, onOutput) async {
+          onOutput(
+            const Message(
+              '::group::✅ Passing tests\n'
+              '✅ test/a_test.dart a\n',
+            ),
+          );
+          onOutput(const Message('::endgroup::\n::group::⏭️ Skipped tests\n'));
+          onOutput(const Message('⏭️ test/tagged_test.dart tagged (skipped)'));
+          onOutput(const Message('Skip: run with --tags internal-build'));
+          onOutput(const Message('::endgroup::\n🎉 1 test passed, 1 skipped.'));
+          return success;
+        });
+
+        final pkg = bucketPackage();
+        final bucketCommand = tester.createTestCommand(
+          pkg: pkg,
+          tests: ['test/.test_optimizer_bucket_0.dart'],
+          bail: false,
+          bucketFileGroups: [
+            ['test/a_test.dart', 'test/tagged_test.dart'],
+          ],
+        );
+
+        final exitCode = await tester.runCommands(
+          [bucketCommand],
+          bail: false,
+          showOutput: false,
+        );
+
+        expect(exitCode, ExitCode.success);
+        verify(
+          () => bindings.runScriptWithOutput(
+            any(),
+            onOutput: any(named: 'onOutput'),
+            bail: any(named: 'bail'),
+          ),
+        ).called(1);
+        verifyNever(() => logger.warn(any(that: contains('re-running'))));
+      });
+
       test('does not fall back when the bucket runs cleanly', () async {
         mockRunScriptWithOutput((script, onOutput) async {
           onOutput(

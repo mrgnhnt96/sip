@@ -342,7 +342,7 @@ abstract mixin class TesterMixin {
       final tests = <String>[];
       final buf = StringBuffer();
       final timePattern = RegExp(r'^\d{2,}:\d{2,}');
-      final ciPattern = RegExp('^[✅❌⚠️]');
+      final ciPattern = RegExp('^(?:✅|❌|⚠|⏭|❎)');
 
       for (final line in lines) {
         // In CI format, each emoji-prefixed line is a separate test

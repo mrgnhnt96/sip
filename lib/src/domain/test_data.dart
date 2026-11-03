@@ -159,6 +159,10 @@ class TestData {
     multiLine: true,
   );
 
+  /// The icon that opens a result line: a pass, a failure, or a skip --
+  /// `⏭️` from `flutter test`, `❎` from test_core's own github reporter.
+  static final _resultIcon = RegExp('^(?:✅|❌|⏭\uFE0F?|❎)');
+
   void parseCi(Runnable script, String rawOutput) {
     final data = _data[script.hashCode] ??= TestData();
 
@@ -235,7 +239,10 @@ class TestData {
       return;
     }
 
-    if (!RegExp('^[✅❌]').hasMatch(message)) {
+    // A skip is its own result too: read as a continuation, it was appended
+    // to the error of the test before it, so the skipped file never counted
+    // as reported and a healthy bucket was re-run file by file (#29).
+    if (!_resultIcon.hasMatch(message)) {
       if (data._last case final last?) {
         last.error = [?last.error?.trim(), message.trim()].join('\n');
         data._previous = null;
@@ -256,7 +263,8 @@ class TestData {
       }
     }
 
-    final trimmedMessage = message.substring(1).trim();
+    // Not `substring(1)`: `⏭️` is two code units.
+    final trimmedMessage = message.replaceFirst(_resultIcon, '').trim();
     final parts = trimmedMessage.split(' ');
     final rawPath = parts.first;
 

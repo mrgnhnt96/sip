@@ -128,6 +128,30 @@ test/a_test.dart 4:23  main.<fn>
       );
     });
 
+    // `flutter test` marks a skip with ⏭️ (U+23ED U+FE0F), and test_core's
+    // own github reporter with ❎. Either one starts a new result; it is not
+    // a continuation of the test reported before it (#29).
+    group('skipped results', () {
+      for (final icon in ['⏭️', '❎']) {
+        testScoped(
+          '$icon after a pass is counted as its own skip',
+          fileSystem: MemoryFileSystem.test,
+          () {
+            final script = ScriptToRun('dart test', workingDirectory: '.');
+            final data = TestData(quiet: true)
+              ..parse(script, '✅ test/a_test.dart a')
+              ..parse(script, '$icon test/tagged_test.dart tagged (skipped)');
+
+            expect(data.passing, 1);
+            expect(data.skipped, 1);
+            expect(data.successes.single.error, isNull);
+            expect(data.skips.single.path, 'test/tagged_test.dart');
+            expect(data.skips.single.test, 'tagged (skipped)');
+          },
+        );
+      }
+    });
+
     testScoped(
       'buffers an unclosed group until it closes',
       fileSystem: MemoryFileSystem.test,
