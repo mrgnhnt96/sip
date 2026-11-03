@@ -183,9 +183,27 @@ mechanisms are easy to reintroduce.
 
 ## Releasing
 
-`sip run publish` is the release path. It chains `sip test --bail --recursive`,
-`sip run prep`, `dart pub publish`, then a commit, a tag and a push. It sets
-`(bail): true`, so a failing step now stops the release — before the fixes above
+A release goes through the task board in two steps:
+
+1. **A release PR.** Add the `CHANGELOG.md` entry, run `sip run prep`, and merge
+   it like any other change.
+2. **`tb release cut v<version>`.** The board runs `scripts/release.sh` with the
+   name and records the release only if it succeeds. The script works in a
+   throwaway worktree of `origin/main`, refuses unless `pubspec.yaml`,
+   `version.dart` and `CHANGELOG.md` all match the name, then runs analyze and
+   `dart test`, runs `dart pub publish`, and tags and pushes `v<version>`. It is
+   safe to re-run: a version already on pub.dev, or a tag already at that
+   commit, is skipped. Run it directly only when the board is down
+   (`scripts/release.sh <version> --force`).
+
+Don't publish by hand and then record the release with
+`tb release cut --no-script`. That flag is only for a release that went out some
+other way.
+
+`sip run publish` is the older single-command path. It chains
+`sip test --bail --recursive`, `sip run prep`, `dart pub publish`, then a
+commit, a tag and a push straight to `main`, which bypasses the PR flow. It sets
+`(bail): true`, so a failing step stops the release — before the fixes above
 it did not, and a red suite would publish.
 
 `sip run prep` keeps three things in sync from `CHANGELOG.md`: `pubspec.yaml`'s
