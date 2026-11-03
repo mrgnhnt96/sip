@@ -7,6 +7,7 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:meta/meta.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:sip_cli/src/commands/test_command/tester_mixin.dart';
+import 'package:sip_cli/src/domain/args.dart';
 import 'package:sip_cli/src/domain/bindings.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
 import 'package:sip_cli/src/domain/find_file.dart';
@@ -59,10 +60,12 @@ void main() {
       String description,
       FutureOr<void> Function() fn, {
       Object? skip,
+      Args Function()? args,
     }) {
       testScoped(
         description,
         fn,
+        args: args,
         fileSystem: () => fs,
         bindings: () => bindings,
         logger: () => logger,
@@ -450,6 +453,52 @@ void main() {
         },
       );
 
+      test('does not fall back when a file in the bucket is skipped by tag '
+          '(#29)', () async {
+        // What `flutter test` printed for a bucket holding a file whose
+        // tag is configured `skip:` in dart_test.yaml: its test is reported
+        // in a trailing "Skipped tests" section, after the passes.
+        mockRunScriptWithOutput((script, onOutput) async {
+          onOutput(
+            const Message(
+              '::group::✅ Passing tests\n'
+              '✅ test/a_test.dart a\n',
+            ),
+          );
+          onOutput(const Message('::endgroup::\n::group::⏭️ Skipped tests\n'));
+          onOutput(const Message('⏭️ test/tagged_test.dart tagged (skipped)'));
+          onOutput(const Message('Skip: run with --tags internal-build'));
+          onOutput(const Message('::endgroup::\n🎉 1 test passed, 1 skipped.'));
+          return success;
+        });
+
+        final pkg = bucketPackage();
+        final bucketCommand = tester.createTestCommand(
+          pkg: pkg,
+          tests: ['test/.test_optimizer_bucket_0.dart'],
+          bail: false,
+          bucketFileGroups: [
+            ['test/a_test.dart', 'test/tagged_test.dart'],
+          ],
+        );
+
+        final exitCode = await tester.runCommands(
+          [bucketCommand],
+          bail: false,
+          showOutput: false,
+        );
+
+        expect(exitCode, ExitCode.success);
+        verify(
+          () => bindings.runScriptWithOutput(
+            any(),
+            onOutput: any(named: 'onOutput'),
+            bail: any(named: 'bail'),
+          ),
+        ).called(1);
+        verifyNever(() => logger.warn(any(that: contains('re-running'))));
+      });
+
       test('does not fall back when the bucket runs cleanly', () async {
         mockRunScriptWithOutput((script, onOutput) async {
           onOutput(
@@ -727,6 +776,31 @@ void main() {
     });
 
     group('#createTestCommand', () {
+      test(
+        'forwards --file-reporter, giving each run its own file (#28)',
+        args: () => const Args(args: {'file-reporter': 'json:results.json'}),
+        () {
+          fs.currentDirectory = fs.directory('/project')
+            ..createSync(recursive: true);
+          fs.file('/project/pubspec.yaml').writeAsStringSync('name: project');
+          final pkg = Package('/project/pubspec.yaml');
+
+          String script() =>
+              (tester.createTestCommand(pkg: pkg, tests: [], bail: false)
+                      as ScriptToRun)
+                  .exe;
+
+          expect(
+            script(),
+            contains('--file-reporter json:/project/results.json'),
+          );
+          expect(
+            script(),
+            contains('--file-reporter json:/project/results.1.json'),
+          );
+        },
+      );
+
       test('should show root directory when no tests provided and at root', () {
         // Set up root directory with pubspec.yaml
         fs.currentDirectory = fs.directory('/project')

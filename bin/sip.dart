@@ -24,6 +24,7 @@ import 'package:sip_cli/src/deps/pubspec_yaml.dart';
 import 'package:sip_cli/src/deps/script_runner.dart';
 import 'package:sip_cli/src/deps/scripts_yaml.dart';
 import 'package:sip_cli/src/deps/terminal.dart';
+import 'package:sip_cli/src/deps/test_reports.dart';
 import 'package:sip_cli/src/deps/time.dart';
 import 'package:sip_cli/src/deps/variables.dart';
 import 'package:sip_cli/src/domain/args.dart';
@@ -73,6 +74,7 @@ void main(List<String> arguments) async {
         variablesProvider,
         scriptRunnerProvider,
         timeProvider,
+        testReportsProvider,
         deviceInfoProvider,
         analyticsProvider,
         onDeathProvider,

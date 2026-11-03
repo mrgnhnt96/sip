@@ -6,8 +6,10 @@ import 'package:mason_logger/mason_logger.dart';
 import 'package:sip_cli/src/deps/fs.dart';
 import 'package:sip_cli/src/deps/logger.dart';
 import 'package:sip_cli/src/deps/script_runner.dart';
+import 'package:sip_cli/src/deps/test_reports.dart';
 import 'package:sip_cli/src/domain/command_result.dart';
 import 'package:sip_cli/src/domain/dart_test_args.dart';
+import 'package:sip_cli/src/domain/flutter_and_dart_args.dart';
 import 'package:sip_cli/src/domain/flutter_test_args.dart';
 import 'package:sip_cli/src/domain/message.dart';
 import 'package:sip_cli/src/domain/message_action.dart';
@@ -92,9 +94,18 @@ abstract mixin class TesterMixin {
         ? <String>[]
         : tests;
 
+    // Not part of `toolArgs`: every run needs its own report file, or each
+    // would overwrite the last (see TestReports).
+    final fileReporter = testReports.nextArgument(
+      const FlutterAndDartArgs().fileReporter,
+      cwd: fs.currentDirectory.path,
+      context: fs.path,
+    );
+
     final script = [
       '$command test',
       ...toolArgs,
+      ?fileReporter,
       ...testsToPass,
     ].join(' ').trim();
 
@@ -342,7 +353,7 @@ abstract mixin class TesterMixin {
       final tests = <String>[];
       final buf = StringBuffer();
       final timePattern = RegExp(r'^\d{2,}:\d{2,}');
-      final ciPattern = RegExp('^[✅❌⚠️]');
+      final ciPattern = RegExp('^(?:✅|❌|⚠|⏭|❎)');
 
       for (final line in lines) {
         // In CI format, each emoji-prefixed line is a separate test

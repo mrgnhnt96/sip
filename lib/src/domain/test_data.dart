@@ -152,8 +152,28 @@ class TestData {
   String? _previous;
   TestOutput? _last;
 
-  void parseCi(Runnable script, String output) {
+  /// The section headers test_core (>= 0.6.18) wraps around a run of
+  /// passing or skipped tests. They label a batch, they are not a result.
+  static final _sectionHeader = RegExp(
+    r'^::group::(✅ Passing tests|⏭️ Skipped tests)[ \t]*\r?$\n?',
+    multiLine: true,
+  );
+
+  /// The icon that opens a result line: a pass, a failure, or a skip --
+  /// `⏭️` from `flutter test`, `❎` from test_core's own github reporter.
+  static final _resultIcon = RegExp('^(?:✅|❌|⏭\uFE0F?|❎)');
+
+  void parseCi(Runnable script, String rawOutput) {
     final data = _data[script.hashCode] ??= TestData();
+
+    // Removed before anything is classified: left in, a header that shares a
+    // chunk with the `::endgroup::` before it is stripped down to
+    // `✅ Passing tests` and counted as a pass, and one that arrives alone is
+    // buffered and glued onto the name of the next test.
+    final output = rawOutput.replaceAll(_sectionHeader, '');
+    if (output.trim().isEmpty) {
+      return;
+    }
 
     var message = [?data._previous, output].join('\n');
 
@@ -219,7 +239,10 @@ class TestData {
       return;
     }
 
-    if (!RegExp('^[✅❌]').hasMatch(message)) {
+    // A skip is its own result too: read as a continuation, it was appended
+    // to the error of the test before it, so the skipped file never counted
+    // as reported and a healthy bucket was re-run file by file (#29).
+    if (!_resultIcon.hasMatch(message)) {
       if (data._last case final last?) {
         last.error = [?last.error?.trim(), message.trim()].join('\n');
         data._previous = null;
@@ -240,7 +263,8 @@ class TestData {
       }
     }
 
-    final trimmedMessage = message.substring(1).trim();
+    // Not `substring(1)`: `⏭️` is two code units.
+    final trimmedMessage = message.replaceFirst(_resultIcon, '').trim();
     final parts = trimmedMessage.split(' ');
     final rawPath = parts.first;
 
