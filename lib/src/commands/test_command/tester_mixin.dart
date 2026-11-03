@@ -68,6 +68,7 @@ abstract mixin class TesterMixin {
     List<String>? providedPaths,
     List<List<String>>? bucketFileGroups,
     bool keepTests = false,
+    bool writeReport = true,
   }) {
     final toolArgs = switch (pkg) {
       Package(isFlutter: true) => const FlutterTestArgs().arguments,
@@ -96,13 +97,16 @@ abstract mixin class TesterMixin {
         ? <String>[]
         : tests;
 
-    // Not part of `toolArgs`: every run needs its own report file, or each
-    // would overwrite the last (see TestReports).
-    final fileReporter = testReports.nextArgument(
-      const FlutterAndDartArgs().fileReporter,
-      cwd: fs.currentDirectory.path,
-      context: fs.path,
-    );
+    // Not part of `toolArgs`: every run writes its own report file, merged
+    // into the `--file-reporter` path once everything has run (see
+    // TestReports.write in [runCommands]).
+    String? reportFile;
+    final fileReporter = writeReport
+        ? testReports.nextArgument(
+            const FlutterAndDartArgs().fileReporter,
+            reportFile: (file) => reportFile = file,
+          )
+        : null;
 
     final script = [
       '$command test',
@@ -138,6 +142,7 @@ abstract mixin class TesterMixin {
       data: pkg,
       variables: {'GITHUB_ACTIONS': 'true'},
       bucketFileGroups: bucketFileGroups,
+      reportFile: reportFile,
     );
   }
 
@@ -314,6 +319,8 @@ abstract mixin class TesterMixin {
       }
     }
 
+    testReports.write();
+
     if (asJson) {
       writeJson(data.toJson());
     } else {
@@ -466,6 +473,15 @@ abstract mixin class TesterMixin {
       );
 
       data.discardOutputsForFiles(command, filesToRerun.toSet());
+      if (command.reportFile case final reportFile?) {
+        // Every group re-run: the whole run is replaced, its load errors
+        // (which name the wrapper, not a file) included.
+        if (missingGroups.length == groups.length) {
+          testReports.discardRun(reportFile);
+        } else {
+          testReports.discard(reportFile, filesToRerun);
+        }
+      }
       if (missingGroups.length == groups.length) {
         data.clearErrorFor(command);
       }
@@ -555,7 +571,14 @@ abstract mixin class TesterMixin {
   }
 
   Future<bool> _passesAlone(Package pkg, String file) async {
-    final command = createTestCommand(pkg: pkg, tests: [file], bail: false);
+    // No report: this run only checks whether [file] passes alone, and sip
+    // keeps the combined result, so the report does too.
+    final command = createTestCommand(
+      pkg: pkg,
+      tests: [file],
+      bail: false,
+      writeReport: false,
+    );
     final soloData = TestData(quiet: true);
     int? exitCode;
 

@@ -19,6 +19,7 @@ class ScriptToRun implements Runnable {
     this.runInParallel,
     this.data,
     this.bucketFileGroups,
+    this.reportFile,
   }) : _bail = bail,
        variables = variables ?? {};
 
@@ -36,6 +37,10 @@ class ScriptToRun implements Runnable {
   /// original (package-relative) test files per bucket/solo file it covers
   /// -- see `Package.bucketFileGroupsFor`. `null` for anything else.
   final List<List<String>>? bucketFileGroups;
+
+  /// The file this test run's `--file-reporter` output goes to before
+  /// `TestReports.write` merges it, or `null` when it has none.
+  final String? reportFile;
 
   final String? label;
 
