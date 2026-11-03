@@ -283,6 +283,225 @@ void main() {
       });
     });
 
+    group('#runCommands runs that never started', () {
+      // Concurrent `flutter test` runs in one package race on its build
+      // directory: the loser exits 1 before running a single test, and its
+      // tests used to vanish from the count.
+      const race = CommandResult(exitCode: 1, output: '', error: '');
+
+      late Map<String, int> calls;
+
+      void mockRuns(
+        CommandResult Function(
+          String script,
+          int call,
+          MessageAction? Function(Message) onOutput,
+        )
+        answer,
+      ) {
+        calls = {};
+        when(
+          () => bindings.runScriptWithOutput(
+            any(),
+            onOutput: any(named: 'onOutput'),
+            bail: any(named: 'bail'),
+          ),
+        ).thenAnswer((invocation) async {
+          final command = invocation.positionalArguments.first as String;
+          final script = RegExp(r'run_slice_(\w)').firstMatch(command)![1]!;
+          final onOutput =
+              invocation.namedArguments[#onOutput]
+                  as MessageAction? Function(Message);
+          final call = calls[script] = (calls[script] ?? 0) + 1;
+
+          return answer(script, call, onOutput);
+        });
+      }
+
+      CommandResult passes(
+        MessageAction? Function(Message) onOutput,
+        String t,
+      ) {
+        onOutput(Message('✅ test/${t}_test.dart $t passes'));
+        return success;
+      }
+
+      List<ScriptToRun> slices({String Function(String)? directory}) => [
+        for (final name in ['a', 'b', 'c'])
+          ScriptToRun(
+            'run_slice_$name',
+            workingDirectory: directory?.call(name) ?? '/project',
+            label: 'slice $name',
+            runInParallel: true,
+          ),
+      ];
+
+      test('re-runs on its own a run that exited non-zero before reporting '
+          'a test while other runs shared its directory', () async {
+        mockRuns((script, call, onOutput) {
+          if (script == 'c' && call == 1) return race;
+          return passes(onOutput, script);
+        });
+
+        final exitCode = await tester.runCommands(
+          slices(),
+          bail: false,
+          showOutput: false,
+        );
+
+        expect(exitCode, ExitCode.success);
+        expect(calls, {'a': 1, 'b': 1, 'c': 2});
+        verify(
+          () => logger.warn(
+            any(
+              that: allOf(
+                contains('slice c exited with code 1'),
+                contains('re-running it on its own'),
+              ),
+            ),
+          ),
+        ).called(1);
+      });
+
+      test('re-runs a run whose only output was not a test result', () async {
+        mockRuns((script, call, onOutput) {
+          if (script == 'c' && call == 1) {
+            onOutput(
+              const Message(
+                'Waiting for another flutter command to release the '
+                'startup lock...',
+              ),
+            );
+            return race;
+          }
+          return passes(onOutput, script);
+        });
+
+        final exitCode = await tester.runCommands(
+          slices(),
+          bail: false,
+          showOutput: false,
+        );
+
+        expect(exitCode, ExitCode.success);
+        expect(calls, {'a': 1, 'b': 1, 'c': 2});
+      });
+
+      test('counts the re-run in the results', () async {
+        mockRuns((script, call, onOutput) {
+          if (script == 'c' && call == 1) return race;
+          return passes(onOutput, script);
+        });
+
+        await tester.runCommands(
+          slices(),
+          bail: false,
+          showOutput: false,
+          asJson: true,
+        );
+
+        final written = verify(
+          () => logger.write(captureAny()),
+        ).captured.cast<String>().join();
+        final json =
+            jsonDecode(written.substring(written.indexOf('{')))
+                as Map<String, Object?>;
+        expect(json['counts'], containsPair('passing', 3));
+        expect(json['passed'], isTrue);
+      });
+
+      test('fails when the re-run fails too', () async {
+        mockRuns((script, call, onOutput) {
+          if (script == 'c') return race;
+          return passes(onOutput, script);
+        });
+
+        final exitCode = await tester.runCommands(
+          slices(),
+          bail: false,
+          showOutput: false,
+        );
+
+        expect(exitCode, ExitCode.software);
+        expect(calls, {'a': 1, 'b': 1, 'c': 2});
+      });
+
+      test('does not re-run a run alone in its directory', () async {
+        mockRuns((script, call, onOutput) {
+          if (script == 'c') return race;
+          return passes(onOutput, script);
+        });
+
+        final exitCode = await tester.runCommands(
+          slices(directory: (name) => '/project/$name'),
+          bail: false,
+          showOutput: false,
+        );
+
+        expect(exitCode, ExitCode.software);
+        expect(calls, {'a': 1, 'b': 1, 'c': 1});
+      });
+
+      test('does not re-run a run that reported a test', () async {
+        mockRuns((script, call, onOutput) {
+          if (script == 'c') {
+            passes(onOutput, script);
+            return race;
+          }
+          return passes(onOutput, script);
+        });
+
+        final exitCode = await tester.runCommands(
+          slices(),
+          bail: false,
+          showOutput: false,
+        );
+
+        expect(exitCode, ExitCode.software);
+        expect(calls, {'a': 1, 'b': 1, 'c': 1});
+      });
+
+      test('does not re-run once a test failed with bail set', () async {
+        mockRuns((script, call, onOutput) {
+          if (script == 'a') {
+            onOutput(const Message('❌ test/a_test.dart a fails (failed)'));
+            return failure;
+          }
+          if (script == 'c') return race;
+          return passes(onOutput, script);
+        });
+
+        final exitCode = await tester.runCommands(
+          slices(),
+          bail: true,
+          showOutput: false,
+        );
+
+        expect(exitCode, ExitCode.software);
+        expect(calls['c'], 1);
+      });
+
+      test('does not re-run once the compiler crashed', () async {
+        mockRuns((script, call, onOutput) {
+          if (script == 'a') {
+            onOutput(const Message('The Dart compiler exited unexpectedly'));
+            return failure;
+          }
+          if (script == 'c') return race;
+          return passes(onOutput, script);
+        });
+
+        final exitCode = await tester.runCommands(
+          slices(),
+          bail: false,
+          showOutput: false,
+        );
+
+        expect(exitCode, ExitCode.software);
+        expect(calls['c'], 1);
+      });
+    });
+
     group('#runCommands experimental bucket fallback', () {
       Package bucketPackage() {
         fs.file('/project/pubspec.yaml')

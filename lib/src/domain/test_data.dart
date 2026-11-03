@@ -39,7 +39,7 @@ class TestData {
 
   void addError(Runnable? script, Object error) {
     if (script != null) {
-      _data[script.hashCode]?._error = error;
+      (_data[script.hashCode] ??= TestData())._error = error;
     } else {
       _error = error;
     }
@@ -707,11 +707,13 @@ class TestData {
         buf.writeln();
       }
 
-      if (_error case final Object e) {
-        buf
-          ..writeln('❌ Failed to finish')
-          ..writeln('$e'.trim())
-          ..writeln();
+      if (allFailures case final errors when errors.isNotEmpty) {
+        if (hasTerminal) buf.writeln();
+        buf.writeln('❌ Failed to finish');
+        for (final error in errors) {
+          buf.writeln('$error'.trim());
+        }
+        buf.writeln();
       }
     }
 
