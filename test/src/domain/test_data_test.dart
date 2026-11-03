@@ -1,4 +1,7 @@
 import 'package:file/memory.dart';
+import 'package:mason_logger/mason_logger.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:platform/platform.dart';
 import 'package:sip_cli/src/domain/script_to_run.dart';
 import 'package:sip_cli/src/domain/test_data.dart';
 import 'package:test/test.dart';
@@ -34,6 +37,62 @@ test/a_test.dart 4:23  main.<fn>
         expect(json['errors'], ['pkg_a exited with code 70']);
       },
     );
+
+    group('printResults outside CI', () {
+      late _MockLogger logger;
+
+      String printed() => verify(
+        () => logger.write(captureAny()),
+      ).captured.cast<String>().join();
+
+      testScoped(
+        'names the command behind a non-zero exit',
+        fileSystem: MemoryFileSystem.test,
+        platform: () => FakePlatform(environment: {}),
+        logger: () => logger = _MockLogger(),
+        () {
+          TestData()
+            ..addExitFailure('Running (flutter) tests in test', 1)
+            ..printResults();
+
+          expect(
+            printed(),
+            allOf(
+              contains('❌ Failed to finish'),
+              contains('Running (flutter) tests in test exited with code 1'),
+            ),
+          );
+        },
+      );
+
+      testScoped(
+        'names an error raised by one command',
+        fileSystem: MemoryFileSystem.test,
+        platform: () => FakePlatform(environment: {}),
+        logger: () => logger = _MockLogger(),
+        () {
+          final script = ScriptToRun('dart test', workingDirectory: '.');
+          TestData()
+            ..parse(script, '✅ test/a_test.dart passes')
+            ..addError(script, 'The Dart compiler exited unexpectedly')
+            ..printResults();
+
+          expect(printed(), contains('The Dart compiler exited unexpectedly'));
+        },
+      );
+
+      testScoped(
+        'prints no failure section when nothing failed',
+        fileSystem: MemoryFileSystem.test,
+        platform: () => FakePlatform(environment: {}),
+        logger: () => logger = _MockLogger(),
+        () {
+          TestData().printResults();
+
+          expect(printed(), isNot(contains('Failed to finish')));
+        },
+      );
+    });
 
     testScoped(
       'json passes when nothing failed and no command exited non-zero',
@@ -169,3 +228,5 @@ test/a_test.dart 4:23  main.<fn>
     );
   });
 }
+
+class _MockLogger extends Mock implements Logger {}

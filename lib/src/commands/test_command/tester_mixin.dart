@@ -294,6 +294,14 @@ abstract mixin class TesterMixin {
       bail: bail,
     );
 
+    await _rerunRunsThatNeverStarted(
+      commandsToRun,
+      scriptResults: scriptResults,
+      superseded: superseded,
+      data: data,
+      bail: bail,
+    );
+
     if (retryBucketFailures) {
       await _retryBucketFailuresAlone(commandsToRun, data: data);
     }
@@ -509,6 +517,83 @@ abstract mixin class TesterMixin {
     }
 
     return superseded;
+  }
+
+  static bool _isTestResult(TestOutput output) =>
+      output.didPass || output.didFail || output.didSkip;
+
+  /// Concurrent `flutter test` runs in one package share its `build/`
+  /// directory, and the Flutter tool races on it: the loser fails to copy
+  /// `NativeAssetsManifest.json` and exits 1 before running a single test.
+  /// Its tests then vanish from the count and the report, and the run fails
+  /// with no failing test to show for it.
+  ///
+  /// Each such run -- one that exited non-zero without reporting a single
+  /// pass, failure or skip while another run shared its directory -- is run
+  /// again on its own, after
+  /// the others have finished. Its other output does not count as a start:
+  /// Flutter's "Waiting for another flutter command to release the startup
+  /// lock..." reaches the parser before any result and is recorded too. The
+  /// same command is reused, so its results,
+  /// its exit code and its report file are simply replaced. A second failure
+  /// is reported like any other.
+  ///
+  /// Nothing is re-run once the run has failed for another reason, or when a
+  /// command never ran at all: a bail or a crashed compiler kills the other
+  /// runs, which then look exactly like runs that never started.
+  Future<void> _rerunRunsThatNeverStarted(
+    List<Runnable> commandsToRun, {
+    required Map<Runnable, CommandResult> scriptResults,
+    required Set<Runnable> superseded,
+    required TestData data,
+    required bool bail,
+  }) async {
+    if (data.allFailures.isNotEmpty) return;
+    if (bail && data.failing > 0) return;
+
+    final scripts = commandsToRun.whereType<ScriptToRun>().toList();
+    // A bail stops later commands from launching, and they record no failure
+    // of their own: passing the re-run would pass a run that skipped them.
+    if (scripts.any((script) => !scriptResults.containsKey(script))) return;
+    final runsPerDirectory = <String?, int>{};
+    for (final script in scripts) {
+      runsPerDirectory.update(
+        script.workingDirectory,
+        (count) => count + 1,
+        ifAbsent: () => 1,
+      );
+    }
+
+    bool neverStarted(ScriptToRun script) {
+      final exitCode = scriptResults[script]?.exitCode;
+
+      return exitCode != null &&
+          exitCode != ExitCode.success.code &&
+          !superseded.contains(script) &&
+          runsPerDirectory[script.workingDirectory]! > 1 &&
+          !data.outputsFor(script).any(_isTestResult);
+    }
+
+    for (final script in scripts.where(neverStarted).toList()) {
+      logger.warn(
+        '${script.label ?? script.exe} exited with code '
+        '${scriptResults[script]?.exitCode} before reporting a single test '
+        'while other runs shared its directory -- re-running it on its own.',
+      );
+
+      try {
+        await scriptRunner.run(
+          [script],
+          bail: bail,
+          logTime: false,
+          printLabels: false,
+          onScriptResult: (script, result) => scriptResults[script] = result,
+          onMessage: _testOutputHandler(data, bail: bail),
+        );
+      } catch (e) {
+        data.addError(script, e);
+      }
+    }
   }
 
   /// `--bucket-retry-failures`: re-runs each bucketed file that had a failing
