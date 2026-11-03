@@ -65,6 +65,69 @@ test/a_test.dart 4:23  main.<fn>
       },
     );
 
+    // test_core >= 0.6.18 wraps passes in a `::group::✅ Passing tests`
+    // section. That header is not a result: it must count the same whether
+    // the pipe delivers it alone or glued to the `::endgroup::` before it.
+    group('section headers', () {
+      const pass = '✅ test/a_test.dart adds';
+
+      testScoped(
+        'are not counted when they share a chunk with ::endgroup::',
+        fileSystem: MemoryFileSystem.test,
+        () {
+          final script = ScriptToRun('dart test', workingDirectory: '.');
+          final data = TestData(quiet: true)
+            ..parse(script, pass)
+            ..parse(script, '::endgroup::\n::group::✅ Passing tests\n');
+
+          expect(data.passing, 1);
+        },
+      );
+
+      testScoped(
+        'are not counted when they arrive alone',
+        fileSystem: MemoryFileSystem.test,
+        () {
+          final script = ScriptToRun('dart test', workingDirectory: '.');
+          final data = TestData(quiet: true)
+            ..parse(script, pass)
+            ..parse(script, '::endgroup::\n')
+            ..parse(script, '::group::✅ Passing tests\n');
+
+          expect(data.passing, 1);
+        },
+      );
+
+      testScoped(
+        'do not leak into the name of the next test',
+        fileSystem: MemoryFileSystem.test,
+        () {
+          final script = ScriptToRun('dart test', workingDirectory: '.');
+          final data = TestData(quiet: true)
+            ..parse(script, '::group::✅ Passing tests')
+            ..parse(script, pass);
+
+          expect(data.passing, 1);
+          expect(data.successes.single.test, 'adds');
+        },
+      );
+
+      testScoped(
+        'do not hide a failure that follows them',
+        fileSystem: MemoryFileSystem.test,
+        () {
+          final script = ScriptToRun('dart test', workingDirectory: '.');
+          final data = TestData(quiet: true)
+            ..parse(script, '::group::✅ Passing tests\n$pass')
+            ..parse(script, failureChunk)
+            ..parse(script, '::group::✅ Passing tests\n$pass');
+
+          expect(data.passing, 2);
+          expect(data.failing, 1);
+        },
+      );
+    });
+
     testScoped(
       'buffers an unclosed group until it closes',
       fileSystem: MemoryFileSystem.test,

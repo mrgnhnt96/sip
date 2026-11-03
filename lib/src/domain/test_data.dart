@@ -152,8 +152,24 @@ class TestData {
   String? _previous;
   TestOutput? _last;
 
-  void parseCi(Runnable script, String output) {
+  /// The section headers test_core (>= 0.6.18) wraps around a run of
+  /// passing or skipped tests. They label a batch, they are not a result.
+  static final _sectionHeader = RegExp(
+    r'^::group::(✅ Passing tests|⏭️ Skipped tests)[ \t]*\r?$\n?',
+    multiLine: true,
+  );
+
+  void parseCi(Runnable script, String rawOutput) {
     final data = _data[script.hashCode] ??= TestData();
+
+    // Removed before anything is classified: left in, a header that shares a
+    // chunk with the `::endgroup::` before it is stripped down to
+    // `✅ Passing tests` and counted as a pass, and one that arrives alone is
+    // buffered and glued onto the name of the next test.
+    final output = rawOutput.replaceAll(_sectionHeader, '');
+    if (output.trim().isEmpty) {
+      return;
+    }
 
     var message = [?data._previous, output].join('\n');
 
